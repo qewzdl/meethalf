@@ -1,0 +1,17 @@
+.git
+.gitignore
+.idea
+bin
+coverage
+dist
+tmp
+*.md
+*.log
+*.test
+*.out
+*.exe
+*.dll
+*.so
+*.dylib
+*.exe~
+.env
