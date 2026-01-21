@@ -1,0 +1,70 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: "dev"
+      HTTP_HOST: "0.0.0.0"
+      HTTP_PORT: "8080"
+      RATE_LIMIT_STORE: "redis"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_USER: "meethalf_app"
+      DB_PASSWORD: "meethalf_app"
+      DB_NAME: "meethalf"
+      DB_SCHEMA: "meethalf"
+      DB_SSLMODE: "disable"
+      DB_CONNECT_TIMEOUT: "5s"
+      DB_MAX_OPEN_CONNS: "25"
+      DB_MAX_IDLE_CONNS: "25"
+      DB_CONN_MAX_LIFETIME: "30m"
+      DB_CONN_MAX_IDLE_TIME: "5m"
+      REDIS_ENABLED: "true"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
+      REDIS_CONNECT_TIMEOUT: "5s"
+      REDIS_READ_TIMEOUT: "3s"
+      REDIS_WRITE_TIMEOUT: "3s"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "meethalf"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d meethalf"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
