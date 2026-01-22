@@ -67,17 +67,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		response.Text, response.InlineKeyboard, replyErr = s.startMessage(ctx, msg)
 	} else {
 		response.Text, replyErr = s.reply(ctx, msg)
-		if msg.Command == domain.CommandProfileView && replyErr == nil {
-			response.InlineKeyboard = s.profileViewInlineKeyboard()
-		}
-		if msg.Command == domain.CommandProfilePreview && replyErr == nil {
-			response.InlineKeyboard = s.profilePreviewInlineKeyboard()
-		}
 		if msg.Command == domain.CommandProfileEdit && replyErr == nil {
 			response.InlineKeyboard = s.profileEditMenuKeyboard()
-		}
-		if msg.Command == domain.CommandProfileSettings && replyErr == nil {
-			response.InlineKeyboard = s.profileSettingsInlineKeyboard()
 		}
 		if msg.Command == domain.CommandProfileDelete && replyErr == nil {
 			response.InlineKeyboard = s.profileDeleteConfirmInlineKeyboard()
@@ -110,16 +101,49 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 			if err != nil {
 				replyErr = errors.Join(replyErr, err)
-			} else if found && len(profile.Photos) > 0 {
-				messages = s.profileAlbumMessages(msg.ChatID, profile, s.profileViewInlineKeyboard())
+				break
+			}
+			if found {
+				response.InlineKeyboard = s.profileViewInlineKeyboard()
+				if len(profile.Photos) > 0 {
+					messages = s.profileAlbumMessages(msg.ChatID, profile, s.profileViewInlineKeyboard())
+				} else {
+					messages[0] = response
+				}
+			} else {
+				response.InlineKeyboard = s.profileCreateInlineKeyboard()
+				messages[0] = response
 			}
 		case domain.CommandProfilePreview:
 			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 			if err != nil {
 				replyErr = errors.Join(replyErr, err)
-			} else if found && len(profile.Photos) > 0 {
-				messages = s.profilePreviewAlbumMessages(msg.ChatID, profile, s.profilePreviewInlineKeyboard())
+				break
 			}
+			if found {
+				response.InlineKeyboard = s.profilePreviewInlineKeyboard()
+				if len(profile.Photos) > 0 {
+					messages = s.profilePreviewAlbumMessages(msg.ChatID, profile, s.profilePreviewInlineKeyboard())
+				} else {
+					messages[0] = response
+				}
+			} else {
+				response.InlineKeyboard = s.profileCreateInlineKeyboard()
+				messages[0] = response
+			}
+		case domain.CommandProfileSettings:
+			_, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
+			if err != nil {
+				replyErr = errors.Join(replyErr, err)
+				break
+			}
+			if found {
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard()
+			} else {
+				response.Text = "Profile not found. Use the Create Profile button to create it."
+				response.InlineKeyboard = s.profileCreateInlineKeyboard()
+			}
+			messages[0] = response
 		}
 	}
 

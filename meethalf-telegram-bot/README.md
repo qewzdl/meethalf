@@ -58,12 +58,13 @@ Supported profile emoji codes:
 ## Profile view
 
 Use the inline `Profile` button to see the saved profile details. If the profile does not exist, the button is labeled
-`Create Profile` and starts the setup flow. The response includes a `Preview profile`
-button (shows how other users see the profile) above the `Edit profile` button to start editing. The edit button opens a
-menu so users can choose which field to update (name, gender, birth date, country, city, description, emoji, or photos).
-When the profile has photos, the bot sends them as an album with the profile details in the caption. Profile creation and
-updates send a confirmation message followed by the full profile details with the `Edit profile` button (including the
-number of saved photos).
+`Create Profile` and starts the setup flow. When a profile is missing and the user opens Profile or Preview, the bot
+returns a not-found message and shows the `Create Profile` button instead of Preview/Edit actions. The response includes a
+`Preview profile` button (shows how other users see the profile) above the `Edit profile` button to start editing. The
+edit button opens a menu so users can choose which field to update (name, gender, birth date, country, city, description,
+emoji, or photos). When the profile has photos, the bot sends them as an album with the profile details in the caption.
+Profile creation and updates send a confirmation message followed by the full profile details with the `Edit profile`
+button (including the number of saved photos).
 
 ## Loading messages
 
@@ -74,8 +75,9 @@ response is sent.
 ## Profile settings
 
 Use the inline `Settings` button from `/start` to open profile settings. The menu includes a `Delete profile`
-button that opens a confirmation step. Confirming removes the profile via the Meethalf API, and cancel keeps the profile
-unchanged.
+button that opens a confirmation step. If the profile does not exist, Settings returns a not-found message and shows the
+`Create Profile` button instead of delete. Confirming removes the profile via the Meethalf API, and cancel keeps the
+profile unchanged.
 
 ## Docker
 
