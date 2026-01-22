@@ -41,6 +41,18 @@ func (s *service) namePrompt(user domain.User) string {
 	return fmt.Sprintf("%s\nCurrent Telegram name: %s\nUse the button below to use it, or send the name you prefer.", header, telegramName)
 }
 
+func (s *service) botCheckPrompt(question string) string {
+	return s.botCheckRetryPrompt("", question)
+}
+
+func (s *service) botCheckRetryPrompt(reason, question string) string {
+	text := fmt.Sprintf("To protect from bots, solve: %s\nReply with the result.", strings.TrimSpace(question))
+	if strings.TrimSpace(reason) != "" {
+		text = reason + "\n" + text
+	}
+	return s.stepText(domain.ProfileDraftStepBotCheck, text)
+}
+
 func (s *service) birthDatePrompt() string {
 	return s.stepText(domain.ProfileDraftStepBirthDate, fmt.Sprintf("Enter your birth date in %s format (for example, 1990-04-23).", birthDateLayout))
 }
@@ -287,22 +299,24 @@ func (s *service) profileSetupEstimateText() string {
 
 func (s *service) stepIndex(step domain.ProfileDraftStep) int {
 	switch step {
-	case domain.ProfileDraftStepName:
+	case domain.ProfileDraftStepBotCheck:
 		return 1
-	case domain.ProfileDraftStepGender:
+	case domain.ProfileDraftStepName:
 		return 2
-	case domain.ProfileDraftStepBirthDate:
+	case domain.ProfileDraftStepGender:
 		return 3
-	case domain.ProfileDraftStepCountry:
+	case domain.ProfileDraftStepBirthDate:
 		return 4
-	case domain.ProfileDraftStepCity:
+	case domain.ProfileDraftStepCountry:
 		return 5
-	case domain.ProfileDraftStepDescription:
+	case domain.ProfileDraftStepCity:
 		return 6
-	case domain.ProfileDraftStepEmoji:
+	case domain.ProfileDraftStepDescription:
 		return 7
-	case domain.ProfileDraftStepPhotos:
+	case domain.ProfileDraftStepEmoji:
 		return 8
+	case domain.ProfileDraftStepPhotos:
+		return 9
 	default:
 		return 1
 	}
@@ -310,6 +324,8 @@ func (s *service) stepIndex(step domain.ProfileDraftStep) int {
 
 func (s *service) stepLabel(step domain.ProfileDraftStep) string {
 	switch step {
+	case domain.ProfileDraftStepBotCheck:
+		return "Verification"
 	case domain.ProfileDraftStepName:
 		return "Name"
 	case domain.ProfileDraftStepGender:

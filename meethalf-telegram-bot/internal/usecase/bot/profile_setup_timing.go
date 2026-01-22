@@ -8,6 +8,7 @@ type profileSetupStepTiming struct {
 }
 
 var profileSetupTimings = []profileSetupStepTiming{
+	{Step: domain.ProfileDraftStepBotCheck, Seconds: 5},
 	{Step: domain.ProfileDraftStepName, Seconds: 10},
 	{Step: domain.ProfileDraftStepGender, Seconds: 2},
 	{Step: domain.ProfileDraftStepBirthDate, Seconds: 5},

@@ -22,12 +22,12 @@ go run ./cmd/bot
 
 ## Profile setup
 
-The bot guides users through an eight-step profile setup: name (use the Telegram name button or type a custom one), gender,
-birth date (YYYY-MM-DD), country (Russia, Kazakhstan, or Belarus), city (selected from the supported list), description,
-emoji selection, and a photo album (1-4 photos). Gender, country, city, and emoji are selected via inline buttons.
-After sending at least one photo, use the Done button to finish the setup. Drafts are stored in the same session store so they
-can survive restarts when Redis is enabled.
-The setup header includes an estimated total completion time (shown in minutes) calculated from per-step durations.
+The bot guides users through a nine-step profile setup: a short anti-bot verification check, name (use the Telegram name
+button or type a custom one), gender, birth date (YYYY-MM-DD), country (Russia, Kazakhstan, or Belarus), city (selected
+from the supported list), description, emoji selection, and a photo album (1-4 photos). Gender, country, city, and emoji
+are selected via inline buttons. After sending at least one photo, use the Done button to finish the setup. Drafts are
+stored in the same session store so they can survive restarts when Redis is enabled. The setup header includes an estimated
+total completion time (shown in minutes) calculated from per-step durations.
 
 Supported cities:
 

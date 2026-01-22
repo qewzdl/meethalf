@@ -8,7 +8,10 @@ const (
 	maxDescriptionLength = 500
 	minPhotos            = 1
 	maxPhotos            = 4
-	profileStepsTotal    = 8
+	botCheckMinOperand   = 2
+	botCheckMaxOperand   = 9
+	botCheckMaxAttempts  = 3
+	profileStepsTotal    = 9
 	birthDateLayout      = "2006-01-02"
 )
 

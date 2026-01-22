@@ -34,6 +34,8 @@ func (s *service) handleDraft(ctx context.Context, msg domain.IncomingMessage, d
 	}
 
 	switch draft.Step {
+	case domain.ProfileDraftStepBotCheck:
+		return s.applyBotCheck(ctx, msg, draft)
 	case domain.ProfileDraftStepName:
 		return s.applyName(ctx, msg, draft)
 	case domain.ProfileDraftStepGender:
@@ -67,16 +69,17 @@ func (s *service) startProfileSetup(ctx context.Context, msg domain.IncomingMess
 	draft := domain.ProfileDraft{
 		UserID:    msg.User.ID,
 		ChatID:    msg.ChatID,
-		Step:      domain.ProfileDraftStepName,
+		Step:      domain.ProfileDraftStepBotCheck,
 		Mode:      domain.ProfileDraftModeCreate,
 		UpdatedAt: s.now(msg.ReceivedAt),
 	}
+	s.resetBotCheck(&draft, msg.ReceivedAt)
 
 	if err := s.drafts.Save(ctx, draft); err != nil {
 		return "Failed to start profile setup. Please try again later.", err
 	}
 
-	return s.namePrompt(msg.User), nil
+	return s.botCheckPrompt(draft.BotCheckQuestion), nil
 }
 
 func (s *service) startProfileEdit(ctx context.Context, msg domain.IncomingMessage, step domain.ProfileDraftStep) (string, error) {
@@ -173,6 +176,47 @@ func (s *service) deleteProfile(ctx context.Context, msg domain.IncomingMessage)
 	}
 
 	return "Profile deleted. Use the Create Profile button to create a new one.", nil
+}
+
+func (s *service) applyBotCheck(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft) (string, error) {
+	if s.drafts == nil {
+		return "Profile setup is not available right now.", errors.New("profile draft repository is not configured")
+	}
+
+	s.ensureBotCheck(&draft, msg.ReceivedAt)
+	answer := strings.TrimSpace(msg.Text)
+	if answer == "" {
+		return s.botCheckPrompt(draft.BotCheckQuestion), nil
+	}
+
+	if s.botCheckMatches(draft, answer) {
+		draft.Step = domain.ProfileDraftStepName
+		draft.BotCheckQuestion = ""
+		draft.BotCheckAnswer = 0
+		draft.BotCheckAttempts = 0
+		draft.UpdatedAt = s.now(msg.ReceivedAt)
+		if err := s.drafts.Save(ctx, draft); err != nil {
+			return "Failed to start profile setup. Please try again later.", err
+		}
+
+		return s.namePrompt(msg.User), nil
+	}
+
+	draft.BotCheckAttempts++
+	if draft.BotCheckAttempts >= botCheckMaxAttempts {
+		s.resetBotCheck(&draft, msg.ReceivedAt)
+		if err := s.drafts.Save(ctx, draft); err != nil {
+			return "Failed to save profile setup. Please try again later.", err
+		}
+		return s.botCheckRetryPrompt("Too many attempts. Let's try a new check.", draft.BotCheckQuestion), nil
+	}
+
+	draft.UpdatedAt = s.now(msg.ReceivedAt)
+	if err := s.drafts.Save(ctx, draft); err != nil {
+		return "Failed to save profile setup. Please try again later.", err
+	}
+
+	return s.botCheckRetryPrompt("Incorrect answer. Try again.", draft.BotCheckQuestion), nil
 }
 
 func (s *service) applyName(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft) (string, error) {

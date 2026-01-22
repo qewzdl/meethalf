@@ -5,6 +5,7 @@ import "time"
 type ProfileDraftStep string
 
 const (
+	ProfileDraftStepBotCheck    ProfileDraftStep = "bot_check"
 	ProfileDraftStepName        ProfileDraftStep = "name"
 	ProfileDraftStepGender      ProfileDraftStep = "gender"
 	ProfileDraftStepBirthDate   ProfileDraftStep = "birth_date"
@@ -61,19 +62,22 @@ const (
 )
 
 type ProfileDraft struct {
-	UserID      int64
-	ChatID      int64
-	Step        ProfileDraftStep
-	Name        string
-	Gender      Gender
-	BirthDate   time.Time
-	Country     Country
-	City        string
-	Description string
-	EmojiCode   ProfileEmojiCode
-	Photos      []string
-	Mode        ProfileDraftMode
-	UpdatedAt   time.Time
+	UserID           int64
+	ChatID           int64
+	Step             ProfileDraftStep
+	BotCheckQuestion string
+	BotCheckAnswer   int
+	BotCheckAttempts int
+	Name             string
+	Gender           Gender
+	BirthDate        time.Time
+	Country          Country
+	City             string
+	Description      string
+	EmojiCode        ProfileEmojiCode
+	Photos           []string
+	Mode             ProfileDraftMode
+	UpdatedAt        time.Time
 }
 
 type Profile struct {
