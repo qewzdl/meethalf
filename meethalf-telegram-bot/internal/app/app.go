@@ -10,6 +10,7 @@ import (
 	"meethalf-telegram-bot/internal/config"
 	"meethalf-telegram-bot/internal/storage/memory"
 	redisstorage "meethalf-telegram-bot/internal/storage/redis"
+	"meethalf-telegram-bot/internal/transport/api"
 	"meethalf-telegram-bot/internal/transport/telegram"
 	botusecase "meethalf-telegram-bot/internal/usecase/bot"
 
@@ -39,10 +40,14 @@ func New(cfg config.Config, logger *log.Logger) (*App, error) {
 	var redisClient *redisgo.Client
 	store := strings.ToLower(strings.TrimSpace(cfg.Session.Store))
 	var sessionRepo botusecase.SessionRepository
+	var draftRepo botusecase.ProfileDraftRepository
+	var deleteConfirmRepo botusecase.ProfileDeletionConfirmationRepository
 
 	switch store {
 	case "", "memory", "inmemory":
 		sessionRepo = memory.NewSessionRepository()
+		draftRepo = memory.NewProfileDraftRepository()
+		deleteConfirmRepo = memory.NewProfileDeletionConfirmationRepository()
 	case "redis":
 		if !cfg.Redis.Enabled {
 			return nil, errors.New("redis session store requested but redis is not enabled")
@@ -53,11 +58,14 @@ func New(cfg config.Config, logger *log.Logger) (*App, error) {
 		}
 		redisClient = client
 		sessionRepo = redisstorage.NewSessionRepository(redisClient, cfg.Session.TTL)
+		draftRepo = redisstorage.NewProfileDraftRepository(redisClient, cfg.Session.TTL)
+		deleteConfirmRepo = redisstorage.NewProfileDeletionConfirmationRepository(redisClient, cfg.Session.TTL)
 	default:
 		return nil, fmt.Errorf("unsupported session store: %s", store)
 	}
 
-	usecase := botusecase.New(sessionRepo)
+	profileClient := api.NewProfileClient(cfg.API.BaseURL, cfg.API.Timeout)
+	usecase := botusecase.New(sessionRepo, draftRepo, deleteConfirmRepo, profileClient)
 	sender := telegram.NewSender(bot)
 	handler := telegram.NewHandler(usecase, sender, logger)
 	pool := telegram.NewWorkerPool(cfg.Workers.PoolSize, cfg.Workers.QueueSize, handler)

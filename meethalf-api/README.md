@@ -14,7 +14,42 @@ Check:
 curl http://localhost:8080/api/v1/health/liveness
 curl http://localhost:8080/api/v1/health/readiness
 curl http://localhost:8080/api/v1/health
+curl -X POST http://localhost:8080/api/v1/profiles \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1,"name":"Jane Doe","gender":"female","birth_date":"1996-04-23","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"]}'
+curl http://localhost:8080/api/v1/profiles/1
+curl -X DELETE http://localhost:8080/api/v1/profiles/1
 ```
+
+`birth_date` uses the `YYYY-MM-DD` format; age is derived automatically. `country` must be one of `russia`, `kazakhstan`,
+or `belarus`; `city` must be in the supported list for the selected country. `emoji_code` must be one of the supported
+profile emoji codes listed below.
+
+Supported cities:
+
+- Russia: Moscow, Saint Petersburg, Novosibirsk, Krasnodar, Omsk, Rostov-on-Don, Perm, Krasnoyarsk, Yekaterinburg, Kazan,
+  Nizhny Novgorod, Ufa, Chelyabinsk, Samara, Voronezh, Volgograd.
+- Kazakhstan: Astana, Almaty, Semey, Pavlodar, Shymkent, Aktobe, Karaganda, Taraz, Ust-Kamenogorsk, Atyrau.
+- Belarus: Minsk, Gomel, Mogilev, Vitebsk, Grodno, Brest, Bobruisk, Baranovichi, Borisov.
+
+Supported profile emoji codes:
+
+- LDR - 👑
+- STR - 🧠
+- ANA - 🧩
+- CRT - 🎨
+- COM - 🤝
+- EMP - ❤️
+- MED - 🕊
+- PRF - 🧼
+- RSR - 🧭
+- INN - 💡
+- EXE - 🛠
+- ADV - 🔥
+- CNT - ☕️
+- RLS - 🧱
+- MOT - 🎯
+- SKP - 🛡
 
 ## Docker
 
@@ -28,6 +63,11 @@ Check:
 curl http://localhost:8080/api/v1/health/liveness
 curl http://localhost:8080/api/v1/health/readiness
 curl http://localhost:8080/api/v1/health
+curl -X POST http://localhost:8080/api/v1/profiles \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1,"name":"Jane Doe","gender":"female","birth_date":"1996-04-23","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"]}'
+curl http://localhost:8080/api/v1/profiles/1
+curl -X DELETE http://localhost:8080/api/v1/profiles/1
 ```
 
 Stop:
@@ -106,6 +146,7 @@ Rate limiting uses a token bucket per client IP; set `RATE_LIMIT_STORE=redis` to
 - internal/config - config
 - internal/domain - domain entities
 - internal/usecase/database - database provisioning
+- internal/usecase/profile - profile logic
 - internal/usecase - business logic
 - internal/storage/postgres - Postgres repositories
 - internal/storage/redis - Redis client and repositories

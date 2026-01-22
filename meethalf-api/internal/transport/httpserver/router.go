@@ -19,5 +19,10 @@ func NewRouter(handlers *Handlers, limiter ratelimit.Limiter) *gin.Engine {
 	healthGroup.GET("/liveness", handlers.Health.Liveness)
 	healthGroup.GET("/readiness", handlers.Health.Readiness)
 
+	profileGroup := v1.Group("/profiles")
+	profileGroup.GET("/:user_id", handlers.Profile.Get)
+	profileGroup.DELETE("/:user_id", handlers.Profile.Delete)
+	profileGroup.POST("", handlers.Profile.Upsert)
+
 	return router
 }

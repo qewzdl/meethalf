@@ -38,12 +38,18 @@ type RedisConfig struct {
 	MinIdleConns   int
 }
 
+type APIConfig struct {
+	BaseURL string
+	Timeout time.Duration
+}
+
 type Config struct {
 	Env     string
 	Bot     BotConfig
 	Workers WorkerConfig
 	Session SessionConfig
 	Redis   RedisConfig
+	API     APIConfig
 }
 
 func Load() Config {
@@ -52,13 +58,14 @@ func Load() Config {
 	redisConnectTimeout := getDuration("REDIS_CONNECT_TIMEOUT", "5s")
 	redisReadTimeout := getDuration("REDIS_READ_TIMEOUT", "3s")
 	redisWriteTimeout := getDuration("REDIS_WRITE_TIMEOUT", "3s")
+	apiTimeout := getDuration("API_TIMEOUT", "5s")
 
 	return Config{
 		Env: getEnv("APP_ENV", "dev"),
 		Bot: BotConfig{
 			Token:          getEnv("BOT_TOKEN", ""),
 			Debug:          getEnvBool("BOT_DEBUG", false),
-			AllowedUpdates: getEnvCSV("BOT_ALLOWED_UPDATES", "message"),
+			AllowedUpdates: getEnvCSV("BOT_ALLOWED_UPDATES", "message,callback_query"),
 			PollingTimeout: getDuration("BOT_POLLING_TIMEOUT", "10s"),
 		},
 		Workers: WorkerConfig{
@@ -81,6 +88,10 @@ func Load() Config {
 			WriteTimeout:   redisWriteTimeout,
 			PoolSize:       getEnvInt("REDIS_POOL_SIZE", 0),
 			MinIdleConns:   getEnvInt("REDIS_MIN_IDLE_CONNS", 0),
+		},
+		API: APIConfig{
+			BaseURL: getEnv("API_BASE_URL", "http://localhost:8080"),
+			Timeout: apiTimeout,
 		},
 	}
 }

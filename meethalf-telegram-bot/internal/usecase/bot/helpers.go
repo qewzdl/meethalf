@@ -1,0 +1,231 @@
+package bot
+
+import (
+	"strings"
+	"time"
+
+	"meethalf-telegram-bot/internal/domain"
+)
+
+const (
+	albumDoneButtonText      = "Done"
+	albumDoneCallbackData    = "done"
+	telegramNameButtonText   = "Use Telegram name"
+	telegramNameCallbackData = "yes"
+)
+
+func (s *service) userFullName(user domain.User) string {
+	first := strings.TrimSpace(user.FirstName)
+	last := strings.TrimSpace(user.LastName)
+
+	if first == "" && last == "" {
+		return ""
+	}
+	if last == "" {
+		return first
+	}
+	if first == "" {
+		return last
+	}
+
+	return first + " " + last
+}
+
+func (s *service) isAffirmative(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case telegramNameCallbackData, "y", "ok":
+		return true
+	default:
+		return false
+	}
+}
+
+func (s *service) normalizeGender(value string) (domain.Gender, bool) {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	switch normalized {
+	case "male", "m":
+		return domain.GenderMale, true
+	case "female", "f":
+		return domain.GenderFemale, true
+	case "other", "o":
+		return domain.GenderOther, true
+	case "unspecified", "unknown", "not set":
+		return domain.GenderUnspecified, true
+	default:
+		return "", false
+	}
+}
+
+func (s *service) genderLabel(gender domain.Gender) string {
+	switch gender {
+	case domain.GenderMale:
+		return "Male"
+	case domain.GenderFemale:
+		return "Female"
+	case domain.GenderOther:
+		return "Other"
+	default:
+		return "Not set"
+	}
+}
+
+func (s *service) normalizeCountry(value string) (domain.Country, bool) {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	switch normalized {
+	case "russia":
+		return domain.CountryRussia, true
+	case "kazakhstan":
+		return domain.CountryKazakhstan, true
+	case "belarus":
+		return domain.CountryBelarus, true
+	default:
+		return "", false
+	}
+}
+
+func (s *service) countryLabel(country domain.Country) string {
+	switch country {
+	case domain.CountryRussia:
+		return "Russia"
+	case domain.CountryKazakhstan:
+		return "Kazakhstan"
+	case domain.CountryBelarus:
+		return "Belarus"
+	default:
+		return "Not set"
+	}
+}
+
+func (s *service) isProfileShortcut(text string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(text))
+	return normalized == "profile" || normalized == "/profile"
+}
+
+func (s *service) isAlbumDone(text string) bool {
+	switch strings.ToLower(strings.TrimSpace(text)) {
+	case albumDoneCallbackData, "finish", "save":
+		return true
+	default:
+		return false
+	}
+}
+
+func (s *service) formatTime(value time.Time) string {
+	return value.UTC().Format("2006-01-02 15:04 UTC")
+}
+
+func (s *service) draftMode(draft domain.ProfileDraft) domain.ProfileDraftMode {
+	if draft.Mode == "" {
+		return domain.ProfileDraftModeCreate
+	}
+
+	return draft.Mode
+}
+
+func (s *service) now(fallback time.Time) time.Time {
+	if fallback.IsZero() {
+		return time.Now().UTC()
+	}
+
+	return fallback.UTC()
+}
+
+func (s *service) mergePhotoIDs(existing, incoming []string, limit int) ([]string, int) {
+	if limit <= 0 {
+		return existing, 0
+	}
+
+	out := make([]string, 0, len(existing)+len(incoming))
+	seen := make(map[string]struct{}, len(existing))
+	for _, id := range existing {
+		id = strings.TrimSpace(id)
+		if id == "" {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+		if len(out) >= limit {
+			return out[:limit], 0
+		}
+	}
+
+	added := 0
+	for _, id := range incoming {
+		id = strings.TrimSpace(id)
+		if id == "" {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		if len(out) >= limit {
+			break
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+		added++
+	}
+
+	return out, added
+}
+
+func (s *service) parseBirthDate(value string) (time.Time, bool) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return time.Time{}, false
+	}
+
+	layouts := []string{
+		birthDateLayout,
+		"2006-1-2",
+		"02.01.2006",
+		"2.1.2006",
+		"02/01/2006",
+		"2/1/2006",
+	}
+	for _, layout := range layouts {
+		parsed, err := time.Parse(layout, value)
+		if err != nil {
+			continue
+		}
+		normalized := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, time.UTC)
+		return normalized, true
+	}
+
+	return time.Time{}, false
+}
+
+func (s *service) ageFromBirthDate(birthDate time.Time, now time.Time) int {
+	if birthDate.IsZero() {
+		return 0
+	}
+
+	birthDate = birthDate.UTC()
+	now = now.UTC()
+
+	age := now.Year() - birthDate.Year()
+	if now.Month() < birthDate.Month() || (now.Month() == birthDate.Month() && now.Day() < birthDate.Day()) {
+		age--
+	}
+
+	return age
+}
+
+func (s *service) isProfileEditAction(command string) bool {
+	switch command {
+	case domain.CommandProfileEditName,
+		domain.CommandProfileEditGender,
+		domain.CommandProfileEditBirthDate,
+		domain.CommandProfileEditCountry,
+		domain.CommandProfileEditCity,
+		domain.CommandProfileEditDesc,
+		domain.CommandProfileEditEmoji,
+		domain.CommandProfileEditPhotos:
+		return true
+	default:
+		return false
+	}
+}
