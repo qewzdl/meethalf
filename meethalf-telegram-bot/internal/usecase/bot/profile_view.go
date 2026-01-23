@@ -25,7 +25,11 @@ func (s *service) showProfilePreview(ctx context.Context, msg domain.IncomingMes
 	return s.profilePreviewDetails(profile), nil
 }
 
-func (s *service) profileEditMenu() (string, error) {
+func (s *service) profileEditMenu(ctx context.Context, msg domain.IncomingMessage) (string, error) {
+	if s != nil && s.drafts != nil && msg.User.ID != 0 {
+		_ = s.drafts.Delete(ctx, msg.User.ID)
+	}
+
 	return s.profileEditMenuText(), nil
 }
 

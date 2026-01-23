@@ -33,12 +33,14 @@ func (s *service) handleCommand(ctx context.Context, msg domain.IncomingMessage)
 	case domain.CommandStart:
 		text, _, err := s.startText(ctx, msg)
 		return text, err
+	case domain.CommandCancel:
+		return s.cancelAction(ctx, msg)
 	case domain.CommandProfileView:
 		return s.showProfile(ctx, msg)
 	case domain.CommandProfilePreview:
 		return s.showProfilePreview(ctx, msg)
 	case domain.CommandProfileEdit:
-		return s.profileEditMenu()
+		return s.profileEditMenu(ctx, msg)
 	case domain.CommandProfileEditName:
 		return s.startProfileEdit(ctx, msg, domain.ProfileDraftStepName)
 	case domain.CommandProfileEditGender:
@@ -57,8 +59,12 @@ func (s *service) handleCommand(ctx context.Context, msg domain.IncomingMessage)
 		return s.startProfileEdit(ctx, msg, domain.ProfileDraftStepPhotos)
 	case domain.CommandProfile:
 		return s.startProfileSetup(ctx, msg)
+	case domain.CommandProfileSetupBack:
+		return s.profileSetupBack(ctx, msg)
 	case domain.CommandProfileSettings:
 		return s.profileSettingsText(), nil
+	case domain.CommandProfileVisibility:
+		return s.updateProfileVisibility(ctx, msg)
 	case domain.CommandProfileDelete:
 		return s.requestProfileDelete(ctx, msg)
 	case domain.CommandProfileDeleteConfirm:

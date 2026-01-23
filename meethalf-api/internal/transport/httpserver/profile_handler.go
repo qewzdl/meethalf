@@ -33,6 +33,7 @@ type profileRequest struct {
 	Description string   `json:"description"`
 	EmojiCode   string   `json:"emoji_code"`
 	Photos      []string `json:"photos"`
+	IsHidden    bool     `json:"is_hidden"`
 }
 
 type profileResponse struct {
@@ -46,8 +47,13 @@ type profileResponse struct {
 	Description string    `json:"description"`
 	EmojiCode   string    `json:"emoji_code"`
 	Photos      []string  `json:"photos"`
+	IsHidden    bool      `json:"is_hidden"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type profileVisibilityRequest struct {
+	IsHidden *bool `json:"is_hidden"`
 }
 
 func (h *ProfileHandler) Upsert(c *gin.Context) {
@@ -78,6 +84,7 @@ func (h *ProfileHandler) Upsert(c *gin.Context) {
 		Description: req.Description,
 		EmojiCode:   domain.ProfileEmojiCode(req.EmojiCode),
 		Photos:      req.Photos,
+		IsHidden:    req.IsHidden,
 	})
 	if err != nil {
 		code, message := profileHTTPError(err)
@@ -96,6 +103,7 @@ func (h *ProfileHandler) Upsert(c *gin.Context) {
 		Description: stored.Description,
 		EmojiCode:   string(stored.EmojiCode),
 		Photos:      stored.Photos,
+		IsHidden:    stored.IsHidden,
 		CreatedAt:   stored.CreatedAt,
 		UpdatedAt:   stored.UpdatedAt,
 	})
@@ -131,6 +139,7 @@ func (h *ProfileHandler) Get(c *gin.Context) {
 		Description: stored.Description,
 		EmojiCode:   string(stored.EmojiCode),
 		Photos:      stored.Photos,
+		IsHidden:    stored.IsHidden,
 		CreatedAt:   stored.CreatedAt,
 		UpdatedAt:   stored.UpdatedAt,
 	})
@@ -149,6 +158,37 @@ func (h *ProfileHandler) Delete(c *gin.Context) {
 	}
 
 	if err := h.uc.DeleteByUserID(c.Request.Context(), userID); err != nil {
+		code, message := profileHTTPError(err)
+		respondError(c, code, message)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func (h *ProfileHandler) UpdateVisibility(c *gin.Context) {
+	if h == nil || h.uc == nil {
+		respondError(c, http.StatusInternalServerError, "profile handler is not configured")
+		return
+	}
+
+	userID, err := strconv.ParseInt(c.Param("user_id"), 10, 64)
+	if err != nil || userID <= 0 {
+		respondError(c, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	var req profileVisibilityRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.IsHidden == nil {
+		respondError(c, http.StatusBadRequest, "is_hidden is required")
+		return
+	}
+
+	if err := h.uc.UpdateVisibility(c.Request.Context(), userID, *req.IsHidden); err != nil {
 		code, message := profileHTTPError(err)
 		respondError(c, code, message)
 		return

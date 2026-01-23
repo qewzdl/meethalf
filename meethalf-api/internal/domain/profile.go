@@ -51,6 +51,7 @@ type Profile struct {
 	Description string           `json:"description"`
 	EmojiCode   ProfileEmojiCode `json:"emoji_code"`
 	Photos      []string         `json:"photos"`
+	IsHidden    bool             `json:"is_hidden"`
 	CreatedAt   time.Time        `json:"created_at"`
 	UpdatedAt   time.Time        `json:"updated_at"`
 }

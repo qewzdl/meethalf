@@ -9,26 +9,49 @@ import (
 )
 
 const (
-	defaultHelpText           = "Use the button below to view or create your profile. Open Settings to delete it."
-	profileCreatedText        = "Profile created."
-	profileUpdatedText        = "Profile updated."
-	loadingStartText          = "Checking your profile..."
-	loadingProfileViewText    = "Loading your profile..."
-	loadingProfilePreviewText = "Loading profile preview..."
-	loadingEditNameText       = "Preparing name update..."
-	loadingEditGenderText     = "Preparing gender update..."
-	loadingEditBirthDateText  = "Preparing birth date update..."
-	loadingEditCountryText    = "Preparing country update..."
-	loadingEditCityText       = "Preparing city update..."
-	loadingEditDescText       = "Preparing description update..."
-	loadingEditEmojiText      = "Preparing emoji update..."
-	loadingEditPhotosText     = "Preparing photo update..."
-	creatingProfileText       = "Creating your profile..."
-	updatingProfileText       = "Updating your profile..."
-	deletingProfileText       = "Deleting your profile..."
-	profileDeleteConfirmText  = "Are you sure you want to delete your profile? This action cannot be undone."
-	profileDeleteCanceledText = "Profile deletion canceled."
-	profileDeleteExpiredText  = "Profile deletion confirmation expired. Use Settings to start again."
+	defaultHelpText                   = "Use the buttons below to start searching, view or create your profile, or open settings."
+	profileCreatedText                = "Profile created."
+	profileUpdatedText                = "Profile updated."
+	loadingStartText                  = "Checking your profile..."
+	loadingProfileViewText            = "Loading your profile..."
+	loadingProfilePreviewText         = "Loading profile preview..."
+	loadingEditNameText               = "Preparing name update..."
+	loadingEditGenderText             = "Preparing gender update..."
+	loadingEditBirthDateText          = "Preparing birth date update..."
+	loadingEditCountryText            = "Preparing country update..."
+	loadingEditCityText               = "Preparing city update..."
+	loadingEditDescText               = "Preparing description update..."
+	loadingEditEmojiText              = "Preparing emoji update..."
+	loadingEditPhotosText             = "Preparing photo update..."
+	loadingProfileVisibilityText      = "Updating search visibility..."
+	loadingSearchStartText            = "Finding profiles..."
+	loadingSearchNextText             = "Searching for the next profile..."
+	loadingSearchPrevText             = "Opening the previous profile..."
+	creatingProfileText               = "Creating your profile..."
+	updatingProfileText               = "Updating your profile..."
+	deletingProfileText               = "Deleting your profile..."
+	profileDeleteConfirmText          = "Are you sure you want to delete your profile? This action cannot be undone."
+	profileDeleteCanceledText         = "Profile deletion canceled."
+	profileDeleteExpiredText          = "Profile deletion confirmation expired. Use Settings to start again."
+	profileSetupCanceledText          = "Profile setup canceled."
+	profileEditCanceledText           = "Profile edit canceled."
+	actionCanceledText                = "Action canceled."
+	profileHiddenText                 = "Profile is now hidden from search."
+	profileVisibleText                = "Profile is now visible in search."
+	profileVisibilityUpdateFailedText = "Unable to update search visibility. Please try again later."
+	searchGenderPromptText            = "Select the gender to search for."
+	searchAccuracyPromptText          = "Match accuracy (0–4): 0 wide/random → 4 strict/precise."
+	searchNoCandidatesText            = "No matching profiles yet. Try again later."
+	searchNoPreviousText              = "No previous profile."
+	searchStartRequiredText           = "Press \"Start search\" first."
+	searchProfileMissingText          = "Create a profile first to start searching and view profiles."
+	searchUnavailableText             = "Search is currently unavailable."
+	searchActionFailedText            = "Unable to process the action. Try again later."
+	matchActionsText                  = "Choose an action."
+	matchProfileNotFoundText          = "Profile not found."
+	profileViewRequiresProfileText    = "Create a profile first to view other profiles."
+	matchSuccessTemplate              = "It's a match! You and %s liked each other."
+	matchNicknameTemplate             = "Nickname: %s"
 )
 
 func (s *service) namePrompt(user domain.User) string {
@@ -46,7 +69,7 @@ func (s *service) botCheckPrompt(question string) string {
 }
 
 func (s *service) botCheckRetryPrompt(reason, question string) string {
-	text := fmt.Sprintf("To protect from bots, solve: %s\nReply with the result.", strings.TrimSpace(question))
+	text := fmt.Sprintf("To protect from bots, solve: %s\nChoose the correct answer below.", strings.TrimSpace(question))
 	if strings.TrimSpace(reason) != "" {
 		text = reason + "\n" + text
 	}
@@ -86,7 +109,7 @@ func (s *service) profileEditMenuText() string {
 }
 
 func (s *service) profileSettingsText() string {
-	return "Profile settings. Use the button below to delete your profile. You will be asked to confirm."
+	return "Profile settings. Use the buttons below to manage search visibility or delete your profile."
 }
 
 func (s *service) profileActionsText() string {
@@ -138,6 +161,107 @@ func (s *service) profileDeleteCanceledText() string {
 
 func (s *service) profileDeleteExpiredText() string {
 	return profileDeleteExpiredText
+}
+
+func (s *service) profileSetupCanceledText() string {
+	return profileSetupCanceledText
+}
+
+func (s *service) profileEditCanceledText() string {
+	return profileEditCanceledText
+}
+
+func (s *service) actionCanceledText() string {
+	return actionCanceledText
+}
+
+func (s *service) profileVisibilityUpdateFailedText() string {
+	return profileVisibilityUpdateFailedText
+}
+
+func (s *service) profileSettingsTextWithVisibility(isHidden bool) string {
+	status := s.profileVisibilityStatus(isHidden)
+	return fmt.Sprintf("Profile settings.\nSearch visibility: %s.\nUse the buttons below to manage search visibility or delete your profile.", status)
+}
+
+func (s *service) profileVisibilityStatus(isHidden bool) string {
+	if isHidden {
+		return "Hidden from search"
+	}
+	return "Visible in search"
+}
+
+func (s *service) profileVisibilityUpdated(isHidden bool) string {
+	if isHidden {
+		return profileHiddenText
+	}
+	return profileVisibleText
+}
+
+func (s *service) searchGenderText() string {
+	return searchGenderPromptText
+}
+
+func (s *service) searchAccuracyText() string {
+	return searchAccuracyPromptText
+}
+
+func (s *service) searchNoCandidatesText() string {
+	return searchNoCandidatesText
+}
+
+func (s *service) searchNoPreviousText() string {
+	return searchNoPreviousText
+}
+
+func (s *service) searchStartRequiredText() string {
+	return searchStartRequiredText
+}
+
+func (s *service) searchProfileMissingText() string {
+	return searchProfileMissingText
+}
+
+func (s *service) searchUnavailableText() string {
+	return searchUnavailableText
+}
+
+func (s *service) searchActionFailedText() string {
+	return searchActionFailedText
+}
+
+func (s *service) matchActionsText() string {
+	return matchActionsText
+}
+
+func (s *service) matchProfileNotFoundText() string {
+	return matchProfileNotFoundText
+}
+
+func (s *service) profileViewRequiresProfileText() string {
+	return profileViewRequiresProfileText
+}
+
+func (s *service) matchSuccessText(profile domain.Profile, nickname string) string {
+	name := strings.TrimSpace(profile.Name)
+	if name == "" {
+		name = "this user"
+	}
+
+	nickname = strings.TrimSpace(nickname)
+	if nickname == "" {
+		return fmt.Sprintf(matchSuccessTemplate, name)
+	}
+
+	return fmt.Sprintf("%s\n%s", fmt.Sprintf(matchSuccessTemplate, name), fmt.Sprintf(matchNicknameTemplate, nickname))
+}
+
+func (s *service) likeNotificationText(profile domain.Profile) string {
+	name := strings.TrimSpace(profile.Name)
+	if name == "" {
+		return "You received a ❤️. View the profile?"
+	}
+	return fmt.Sprintf("You received a ❤️ from %s. View the profile?", name)
 }
 
 func (s *service) profileDetails(profile domain.Profile) string {
@@ -240,6 +364,7 @@ func (s *service) profileDetailsWithOptions(profile domain.Profile, options prof
 		fmt.Sprintf("Age: %d", age),
 		fmt.Sprintf("Country: %s", s.countryLabel(profile.Country)),
 		fmt.Sprintf("City: %s", city),
+		fmt.Sprintf("Search visibility: %s", s.profileVisibilityStatus(profile.IsHidden)),
 		fmt.Sprintf("Description: \n%s", profile.Description),
 	)
 	if options.includePhotoCount && len(profile.Photos) > 0 {

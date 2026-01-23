@@ -58,6 +58,7 @@ func (c *ProfileClient) CreateProfile(ctx context.Context, profile domain.Profil
 		Description: profile.Description,
 		EmojiCode:   profile.EmojiCode,
 		Photos:      profile.Photos,
+		IsHidden:    profile.IsHidden,
 	})
 	if err != nil {
 		return err
@@ -153,6 +154,7 @@ func (c *ProfileClient) GetProfile(ctx context.Context, userID int64) (domain.Pr
 		Description: payload.Description,
 		EmojiCode:   payload.EmojiCode,
 		Photos:      payload.Photos,
+		IsHidden:    payload.IsHidden,
 		CreatedAt:   payload.CreatedAt,
 		UpdatedAt:   payload.UpdatedAt,
 	}, true, nil
@@ -202,6 +204,56 @@ func (c *ProfileClient) DeleteProfile(ctx context.Context, userID int64) (bool, 
 	return false, fmt.Errorf("profile api error: %s", message)
 }
 
+func (c *ProfileClient) SetProfileVisibility(ctx context.Context, userID int64, isHidden bool) (bool, error) {
+	if c == nil || c.client == nil {
+		return false, errors.New("profile client is not configured")
+	}
+
+	if c.baseURL == "" {
+		return false, errors.New("profile client base url is empty")
+	}
+
+	if userID <= 0 {
+		return false, errors.New("user id is required")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+
+	payload, err := json.Marshal(profileVisibilityRequest{IsHidden: isHidden})
+	if err != nil {
+		return false, err
+	}
+
+	url := fmt.Sprintf("%s/api/v1/profiles/%d/visibility", c.baseURL, userID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, url, bytes.NewReader(payload))
+	if err != nil {
+		return false, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return false, nil
+	}
+
+	if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
+		return true, nil
+	}
+
+	message := c.extractError(resp)
+	if message == "" {
+		message = resp.Status
+	}
+	return false, fmt.Errorf("profile api error: %s", message)
+}
+
 func (c *ProfileClient) extractError(resp *http.Response) string {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil || len(body) == 0 {
@@ -226,6 +278,7 @@ type profileRequest struct {
 	Description string                  `json:"description"`
 	EmojiCode   domain.ProfileEmojiCode `json:"emoji_code"`
 	Photos      []string                `json:"photos"`
+	IsHidden    bool                    `json:"is_hidden"`
 }
 
 type profileResponse struct {
@@ -239,8 +292,13 @@ type profileResponse struct {
 	Description string                  `json:"description"`
 	EmojiCode   domain.ProfileEmojiCode `json:"emoji_code"`
 	Photos      []string                `json:"photos"`
+	IsHidden    bool                    `json:"is_hidden"`
 	CreatedAt   time.Time               `json:"created_at"`
 	UpdatedAt   time.Time               `json:"updated_at"`
+}
+
+type profileVisibilityRequest struct {
+	IsHidden bool `json:"is_hidden"`
 }
 
 type errorResponse struct {

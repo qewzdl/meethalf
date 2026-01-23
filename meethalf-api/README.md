@@ -16,14 +16,36 @@ curl http://localhost:8080/api/v1/health/readiness
 curl http://localhost:8080/api/v1/health
 curl -X POST http://localhost:8080/api/v1/profiles \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1,"name":"Jane Doe","gender":"female","birth_date":"1996-04-23","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"]}'
+  -d '{"user_id":1,"name":"Jane Doe","gender":"female","birth_date":"1996-04-23","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"],"is_hidden":false}'
 curl http://localhost:8080/api/v1/profiles/1
+curl -X PATCH http://localhost:8080/api/v1/profiles/1/visibility \
+  -H "Content-Type: application/json" \
+  -d '{"is_hidden":true}'
 curl -X DELETE http://localhost:8080/api/v1/profiles/1
+curl -X POST http://localhost:8080/api/v1/search/start \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1,"gender":"female","accuracy":3}'
+curl -X POST http://localhost:8080/api/v1/search/next \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1}'
+curl -X POST http://localhost:8080/api/v1/search/previous \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1}'
+curl -X POST http://localhost:8080/api/v1/search/action \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1,"target_id":2,"action":"like"}'
+# {"matched":false}
+curl http://localhost:8080/api/v1/likes/1
 ```
 
 `birth_date` uses the `YYYY-MM-DD` format; age is derived automatically. `country` must be one of `russia`, `kazakhstan`,
 or `belarus`; `city` must be in the supported list for the selected country. `emoji_code` must be one of the supported
-profile emoji codes listed below.
+profile emoji codes listed below. Set `is_hidden=true` to hide a profile from search results.
+Search and likes endpoints require an existing profile. `gender` can be `male`, `female`, `other`, or `unspecified` (any),
+and `accuracy` is a 0-4 scale where 0 is wider/random and 4 is stricter. If no candidates match the selected accuracy,
+search relaxes the accuracy step-by-step down to 0 while keeping the gender filter. Lower accuracy levels also use wider
+age windows when scoring candidates.
+`/api/v1/search/action` responds with `matched=true` when the like action forms a mutual match.
 
 Supported cities:
 
@@ -65,9 +87,26 @@ curl http://localhost:8080/api/v1/health/readiness
 curl http://localhost:8080/api/v1/health
 curl -X POST http://localhost:8080/api/v1/profiles \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1,"name":"Jane Doe","gender":"female","birth_date":"1996-04-23","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"]}'
+  -d '{"user_id":1,"name":"Jane Doe","gender":"female","birth_date":"1996-04-23","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"],"is_hidden":false}'
 curl http://localhost:8080/api/v1/profiles/1
+curl -X PATCH http://localhost:8080/api/v1/profiles/1/visibility \
+  -H "Content-Type: application/json" \
+  -d '{"is_hidden":true}'
 curl -X DELETE http://localhost:8080/api/v1/profiles/1
+curl -X POST http://localhost:8080/api/v1/search/start \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1,"gender":"female","accuracy":3}'
+curl -X POST http://localhost:8080/api/v1/search/next \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1}'
+curl -X POST http://localhost:8080/api/v1/search/previous \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1}'
+curl -X POST http://localhost:8080/api/v1/search/action \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1,"target_id":2,"action":"like"}'
+# {"matched":false}
+curl http://localhost:8080/api/v1/likes/1
 ```
 
 Stop:
@@ -146,6 +185,7 @@ Rate limiting uses a token bucket per client IP; set `RATE_LIMIT_STORE=redis` to
 - internal/config - config
 - internal/domain - domain entities
 - internal/usecase/database - database provisioning
+- internal/usecase/matching - matching and interactions logic
 - internal/usecase/profile - profile logic
 - internal/usecase - business logic
 - internal/storage/postgres - Postgres repositories

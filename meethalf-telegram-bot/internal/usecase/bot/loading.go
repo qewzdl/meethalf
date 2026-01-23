@@ -52,8 +52,22 @@ func (s *service) loadingForCommand(msg domain.IncomingMessage) (domain.Outgoing
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingEditEmojiText}, true
 	case domain.CommandProfileEditPhotos:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingEditPhotosText}, true
+	case domain.CommandProfileVisibility:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingProfileVisibilityText}, true
 	case domain.CommandProfileDeleteConfirm:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: deletingProfileText}, true
+	case domain.CommandSearchAccuracy:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchStartText}, true
+	case domain.CommandSearchRefresh:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchNextText}, true
+	case domain.CommandMatchLike:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchNextText}, true
+	case domain.CommandMatchDislike:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchNextText}, true
+	case domain.CommandMatchReport:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchNextText}, true
+	case domain.CommandMatchPrevious:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchPrevText}, true
 	default:
 		return domain.OutgoingMessage{}, false
 	}

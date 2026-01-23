@@ -12,6 +12,8 @@ type BotConfig struct {
 	Debug          bool
 	AllowedUpdates []string
 	PollingTimeout time.Duration
+	APIEndpoint    string
+	ProxyURL       string
 }
 
 type WorkerConfig struct {
@@ -67,6 +69,8 @@ func Load() Config {
 			Debug:          getEnvBool("BOT_DEBUG", false),
 			AllowedUpdates: getEnvCSV("BOT_ALLOWED_UPDATES", "message,callback_query"),
 			PollingTimeout: getDuration("BOT_POLLING_TIMEOUT", "10s"),
+			APIEndpoint:    getEnv("BOT_API_ENDPOINT", ""),
+			ProxyURL:       getEnv("BOT_PROXY_URL", ""),
 		},
 		Workers: WorkerConfig{
 			PoolSize:  getEnvInt("BOT_WORKERS", 4),

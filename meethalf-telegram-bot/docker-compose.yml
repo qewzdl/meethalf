@@ -9,6 +9,8 @@ services:
       BOT_DEBUG: "false"
       BOT_ALLOWED_UPDATES: "message,callback_query"
       BOT_POLLING_TIMEOUT: "10s"
+      BOT_API_ENDPOINT: "${BOT_API_ENDPOINT}"
+      BOT_PROXY_URL: "${BOT_PROXY_URL}"
       BOT_WORKERS: "4"
       BOT_QUEUE_SIZE: "100"
       SESSION_STORE: "redis"

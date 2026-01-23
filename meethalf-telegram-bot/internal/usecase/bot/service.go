@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"errors"
+	"sync"
 
 	"meethalf-telegram-bot/internal/domain"
 )
@@ -13,6 +14,7 @@ type Usecase interface {
 
 type SessionRepository interface {
 	Touch(ctx context.Context, session domain.Session) error
+	Get(ctx context.Context, userID int64) (domain.Session, bool, error)
 }
 
 type ProfileDraftRepository interface {
@@ -31,6 +33,15 @@ type ProfileService interface {
 	CreateProfile(ctx context.Context, profile domain.Profile) error
 	GetProfile(ctx context.Context, userID int64) (domain.Profile, bool, error)
 	DeleteProfile(ctx context.Context, userID int64) (bool, error)
+	SetProfileVisibility(ctx context.Context, userID int64, isHidden bool) (bool, error)
+}
+
+type SearchService interface {
+	StartSearch(ctx context.Context, userID int64, gender domain.Gender, accuracy int) (domain.MatchCandidate, bool, error)
+	NextCandidate(ctx context.Context, userID int64) (domain.MatchCandidate, bool, error)
+	PreviousCandidate(ctx context.Context, userID int64) (domain.MatchCandidate, bool, error)
+	RecordAction(ctx context.Context, userID, targetID int64, action domain.MatchAction) (domain.MatchActionResult, error)
+	PendingLikes(ctx context.Context, userID int64) ([]domain.Profile, error)
 }
 
 type service struct {
@@ -38,16 +49,26 @@ type service struct {
 	drafts              ProfileDraftRepository
 	deleteConfirmations ProfileDeletionConfirmationRepository
 	profiles            ProfileService
+	search              SearchService
 	helpText            string
+	setupCleanupMu      sync.Mutex
+	setupCleanup        map[int64]setupCleanupInfo
 }
 
-func New(sessions SessionRepository, drafts ProfileDraftRepository, deleteConfirmations ProfileDeletionConfirmationRepository, profiles ProfileService) Usecase {
+type setupCleanupInfo struct {
+	chatID         int64
+	startMessageID int
+}
+
+func New(sessions SessionRepository, drafts ProfileDraftRepository, deleteConfirmations ProfileDeletionConfirmationRepository, profiles ProfileService, search SearchService) Usecase {
 	return &service{
 		sessions:            sessions,
 		drafts:              drafts,
 		deleteConfirmations: deleteConfirmations,
 		profiles:            profiles,
+		search:              search,
 		helpText:            defaultHelpText,
+		setupCleanup:        make(map[int64]setupCleanupInfo),
 	}
 }
 
@@ -57,15 +78,28 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		touchErr = s.sessions.Touch(ctx, domain.Session{
 			UserID:   msg.User.ID,
 			ChatID:   msg.ChatID,
+			Username: msg.User.Username,
 			LastSeen: s.now(msg.ReceivedAt),
 		})
 	}
 
+	if s.isSearchCommand(msg.Command) {
+		messages, replyErr := s.handleSearch(ctx, msg)
+		likesFollowUps, likesErr := s.pendingLikesFollowUp(ctx, msg)
+		if len(likesFollowUps) > 0 {
+			messages = append(messages, likesFollowUps...)
+		}
+		return messages, errors.Join(touchErr, replyErr, likesErr)
+	}
+
 	response := domain.OutgoingMessage{ChatID: msg.ChatID}
 	var replyErr error
-	if msg.Command == domain.CommandStart {
+	switch msg.Command {
+	case domain.CommandStart:
 		response.Text, response.InlineKeyboard, replyErr = s.startMessage(ctx, msg)
-	} else {
+	case domain.CommandCancel:
+		response.Text, response.InlineKeyboard, replyErr = s.cancelMessage(ctx, msg)
+	default:
 		response.Text, replyErr = s.reply(ctx, msg)
 		if msg.Command == domain.CommandProfileEdit && replyErr == nil {
 			response.InlineKeyboard = s.profileEditMenuKeyboard()
@@ -74,24 +108,25 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 			response.InlineKeyboard = s.profileDeleteConfirmInlineKeyboard()
 		}
 		if msg.Command == domain.CommandProfileDeleteConfirm && replyErr == nil {
-			if response.Text == profileDeleteExpiredText {
-				response.InlineKeyboard = s.profileSettingsInlineKeyboard()
-			} else {
+			if response.Text != profileDeleteExpiredText {
 				response.InlineKeyboard = s.profileCreateInlineKeyboard()
 			}
-		}
-		if msg.Command == domain.CommandProfileDeleteCancel && replyErr == nil {
-			response.InlineKeyboard = s.profileSettingsInlineKeyboard()
 		}
 	}
 
 	if replyErr == nil {
+		s.attachBotCheckKeyboard(ctx, msg, &response)
 		s.attachTelegramNameKeyboard(ctx, msg, &response)
 		s.attachGenderKeyboard(ctx, msg, &response)
 		s.attachCountryKeyboard(ctx, msg, &response)
 		s.attachCityKeyboard(ctx, msg, &response)
 		s.attachEmojiKeyboard(ctx, msg, &response)
 		s.attachPhotosDoneKeyboard(ctx, msg, &response)
+		s.attachCancelKeyboard(ctx, msg, &response)
+	}
+
+	if replyErr == nil && response.Text == profileCreatedText {
+		response.CleanupFromMessageID = s.takeProfileSetupCleanupStart(msg.User.ID, msg.ChatID)
 	}
 
 	messages := []domain.OutgoingMessage{response}
@@ -132,13 +167,56 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 				messages[0] = response
 			}
 		case domain.CommandProfileSettings:
-			_, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
+			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 			if err != nil {
 				replyErr = errors.Join(replyErr, err)
 				break
 			}
 			if found {
-				response.InlineKeyboard = s.profileSettingsInlineKeyboard()
+				response.Text = s.profileSettingsTextWithVisibility(profile.IsHidden)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(profile.IsHidden)
+			} else {
+				response.Text = "Profile not found. Use the Create Profile button to create it."
+				response.InlineKeyboard = s.profileCreateInlineKeyboard()
+			}
+			messages[0] = response
+		case domain.CommandProfileVisibility:
+			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
+			if err != nil {
+				replyErr = errors.Join(replyErr, err)
+				break
+			}
+			if found {
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(profile.IsHidden)
+			} else {
+				response.Text = "Profile not found. Use the Create Profile button to create it."
+				response.InlineKeyboard = s.profileCreateInlineKeyboard()
+			}
+			messages[0] = response
+		case domain.CommandProfileDeleteCancel:
+			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
+			if err != nil {
+				replyErr = errors.Join(replyErr, err)
+				break
+			}
+			if found {
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(profile.IsHidden)
+			} else {
+				response.Text = "Profile not found. Use the Create Profile button to create it."
+				response.InlineKeyboard = s.profileCreateInlineKeyboard()
+			}
+			messages[0] = response
+		case domain.CommandProfileDeleteConfirm:
+			if response.Text != profileDeleteExpiredText {
+				break
+			}
+			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
+			if err != nil {
+				replyErr = errors.Join(replyErr, err)
+				break
+			}
+			if found {
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(profile.IsHidden)
 			} else {
 				response.Text = "Profile not found. Use the Create Profile button to create it."
 				response.InlineKeyboard = s.profileCreateInlineKeyboard()
@@ -152,7 +230,42 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		messages = append(messages, followUps...)
 	}
 
-	return messages, errors.Join(touchErr, replyErr, followUpErr)
+	likesFollowUps, likesErr := s.pendingLikesFollowUp(ctx, msg)
+	if len(likesFollowUps) > 0 {
+		messages = append(messages, likesFollowUps...)
+	}
+
+	return messages, errors.Join(touchErr, replyErr, followUpErr, likesErr)
+}
+
+func (s *service) attachBotCheckKeyboard(ctx context.Context, msg domain.IncomingMessage, response *domain.OutgoingMessage) {
+	if response == nil || response.InlineKeyboard != nil || s == nil || s.drafts == nil || msg.User.ID == 0 {
+		return
+	}
+
+	if !s.isDraftCommand(msg.Command) {
+		return
+	}
+
+	draft, found, err := s.drafts.Get(ctx, msg.User.ID)
+	if err != nil || !found {
+		return
+	}
+
+	if draft.Step != domain.ProfileDraftStepBotCheck {
+		return
+	}
+
+	if s.draftMode(draft) != domain.ProfileDraftModeCreate {
+		return
+	}
+
+	keyboard := s.botCheckInlineKeyboard(draft.BotCheckAnswer)
+	if keyboard == nil {
+		return
+	}
+
+	response.InlineKeyboard = keyboard
 }
 
 func (s *service) attachGenderKeyboard(ctx context.Context, msg domain.IncomingMessage, response *domain.OutgoingMessage) {
@@ -160,7 +273,7 @@ func (s *service) attachGenderKeyboard(ctx context.Context, msg domain.IncomingM
 		return
 	}
 
-	if msg.Command != "" && msg.Command != domain.CommandProfileEditGender {
+	if !s.isDraftCommand(msg.Command) {
 		return
 	}
 
@@ -185,7 +298,7 @@ func (s *service) attachTelegramNameKeyboard(ctx context.Context, msg domain.Inc
 		return
 	}
 
-	if msg.Command != "" && msg.Command != domain.CommandProfile && msg.Command != domain.CommandProfileEditName {
+	if !s.isDraftCommand(msg.Command) {
 		return
 	}
 
@@ -210,7 +323,7 @@ func (s *service) attachCountryKeyboard(ctx context.Context, msg domain.Incoming
 		return
 	}
 
-	if msg.Command != "" && !s.isProfileEditAction(msg.Command) {
+	if !s.isDraftCommand(msg.Command) {
 		return
 	}
 
@@ -235,7 +348,7 @@ func (s *service) attachCityKeyboard(ctx context.Context, msg domain.IncomingMes
 		return
 	}
 
-	if msg.Command != "" && !s.isProfileEditAction(msg.Command) {
+	if !s.isDraftCommand(msg.Command) {
 		return
 	}
 
@@ -265,7 +378,7 @@ func (s *service) attachEmojiKeyboard(ctx context.Context, msg domain.IncomingMe
 		return
 	}
 
-	if msg.Command != "" && !s.isProfileEditAction(msg.Command) {
+	if !s.isDraftCommand(msg.Command) {
 		return
 	}
 
@@ -290,7 +403,7 @@ func (s *service) attachPhotosDoneKeyboard(ctx context.Context, msg domain.Incom
 		return
 	}
 
-	if msg.Command != "" && !s.isProfileEditAction(msg.Command) {
+	if !s.isDraftCommand(msg.Command) {
 		return
 	}
 
@@ -312,4 +425,64 @@ func (s *service) attachPhotosDoneKeyboard(ctx context.Context, msg domain.Incom
 	}
 
 	response.InlineKeyboard = s.photosDoneInlineKeyboard()
+}
+
+func (s *service) attachCancelKeyboard(ctx context.Context, msg domain.IncomingMessage, response *domain.OutgoingMessage) {
+	if response == nil || s == nil || s.drafts == nil || msg.User.ID == 0 {
+		return
+	}
+
+	if !s.isDraftCommand(msg.Command) {
+		return
+	}
+
+	draft, found, err := s.drafts.Get(ctx, msg.User.ID)
+	if err != nil || !found {
+		return
+	}
+
+	if s.draftMode(draft) == domain.ProfileDraftModeCreate && s.previousProfileSetupStep(draft.Step) != "" {
+		response.InlineKeyboard = withProfileSetupBackInlineKeyboard(response.InlineKeyboard)
+	}
+
+	response.InlineKeyboard = withDraftCancelInlineKeyboard(response.InlineKeyboard, s.draftMode(draft))
+}
+
+func (s *service) registerProfileSetupCleanup(draft domain.ProfileDraft) {
+	if s == nil {
+		return
+	}
+	if draft.UserID == 0 || draft.ChatID == 0 || draft.SetupStartMessageID == 0 {
+		return
+	}
+
+	s.setupCleanupMu.Lock()
+	if s.setupCleanup == nil {
+		s.setupCleanup = make(map[int64]setupCleanupInfo)
+	}
+	s.setupCleanup[draft.UserID] = setupCleanupInfo{
+		chatID:         draft.ChatID,
+		startMessageID: draft.SetupStartMessageID,
+	}
+	s.setupCleanupMu.Unlock()
+}
+
+func (s *service) takeProfileSetupCleanupStart(userID, chatID int64) int {
+	if s == nil || userID == 0 {
+		return 0
+	}
+
+	s.setupCleanupMu.Lock()
+	defer s.setupCleanupMu.Unlock()
+
+	info, ok := s.setupCleanup[userID]
+	if !ok {
+		return 0
+	}
+	delete(s.setupCleanup, userID)
+	if info.chatID != 0 && chatID != 0 && info.chatID != chatID {
+		return 0
+	}
+
+	return info.startMessageID
 }

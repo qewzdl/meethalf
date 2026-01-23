@@ -60,8 +60,8 @@ func (r *ProfileRepository) Upsert(ctx context.Context, profile domain.Profile) 
 
 	now := time.Now().UTC()
 	query := fmt.Sprintf(
-		`INSERT INTO %s (user_id, name, gender, birth_date, age, country, city, description, emoji_code, photos, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		`INSERT INTO %s (user_id, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		 ON CONFLICT (user_id) DO UPDATE SET
 			name = EXCLUDED.name,
 			gender = EXCLUDED.gender,
@@ -72,6 +72,7 @@ func (r *ProfileRepository) Upsert(ctx context.Context, profile domain.Profile) 
 			description = EXCLUDED.description,
 			emoji_code = EXCLUDED.emoji_code,
 			photos = EXCLUDED.photos,
+			is_hidden = EXCLUDED.is_hidden,
 			updated_at = EXCLUDED.updated_at
 		 RETURNING created_at, updated_at`,
 		r.table,
@@ -92,6 +93,7 @@ func (r *ProfileRepository) Upsert(ctx context.Context, profile domain.Profile) 
 		profile.Description,
 		profile.EmojiCode,
 		profile.Photos,
+		profile.IsHidden,
 		now,
 		now,
 	).Scan(&createdAt, &updatedAt); err != nil {
@@ -113,7 +115,7 @@ func (r *ProfileRepository) GetByUserID(ctx context.Context, userID int64) (doma
 	}
 
 	query := fmt.Sprintf(
-		`SELECT user_id, name, gender, birth_date, age, country, city, description, emoji_code, photos, created_at, updated_at
+		`SELECT user_id, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, created_at, updated_at
 		 FROM %s
 		 WHERE user_id = $1`,
 		r.table,
@@ -140,6 +142,7 @@ func (r *ProfileRepository) GetByUserID(ctx context.Context, userID int64) (doma
 		&stored.Description,
 		&stored.EmojiCode,
 		photosScanner,
+		&stored.IsHidden,
 		&stored.CreatedAt,
 		&stored.UpdatedAt,
 	); err != nil {
@@ -188,6 +191,38 @@ func (r *ProfileRepository) DeleteByUserID(ctx context.Context, userID int64) er
 	return nil
 }
 
+func (r *ProfileRepository) UpdateVisibility(ctx context.Context, userID int64, isHidden bool) error {
+	if r == nil || r.db == nil {
+		return errors.New("postgres profile repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	query := fmt.Sprintf(
+		`UPDATE %s
+		 SET is_hidden = $1, updated_at = $2
+		 WHERE user_id = $3`,
+		r.table,
+	)
+
+	result, err := r.db.ExecContext(ctx, query, isHidden, time.Now().UTC(), userID)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
 func (r *ProfileRepository) ensureTable(ctx context.Context) error {
 	query := fmt.Sprintf(
 		`CREATE TABLE IF NOT EXISTS %s (
@@ -201,6 +236,7 @@ func (r *ProfileRepository) ensureTable(ctx context.Context) error {
 			description TEXT NOT NULL,
 			emoji_code TEXT NOT NULL DEFAULT '',
 			photos TEXT[] NOT NULL DEFAULT '{}',
+			is_hidden BOOLEAN NOT NULL DEFAULT FALSE,
 			created_at TIMESTAMPTZ NOT NULL,
 			updated_at TIMESTAMPTZ NOT NULL
 		)`,
@@ -223,6 +259,7 @@ func (r *ProfileRepository) ensureColumns(ctx context.Context) error {
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS country TEXT NOT NULL DEFAULT ''", r.table),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS city TEXT NOT NULL DEFAULT ''", r.table),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS emoji_code TEXT NOT NULL DEFAULT ''", r.table),
+		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN NOT NULL DEFAULT FALSE", r.table),
 	}
 	for _, query := range queries {
 		if _, err := r.db.ExecContext(ctx, query); err != nil {

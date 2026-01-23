@@ -62,22 +62,24 @@ const (
 )
 
 type ProfileDraft struct {
-	UserID           int64
-	ChatID           int64
-	Step             ProfileDraftStep
-	BotCheckQuestion string
-	BotCheckAnswer   int
-	BotCheckAttempts int
-	Name             string
-	Gender           Gender
-	BirthDate        time.Time
-	Country          Country
-	City             string
-	Description      string
-	EmojiCode        ProfileEmojiCode
-	Photos           []string
-	Mode             ProfileDraftMode
-	UpdatedAt        time.Time
+	UserID              int64
+	ChatID              int64
+	SetupStartMessageID int
+	Step                ProfileDraftStep
+	BotCheckQuestion    string
+	BotCheckAnswer      int
+	BotCheckAttempts    int
+	Name                string
+	Gender              Gender
+	BirthDate           time.Time
+	Country             Country
+	City                string
+	Description         string
+	EmojiCode           ProfileEmojiCode
+	Photos              []string
+	IsHidden            bool
+	Mode                ProfileDraftMode
+	UpdatedAt           time.Time
 }
 
 type Profile struct {
@@ -91,6 +93,7 @@ type Profile struct {
 	Description string
 	EmojiCode   ProfileEmojiCode
 	Photos      []string
+	IsHidden    bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

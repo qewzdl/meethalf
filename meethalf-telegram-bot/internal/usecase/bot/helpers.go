@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -228,4 +229,134 @@ func (s *service) isProfileEditAction(command string) bool {
 	default:
 		return false
 	}
+}
+
+func (s *service) isDraftCommand(command string) bool {
+	if command == "" {
+		return true
+	}
+
+	switch command {
+	case domain.CommandProfile,
+		domain.CommandProfileSetupBack:
+		return true
+	default:
+		return s.isProfileEditAction(command)
+	}
+}
+
+func (s *service) isSearchCommand(command string) bool {
+	switch command {
+	case domain.CommandSearchStart,
+		domain.CommandSearchRefresh,
+		domain.CommandSearchGender,
+		domain.CommandSearchAccuracy,
+		domain.CommandMatchLike,
+		domain.CommandMatchDislike,
+		domain.CommandMatchReport,
+		domain.CommandMatchPrevious,
+		domain.CommandMatchViewProfile:
+		return true
+	default:
+		return false
+	}
+}
+
+func (s *service) normalizeSearchGender(value string) (domain.Gender, bool) {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	switch normalized {
+	case "any", "all":
+		return domain.GenderUnspecified, true
+	default:
+		return s.normalizeGender(value)
+	}
+}
+
+func (s *service) parseSearchAccuracy(value string) (int, bool) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0, false
+	}
+	accuracy, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, false
+	}
+	if accuracy < 0 || accuracy > 4 {
+		return 0, false
+	}
+	return accuracy, true
+}
+
+func (s *service) parseSearchAccuracyArgs(value string) (domain.Gender, int, bool) {
+	parts := strings.Split(strings.TrimSpace(value), ":")
+	if len(parts) != 2 {
+		return "", 0, false
+	}
+	gender, ok := s.normalizeSearchGender(parts[0])
+	if !ok {
+		return "", 0, false
+	}
+	accuracy, ok := s.parseSearchAccuracy(parts[1])
+	if !ok {
+		return "", 0, false
+	}
+	return gender, accuracy, true
+}
+
+func (s *service) parseProfileVisibilityAction(value string) (bool, bool) {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	switch normalized {
+	case profileVisibilityHideAction:
+		return true, true
+	case profileVisibilityShowAction:
+		return false, true
+	default:
+		return false, false
+	}
+}
+
+func (s *service) parseTargetID(value string) (int64, bool) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0, false
+	}
+	id, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || id <= 0 {
+		return 0, false
+	}
+	return id, true
+}
+
+func (s *service) formatUsername(username string) string {
+	normalized := strings.TrimSpace(username)
+	if normalized == "" {
+		return ""
+	}
+	if strings.HasPrefix(normalized, "@") {
+		return normalized
+	}
+	return "@" + normalized
+}
+
+func (s *service) nicknameFromUser(user domain.User, profile domain.Profile) string {
+	if nickname := s.formatUsername(user.Username); nickname != "" {
+		return nickname
+	}
+	if name := strings.TrimSpace(profile.Name); name != "" {
+		return name
+	}
+	if fullName := s.userFullName(user); fullName != "" {
+		return fullName
+	}
+	return "Unknown"
+}
+
+func (s *service) nicknameFromSession(session domain.Session, profile domain.Profile) string {
+	if nickname := s.formatUsername(session.Username); nickname != "" {
+		return nickname
+	}
+	if name := strings.TrimSpace(profile.Name); name != "" {
+		return name
+	}
+	return "Unknown"
 }

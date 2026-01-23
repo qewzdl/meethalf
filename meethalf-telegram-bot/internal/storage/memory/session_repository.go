@@ -34,3 +34,18 @@ func (r *SessionRepository) Touch(ctx context.Context, session domain.Session) e
 
 	return nil
 }
+
+func (r *SessionRepository) Get(ctx context.Context, userID int64) (domain.Session, bool, error) {
+	if r == nil {
+		return domain.Session{}, false, errors.New("memory session repository is nil")
+	}
+	if err := ctx.Err(); err != nil {
+		return domain.Session{}, false, err
+	}
+
+	r.mu.RLock()
+	session, found := r.sessions[userID]
+	r.mu.RUnlock()
+
+	return session, found, nil
+}

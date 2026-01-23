@@ -13,8 +13,6 @@ import (
 	"meethalf-telegram-bot/internal/transport/api"
 	"meethalf-telegram-bot/internal/transport/telegram"
 	botusecase "meethalf-telegram-bot/internal/usecase/bot"
-
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	redisgo "github.com/redis/go-redis/v9"
 )
 
@@ -31,11 +29,15 @@ func New(cfg config.Config, logger *log.Logger) (*App, error) {
 		return nil, errors.New("BOT_TOKEN is required")
 	}
 
-	bot, err := tgbotapi.NewBotAPI(cfg.Bot.Token)
+	bot, err := telegram.NewBot(telegram.BotConfig{
+		Token:       cfg.Bot.Token,
+		Debug:       cfg.Bot.Debug,
+		APIEndpoint: cfg.Bot.APIEndpoint,
+		ProxyURL:    cfg.Bot.ProxyURL,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("init telegram bot: %w", err)
 	}
-	bot.Debug = cfg.Bot.Debug
 
 	var redisClient *redisgo.Client
 	store := strings.ToLower(strings.TrimSpace(cfg.Session.Store))
@@ -65,7 +67,8 @@ func New(cfg config.Config, logger *log.Logger) (*App, error) {
 	}
 
 	profileClient := api.NewProfileClient(cfg.API.BaseURL, cfg.API.Timeout)
-	usecase := botusecase.New(sessionRepo, draftRepo, deleteConfirmRepo, profileClient)
+	searchClient := api.NewSearchClient(cfg.API.BaseURL, cfg.API.Timeout)
+	usecase := botusecase.New(sessionRepo, draftRepo, deleteConfirmRepo, profileClient, searchClient)
 	sender := telegram.NewSender(bot)
 	handler := telegram.NewHandler(usecase, sender, logger)
 	pool := telegram.NewWorkerPool(cfg.Workers.PoolSize, cfg.Workers.QueueSize, handler)

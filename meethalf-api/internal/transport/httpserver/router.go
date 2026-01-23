@@ -23,6 +23,16 @@ func NewRouter(handlers *Handlers, limiter ratelimit.Limiter) *gin.Engine {
 	profileGroup.GET("/:user_id", handlers.Profile.Get)
 	profileGroup.DELETE("/:user_id", handlers.Profile.Delete)
 	profileGroup.POST("", handlers.Profile.Upsert)
+	profileGroup.PATCH("/:user_id/visibility", handlers.Profile.UpdateVisibility)
+
+	searchGroup := v1.Group("/search")
+	searchGroup.POST("/start", handlers.Search.Start)
+	searchGroup.POST("/next", handlers.Search.Next)
+	searchGroup.POST("/previous", handlers.Search.Previous)
+	searchGroup.POST("/action", handlers.Search.Action)
+
+	likesGroup := v1.Group("/likes")
+	likesGroup.GET("/:user_id", handlers.Search.PendingLikes)
 
 	return router
 }

@@ -18,16 +18,23 @@ go run ./cmd/bot
 
 ## Commands
 
-- /start - greet user by profile name when available, otherwise Telegram name; show inline Profile (or Create Profile when missing) and Settings buttons
+- /start - greet user by profile name when available, otherwise Telegram name; show inline Start Search, Profile (or Create Profile when missing), and Settings buttons
+- /cancel - cancel the current action and return to the main menu
 
 ## Profile setup
 
-The bot guides users through a nine-step profile setup: a short anti-bot verification check, name (use the Telegram name
-button or type a custom one), gender, birth date (YYYY-MM-DD), country (Russia, Kazakhstan, or Belarus), city (selected
-from the supported list), description, emoji selection, and a photo album (1-4 photos). Gender, country, city, and emoji
-are selected via inline buttons. After sending at least one photo, use the Done button to finish the setup. Drafts are
+The bot guides users through a nine-step profile setup: a short anti-bot verification check (choose the correct answer
+from four buttons), name (use the Telegram name button or type a custom one), gender, birth date (YYYY-MM-DD), country
+(Russia, Kazakhstan, or Belarus), city (selected from the supported list), description, emoji selection, and a photo
+album (1-4 photos). The verification step plus gender, country, city, and emoji are selected via inline buttons. After
+sending at least one photo, use the Done button to finish the setup. Drafts are
 stored in the same session store so they can survive restarts when Redis is enabled. The setup header includes an estimated
 total completion time (shown in minutes) calculated from per-step durations.
+Each setup prompt includes a Back to menu button to discard the draft and return to the main menu. Starting from the
+Gender step, a Previous step button lets you return to the prior question. Profile edit steps use a Cancel button that
+returns to the Profile Edit menu.
+After the setup is completed, the bot deletes all setup messages in the chat from the start of the setup through the
+Profile created confirmation.
 
 Supported cities:
 
@@ -62,7 +69,8 @@ Use the inline `Profile` button to see the saved profile details. If the profile
 returns a not-found message and shows the `Create Profile` button instead of Preview/Edit actions. The response includes a
 `Preview profile` button (shows how other users see the profile) above the `Edit profile` button to start editing. The
 edit button opens a menu so users can choose which field to update (name, gender, birth date, country, city, description,
-emoji, or photos). When the profile has photos, the bot sends them as an album with the profile details in the caption.
+emoji, or photos). The menu includes a `Back to profile` button. When the profile has photos, the bot sends them as an
+album with the profile details in the caption.
 Profile creation and updates send a confirmation message followed by the full profile details with the `Edit profile`
 button (including the number of saved photos).
 
@@ -72,12 +80,38 @@ Operations that call the Meethalf API (profile view, edits, saves, and confirmed
 loading messages so users see progress while the request is in flight. The loading message is deleted after the final
 response is sent.
 
+## Message replacement
+
+When you press an inline action button, the bot first deletes the message that contained it and only then sends the next
+prompt or result. This keeps the chat tidy and makes each step feel like a replacement.
+
 ## Profile settings
 
 Use the inline `Settings` button from `/start` to open profile settings. The menu includes a `Delete profile`
-button that opens a confirmation step. If the profile does not exist, Settings returns a not-found message and shows the
+button that opens a confirmation step, along with a `Hide from search` / `Show in search` toggle that controls whether
+your profile appears in search results. If the profile does not exist, Settings returns a not-found message and shows the
 `Create Profile` button instead of delete. Confirming removes the profile via the Meethalf API, and cancel keeps the
 profile unchanged.
+
+## Search flow
+
+Use the `Start search` button from `/start` to start browsing. If you press it without a profile, the bot asks you to
+create one first. The bot asks for the gender to search, then the accuracy level (0-4, where 0 is wider/random and 4 is
+stricter). If no profiles match the selected accuracy, the search widens automatically until it finds candidates. After
+that it shows profile cards with action buttons:
+
+- 👎 - skip and show the next profile
+- ❤️ - send a like; the recipient gets a like notification (immediately when possible) with a button to open your profile
+- Report - report and show the next profile
+- Back to previous profile - open the previous profile when available
+
+When you receive likes, the bot sends a notification right away when it has your chat session; otherwise it shows
+notifications on `/start` with a button to view the sender profile. Mutual likes trigger a match message that shares each
+user's nickname (Telegram `@username` when available, falling back to the profile name). Viewing other profiles (search
+results and likes) requires an existing profile; otherwise the bot prompts you to create one.
+Search prompts and match actions include a Back to menu button to exit the flow and return to the main menu. The match
+accuracy step shows a Cancel button that returns to gender selection. When no matching profiles are available, the bot
+shows a Refresh feed button next to Back to menu.
 
 ## Docker
 
@@ -98,6 +132,8 @@ docker compose down
 - BOT_DEBUG (false)
 - BOT_ALLOWED_UPDATES (message,callback_query)
 - BOT_POLLING_TIMEOUT (10s)
+- BOT_API_ENDPOINT ()
+- BOT_PROXY_URL ()
 - BOT_WORKERS (4)
 - BOT_QUEUE_SIZE (100)
 - SESSION_STORE (memory)
@@ -118,7 +154,9 @@ docker compose down
 
 `BOT_TOKEN` is required on startup. `.env` is loaded automatically if present. Long polling is used by
 default. Use `SESSION_STORE=redis` with `REDIS_ENABLED=true` to share session state across multiple bot
-instances.
+instances. Use `BOT_API_ENDPOINT` to override the Telegram API endpoint (accepts a full format string
+like `https://api.telegram.org/bot%s/%s` or a base URL). Set `BOT_PROXY_URL` to force a proxy for
+Telegram requests; if it is empty, `HTTP_PROXY` and `HTTPS_PROXY` are still honored.
 
 ## Structure
 
@@ -132,3 +170,4 @@ instances.
 - internal/transport/api - HTTP client for Meethalf API
 - internal/transport/telegram - Telegram transport (poller, handler, sender)
 - internal/logger - logging
+

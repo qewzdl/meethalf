@@ -10,6 +10,7 @@ import (
 )
 
 func (s *service) handleDraft(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft) (string, error) {
+	draft = s.ensureProfileSetupStart(ctx, msg, draft)
 	if s.draftMode(draft) == domain.ProfileDraftModeEdit {
 		switch draft.Step {
 		case domain.ProfileDraftStepName:
@@ -67,11 +68,12 @@ func (s *service) startProfileSetup(ctx context.Context, msg domain.IncomingMess
 	}
 
 	draft := domain.ProfileDraft{
-		UserID:    msg.User.ID,
-		ChatID:    msg.ChatID,
-		Step:      domain.ProfileDraftStepBotCheck,
-		Mode:      domain.ProfileDraftModeCreate,
-		UpdatedAt: s.now(msg.ReceivedAt),
+		UserID:              msg.User.ID,
+		ChatID:              msg.ChatID,
+		SetupStartMessageID: msg.MessageID,
+		Step:                domain.ProfileDraftStepBotCheck,
+		Mode:                domain.ProfileDraftModeCreate,
+		UpdatedAt:           s.now(msg.ReceivedAt),
 	}
 	s.resetBotCheck(&draft, msg.ReceivedAt)
 
@@ -80,6 +82,44 @@ func (s *service) startProfileSetup(ctx context.Context, msg domain.IncomingMess
 	}
 
 	return s.botCheckPrompt(draft.BotCheckQuestion), nil
+}
+
+func (s *service) profileSetupBack(ctx context.Context, msg domain.IncomingMessage) (string, error) {
+	if s == nil || s.drafts == nil {
+		return "Profile setup is not available right now.", errors.New("profile draft repository is not configured")
+	}
+
+	if msg.User.ID == 0 {
+		return "Profile setup is not available for this chat.", errors.New("user id is missing")
+	}
+
+	draft, found, err := s.drafts.Get(ctx, msg.User.ID)
+	if err != nil {
+		return "Unable to load profile setup. Please try again later.", err
+	}
+	if !found {
+		return "Profile setup is not active. Use /profile to start.", nil
+	}
+
+	if s.draftMode(draft) != domain.ProfileDraftModeCreate {
+		return s.editPrompt(draft.Step), nil
+	}
+
+	previousStep := s.previousProfileSetupStep(draft.Step)
+	if previousStep == "" {
+		return s.profileSetupPrompt(draft.Step, draft, msg.User), nil
+	}
+
+	draft.Step = previousStep
+	if previousStep == domain.ProfileDraftStepBotCheck {
+		s.ensureBotCheck(&draft, msg.ReceivedAt)
+	}
+	draft.UpdatedAt = s.now(msg.ReceivedAt)
+	if err := s.drafts.Save(ctx, draft); err != nil {
+		return "Failed to save profile setup. Please try again later.", err
+	}
+
+	return s.profileSetupPrompt(previousStep, draft, msg.User), nil
 }
 
 func (s *service) startProfileEdit(ctx context.Context, msg domain.IncomingMessage, step domain.ProfileDraftStep) (string, error) {
@@ -134,6 +174,7 @@ func (s *service) startProfileEdit(ctx context.Context, msg domain.IncomingMessa
 		Description: profile.Description,
 		EmojiCode:   profile.EmojiCode,
 		Photos:      profile.Photos,
+		IsHidden:    profile.IsHidden,
 		Mode:        domain.ProfileDraftModeEdit,
 		UpdatedAt:   s.now(msg.ReceivedAt),
 	}
@@ -523,6 +564,7 @@ func (s *service) saveProfile(ctx context.Context, draft domain.ProfileDraft) (s
 		Description: draft.Description,
 		EmojiCode:   draft.EmojiCode,
 		Photos:      draft.Photos,
+		IsHidden:    draft.IsHidden,
 	}); err != nil {
 		return "Failed to save profile. Please try again later.", err
 	}
@@ -530,6 +572,10 @@ func (s *service) saveProfile(ctx context.Context, draft domain.ProfileDraft) (s
 	success := s.profileCreated()
 	if s.draftMode(draft) == domain.ProfileDraftModeEdit {
 		success = s.profileUpdated()
+	}
+
+	if s.draftMode(draft) == domain.ProfileDraftModeCreate {
+		s.registerProfileSetupCleanup(draft)
 	}
 
 	if err := s.drafts.Delete(ctx, draft.UserID); err != nil {
@@ -579,6 +625,31 @@ func (s *service) applyPhotos(ctx context.Context, msg domain.IncomingMessage, d
 	return s.photosPromptText(isEdit, fmt.Sprintf("Photos in album: %d/%d. Send more or use the Done button.", len(draft.Photos), maxPhotos)), nil
 }
 
+func (s *service) profileSetupPrompt(step domain.ProfileDraftStep, draft domain.ProfileDraft, user domain.User) string {
+	switch step {
+	case domain.ProfileDraftStepBotCheck:
+		return s.botCheckPrompt(draft.BotCheckQuestion)
+	case domain.ProfileDraftStepName:
+		return s.namePrompt(user)
+	case domain.ProfileDraftStepGender:
+		return s.genderPrompt()
+	case domain.ProfileDraftStepBirthDate:
+		return s.birthDatePrompt()
+	case domain.ProfileDraftStepCountry:
+		return s.countryPrompt()
+	case domain.ProfileDraftStepCity:
+		return s.cityPrompt()
+	case domain.ProfileDraftStepDescription:
+		return s.descriptionPrompt()
+	case domain.ProfileDraftStepEmoji:
+		return s.emojiPrompt()
+	case domain.ProfileDraftStepPhotos:
+		return s.photosPrompt()
+	default:
+		return s.stepText(step, "")
+	}
+}
+
 func (s *service) nextRequiredStep(draft domain.ProfileDraft) domain.ProfileDraftStep {
 	if draft.BirthDate.IsZero() {
 		return domain.ProfileDraftStepBirthDate
@@ -594,4 +665,49 @@ func (s *service) nextRequiredStep(draft domain.ProfileDraft) domain.ProfileDraf
 	}
 
 	return ""
+}
+
+func (s *service) ensureProfileSetupStart(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft) domain.ProfileDraft {
+	if s == nil || s.drafts == nil {
+		return draft
+	}
+
+	if s.draftMode(draft) != domain.ProfileDraftModeCreate {
+		return draft
+	}
+
+	if draft.SetupStartMessageID != 0 || msg.MessageID == 0 {
+		return draft
+	}
+
+	draft.SetupStartMessageID = msg.MessageID
+	draft.UpdatedAt = s.now(msg.ReceivedAt)
+	if err := s.drafts.Save(ctx, draft); err != nil {
+		return draft
+	}
+
+	return draft
+}
+
+func (s *service) previousProfileSetupStep(step domain.ProfileDraftStep) domain.ProfileDraftStep {
+	switch step {
+	case domain.ProfileDraftStepName:
+		return domain.ProfileDraftStepBotCheck
+	case domain.ProfileDraftStepGender:
+		return domain.ProfileDraftStepName
+	case domain.ProfileDraftStepBirthDate:
+		return domain.ProfileDraftStepGender
+	case domain.ProfileDraftStepCountry:
+		return domain.ProfileDraftStepBirthDate
+	case domain.ProfileDraftStepCity:
+		return domain.ProfileDraftStepCountry
+	case domain.ProfileDraftStepDescription:
+		return domain.ProfileDraftStepCity
+	case domain.ProfileDraftStepEmoji:
+		return domain.ProfileDraftStepDescription
+	case domain.ProfileDraftStepPhotos:
+		return domain.ProfileDraftStepEmoji
+	default:
+		return ""
+	}
 }

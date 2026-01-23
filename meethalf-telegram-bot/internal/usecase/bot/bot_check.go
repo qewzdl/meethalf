@@ -47,6 +47,50 @@ func (s *service) newBotCheckChallenge() (string, int) {
 	return fmt.Sprintf("%d + %d = ?", left, right), left + right
 }
 
+func (s *service) botCheckOptions(answer int) []int {
+	if answer <= 0 {
+		return nil
+	}
+
+	minValue := answer - botCheckOptionsSpread
+	if minValue < botCheckOptionsMinValue {
+		minValue = botCheckOptionsMinValue
+	}
+	maxValue := answer + botCheckOptionsSpread
+	if maxValue < minValue {
+		maxValue = minValue
+	}
+
+	pool := make([]int, 0, maxValue-minValue)
+	for value := minValue; value <= maxValue; value++ {
+		if value == answer {
+			continue
+		}
+		pool = append(pool, value)
+	}
+
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rng.Shuffle(len(pool), func(i, j int) {
+		pool[i], pool[j] = pool[j], pool[i]
+	})
+
+	options := make([]int, 0, botCheckOptionsCount)
+	options = append(options, answer)
+	for i := 0; i < len(pool) && len(options) < botCheckOptionsCount; i++ {
+		options = append(options, pool[i])
+	}
+
+	for candidate := maxValue + 1; len(options) < botCheckOptionsCount; candidate++ {
+		options = append(options, candidate)
+	}
+
+	rng.Shuffle(len(options), func(i, j int) {
+		options[i], options[j] = options[j], options[i]
+	})
+
+	return options
+}
+
 func (s *service) botCheckMatches(draft domain.ProfileDraft, value string) bool {
 	value = strings.TrimSpace(value)
 	if value == "" || draft.BotCheckAnswer <= 0 {

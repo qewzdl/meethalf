@@ -87,7 +87,7 @@ func (s *service) emojiInlineKeyboard() *domain.InlineKeyboard {
 		})
 	}
 
-	return &domain.InlineKeyboard{Buttons: rows}
+	return withCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: rows})
 }
 
 func (s *service) normalizeEmojiCode(value string) (domain.ProfileEmojiCode, bool) {

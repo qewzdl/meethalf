@@ -81,12 +81,14 @@ type Usecase interface {
 	Upsert(ctx context.Context, profile domain.Profile) (domain.Profile, error)
 	GetByUserID(ctx context.Context, userID int64) (domain.Profile, error)
 	DeleteByUserID(ctx context.Context, userID int64) error
+	UpdateVisibility(ctx context.Context, userID int64, isHidden bool) error
 }
 
 type Repository interface {
 	Upsert(ctx context.Context, profile domain.Profile) (domain.Profile, error)
 	GetByUserID(ctx context.Context, userID int64) (domain.Profile, error)
 	DeleteByUserID(ctx context.Context, userID int64) error
+	UpdateVisibility(ctx context.Context, userID int64, isHidden bool) error
 }
 
 type service struct {
@@ -157,6 +159,29 @@ func (s *service) DeleteByUserID(ctx context.Context, userID int64) error {
 	}
 
 	if err := s.repo.DeleteByUserID(ctx, userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrProfileNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) UpdateVisibility(ctx context.Context, userID int64, isHidden bool) error {
+	if s == nil || s.repo == nil {
+		return errors.New("profile repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	if userID <= 0 {
+		return ErrInvalidUserID
+	}
+
+	if err := s.repo.UpdateVisibility(ctx, userID, isHidden); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrProfileNotFound
 		}
