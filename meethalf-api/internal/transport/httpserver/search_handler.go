@@ -44,6 +44,19 @@ type likesResponse struct {
 	Likes []profileResponse `json:"likes"`
 }
 
+type historyResponse struct {
+	History []historyItemResponse `json:"history"`
+	Total   int                   `json:"total"`
+	Limit   int                   `json:"limit"`
+	Offset  int                   `json:"offset"`
+}
+
+type historyItemResponse struct {
+	Profile  profileResponse `json:"profile"`
+	Position int             `json:"position"`
+	Action   string          `json:"action"`
+}
+
 type searchActionResponse struct {
 	Matched bool `json:"matched"`
 }
@@ -189,6 +202,54 @@ func (h *SearchHandler) PendingLikes(c *gin.Context) {
 	resp := likesResponse{Likes: make([]profileResponse, 0, len(likes))}
 	for _, like := range likes {
 		resp.Likes = append(resp.Likes, toProfileResponse(like))
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *SearchHandler) History(c *gin.Context) {
+	if h == nil || h.uc == nil {
+		respondError(c, http.StatusInternalServerError, "search handler is not configured")
+		return
+	}
+
+	userID, err := strconv.ParseInt(c.Param("user_id"), 10, 64)
+	if err != nil || userID <= 0 {
+		respondError(c, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	limit, err := parseNonNegativeIntQuery(c, "limit")
+	if err != nil {
+		respondError(c, http.StatusBadRequest, "invalid limit")
+		return
+	}
+
+	offset, err := parseNonNegativeIntQuery(c, "offset")
+	if err != nil {
+		respondError(c, http.StatusBadRequest, "invalid offset")
+		return
+	}
+
+	list, err := h.uc.History(c.Request.Context(), userID, limit, offset)
+	if err != nil {
+		code, message := searchHTTPError(err)
+		respondError(c, code, message)
+		return
+	}
+
+	resp := historyResponse{
+		History: make([]historyItemResponse, 0, len(list.Items)),
+		Total:   list.Total,
+		Limit:   list.Limit,
+		Offset:  list.Offset,
+	}
+	for _, item := range list.Items {
+		resp.History = append(resp.History, historyItemResponse{
+			Profile:  toProfileResponse(item.Profile),
+			Position: item.Position,
+			Action:   string(item.Action),
+		})
 	}
 
 	c.JSON(http.StatusOK, resp)

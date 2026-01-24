@@ -89,6 +89,19 @@ func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessa
 		msg.Command = domain.CommandAdminUnmoderator
 		msg.Arguments = s.adminUserIdentifierLabel(userID, username)
 		return msg, nil, false, nil
+	case domain.AdminActionResetChoices:
+		userID, username, ok := s.parseAdminUserIdentifier(msg.Text)
+		if !ok {
+			response := domain.OutgoingMessage{
+				ChatID:         msg.ChatID,
+				Text:           s.adminResetChoicesUsageText(),
+				InlineKeyboard: s.adminResetChoicesInlineKeyboard(),
+			}
+			return msg, &response, true, nil
+		}
+		msg.Command = domain.CommandAdminResetChoices
+		msg.Arguments = s.adminUserIdentifierLabel(userID, username)
+		return msg, nil, false, nil
 	default:
 		_ = s.adminActions.Delete(ctx, msg.User.ID)
 		return msg, nil, false, nil

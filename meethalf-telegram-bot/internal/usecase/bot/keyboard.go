@@ -1,7 +1,9 @@
 package bot
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 
 	"meethalf-telegram-bot/internal/domain"
 )
@@ -14,6 +16,10 @@ const (
 	editCancelButtonText           = "Cancel"
 	searchAccuracyCancelButtonText = "Cancel"
 	searchRefreshButtonText        = "Refresh feed"
+	searchHistoryButtonText        = "History"
+	searchHistoryPrevButtonText    = "Previous"
+	searchHistoryNextButtonText    = "Next"
+	searchHistoryBackButtonText    = "Back to history"
 	adminMenuButtonText            = "Admin panel"
 	moderatorMenuButtonText        = "Moderator panel"
 	adminUsersButtonText           = "User list"
@@ -21,12 +27,14 @@ const (
 	adminUnbanButtonText           = "Unban user"
 	adminModeratorButtonText       = "Make moderator"
 	adminUnmoderatorButtonText     = "Remove moderator"
+	adminResetChoicesButtonText    = "Reset choices"
 	adminBannedUsersButtonText     = "Banned users"
 	adminModeratorsButtonText      = "Moderators"
 	adminReportsButtonText         = "Reported users"
 	adminUsersPrevButtonText       = "Previous"
 	adminUsersNextButtonText       = "Next"
 	adminBackToMenuButtonText      = "Back to admin"
+	historyLabelMaxRunes           = 20
 )
 
 func (s *service) startInlineKeyboardByStatus(status profileStatus, role adminRole) *domain.InlineKeyboard {
@@ -116,6 +124,13 @@ func (s *service) adminMenuInlineKeyboard(role adminRole) *domain.InlineKeyboard
 		},
 	)
 
+	rows = append(rows, []domain.InlineButton{
+		{
+			Text:         adminResetChoicesButtonText,
+			CallbackData: domain.CommandAdminResetChoices,
+		},
+	})
+
 	if role.canManageModerators() {
 		rows = append(rows,
 			[]domain.InlineButton{
@@ -152,6 +167,10 @@ func (s *service) adminBanInlineKeyboard() *domain.InlineKeyboard {
 }
 
 func (s *service) adminModeratorInlineKeyboard() *domain.InlineKeyboard {
+	return s.adminBanInlineKeyboard()
+}
+
+func (s *service) adminResetChoicesInlineKeyboard() *domain.InlineKeyboard {
 	return s.adminBanInlineKeyboard()
 }
 
@@ -684,19 +703,24 @@ func (s *service) matchActionsInlineKeyboard(targetID int64, hasPrevious bool) *
 			},
 		},
 	}
-	row := []domain.InlineButton{
+	buttons = append(buttons, []domain.InlineButton{
 		{
 			Text:         "Report",
 			CallbackData: domain.CommandMatchReport + ":" + target,
 		},
-	}
+		{
+			Text:         searchHistoryButtonText,
+			CallbackData: domain.CommandMatchHistory,
+		},
+	})
 	if hasPrevious {
-		row = append(row, domain.InlineButton{
-			Text:         "Back to previous profile",
-			CallbackData: domain.CommandMatchPrevious,
+		buttons = append(buttons, []domain.InlineButton{
+			{
+				Text:         "Back to previous profile",
+				CallbackData: domain.CommandMatchPrevious,
+			},
 		})
 	}
-	buttons = append(buttons, row)
 
 	return withCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: buttons})
 }
@@ -709,6 +733,83 @@ func (s *service) matchViewInlineKeyboard(targetID int64) *domain.InlineKeyboard
 				{
 					Text:         "View profile",
 					CallbackData: domain.CommandMatchViewProfile + ":" + target,
+				},
+			},
+		},
+	})
+}
+
+func (s *service) historyInlineKeyboard(list domain.MatchHistoryList) *domain.InlineKeyboard {
+	rows := make([][]domain.InlineButton, 0, len(list.Items)+2)
+	for i, item := range list.Items {
+		index := list.Offset + i + 1
+		target := strconv.FormatInt(item.Profile.UserID, 10)
+		args := target + ":" + strconv.Itoa(list.Offset)
+		rows = append(rows, []domain.InlineButton{
+			{
+				Text:         s.historyItemButtonLabel(item.Profile, index),
+				CallbackData: domain.CommandMatchHistoryView + ":" + args,
+			},
+		})
+	}
+
+	hasPrev := list.Offset > 0
+	hasNext := list.Limit > 0 && (list.Offset+list.Limit) < list.Total
+	if hasPrev || hasNext {
+		row := []domain.InlineButton{}
+		if hasPrev {
+			prevOffset := list.Offset - list.Limit
+			if prevOffset < 0 {
+				prevOffset = 0
+			}
+			row = append(row, domain.InlineButton{
+				Text:         searchHistoryPrevButtonText,
+				CallbackData: domain.CommandMatchHistory + ":" + strconv.Itoa(prevOffset),
+			})
+		}
+		if hasNext {
+			nextOffset := list.Offset + list.Limit
+			row = append(row, domain.InlineButton{
+				Text:         searchHistoryNextButtonText,
+				CallbackData: domain.CommandMatchHistory + ":" + strconv.Itoa(nextOffset),
+			})
+		}
+		rows = append(rows, row)
+	}
+
+	rows = append(rows, []domain.InlineButton{
+		{
+			Text:         searchRefreshButtonText,
+			CallbackData: domain.CommandSearchRefresh,
+		},
+	})
+
+	return withCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: rows})
+}
+
+func (s *service) historyActionsInlineKeyboard(targetID int64, offset int) *domain.InlineKeyboard {
+	target := strconv.FormatInt(targetID, 10)
+	offsetValue := strconv.Itoa(offset)
+	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+		Buttons: [][]domain.InlineButton{
+			{
+				{
+					Text:         "👎",
+					CallbackData: domain.CommandMatchHistoryDislike + ":" + target + ":" + offsetValue,
+				},
+				{
+					Text:         "❤️",
+					CallbackData: domain.CommandMatchHistoryLike + ":" + target + ":" + offsetValue,
+				},
+			},
+			{
+				{
+					Text:         "Report",
+					CallbackData: domain.CommandMatchHistoryReport + ":" + target + ":" + offsetValue,
+				},
+				{
+					Text:         searchHistoryBackButtonText,
+					CallbackData: domain.CommandMatchHistory + ":" + offsetValue,
 				},
 			},
 		},
@@ -908,6 +1009,31 @@ func withoutCancelInlineKeyboard(keyboard *domain.InlineKeyboard) *domain.Inline
 
 	keyboard.Buttons = rows
 	return keyboard
+}
+
+func (s *service) historyItemButtonLabel(profile domain.Profile, index int) string {
+	name := strings.TrimSpace(profile.Name)
+	if name == "" {
+		name = fmt.Sprintf("User %d", profile.UserID)
+	}
+	if historyLabelMaxRunes > 0 {
+		name = truncateRunes(name, historyLabelMaxRunes)
+	}
+	if index <= 0 {
+		return name
+	}
+	return fmt.Sprintf("%d. %s", index, name)
+}
+
+func truncateRunes(value string, limit int) string {
+	if limit <= 0 {
+		return value
+	}
+	runes := []rune(value)
+	if len(runes) <= limit {
+		return value
+	}
+	return string(runes[:limit]) + "..."
 }
 
 func inlineKeyboardHasCallback(keyboard *domain.InlineKeyboard, callbackData string) bool {

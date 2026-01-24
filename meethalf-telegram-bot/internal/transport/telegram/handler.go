@@ -201,6 +201,21 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 	case strings.HasPrefix(text, domain.CommandMatchViewProfile+":"):
 		command = domain.CommandMatchViewProfile
 		arguments = strings.TrimPrefix(text, domain.CommandMatchViewProfile+":")
+	case strings.HasPrefix(text, domain.CommandMatchHistoryView+":"):
+		command = domain.CommandMatchHistoryView
+		arguments = strings.TrimPrefix(text, domain.CommandMatchHistoryView+":")
+	case strings.HasPrefix(text, domain.CommandMatchHistoryLike+":"):
+		command = domain.CommandMatchHistoryLike
+		arguments = strings.TrimPrefix(text, domain.CommandMatchHistoryLike+":")
+	case strings.HasPrefix(text, domain.CommandMatchHistoryDislike+":"):
+		command = domain.CommandMatchHistoryDislike
+		arguments = strings.TrimPrefix(text, domain.CommandMatchHistoryDislike+":")
+	case strings.HasPrefix(text, domain.CommandMatchHistoryReport+":"):
+		command = domain.CommandMatchHistoryReport
+		arguments = strings.TrimPrefix(text, domain.CommandMatchHistoryReport+":")
+	case strings.HasPrefix(text, domain.CommandMatchHistory+":"):
+		command = domain.CommandMatchHistory
+		arguments = strings.TrimPrefix(text, domain.CommandMatchHistory+":")
 	case strings.HasPrefix(text, domain.CommandAdminUsers+":"):
 		command = domain.CommandAdminUsers
 		arguments = strings.TrimPrefix(text, domain.CommandAdminUsers+":")
@@ -259,6 +274,8 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandSearchGender
 		case domain.CommandMatchPrevious:
 			command = domain.CommandMatchPrevious
+		case domain.CommandMatchHistory:
+			command = domain.CommandMatchHistory
 		case domain.CommandAdminMenu:
 			command = domain.CommandAdminMenu
 		case domain.CommandAdminUsers:
@@ -277,6 +294,8 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandAdminModerator
 		case domain.CommandAdminUnmoderator:
 			command = domain.CommandAdminUnmoderator
+		case domain.CommandAdminResetChoices:
+			command = domain.CommandAdminResetChoices
 		}
 	}
 

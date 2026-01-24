@@ -13,6 +13,19 @@ type MatchCandidate struct {
 	HasPrevious bool
 }
 
+type MatchHistoryItem struct {
+	Profile  Profile
+	Position int
+	Action   MatchAction
+}
+
+type MatchHistoryList struct {
+	Items  []MatchHistoryItem
+	Total  int
+	Limit  int
+	Offset int
+}
+
 type MatchActionResult struct {
 	Matched bool
 }

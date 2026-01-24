@@ -10,16 +10,21 @@ import (
 
 	"meethalf-api/internal/domain"
 	"meethalf-api/internal/usecase/admin"
+	"meethalf-api/internal/usecase/matching"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AdminHandler struct {
-	uc admin.Usecase
+	uc       admin.Usecase
+	matching matching.Usecase
 }
 
-func NewAdminHandler(uc admin.Usecase) *AdminHandler {
-	return &AdminHandler{uc: uc}
+func NewAdminHandler(uc admin.Usecase, matchingUC matching.Usecase) *AdminHandler {
+	return &AdminHandler{
+		uc:       uc,
+		matching: matchingUC,
+	}
 }
 
 type adminUsersResponse struct {
@@ -335,6 +340,49 @@ func (h *AdminHandler) RemoveModerator(c *gin.Context) {
 	}
 
 	if err := h.applyAdminUnmoderator(c, userID, username); err != nil {
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func (h *AdminHandler) ResetChoices(c *gin.Context) {
+	if h == nil || h.uc == nil || h.matching == nil {
+		respondError(c, http.StatusInternalServerError, "admin handler is not configured")
+		return
+	}
+
+	userID, username, ok := parseAdminUserReference(c.Param("user_ref"))
+	if !ok {
+		respondError(c, http.StatusBadRequest, "invalid user reference")
+		return
+	}
+
+	if username != "" {
+		user, err := h.uc.GetUserByUsername(c.Request.Context(), username)
+		if err != nil {
+			switch {
+			case errors.Is(err, admin.ErrInvalidUsername):
+				respondError(c, http.StatusBadRequest, err.Error())
+			case errors.Is(err, admin.ErrUserNotFound):
+				respondError(c, http.StatusNotFound, err.Error())
+			default:
+				respondError(c, http.StatusInternalServerError, "failed to load user")
+			}
+			return
+		}
+		userID = user.UserID
+	}
+
+	if err := h.matching.ResetChoices(c.Request.Context(), userID); err != nil {
+		switch {
+		case errors.Is(err, matching.ErrInvalidUserID):
+			respondError(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, matching.ErrProfileNotFound):
+			respondError(c, http.StatusNotFound, err.Error())
+		default:
+			respondError(c, http.StatusInternalServerError, "failed to reset choices")
+		}
 		return
 	}
 

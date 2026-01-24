@@ -46,6 +46,7 @@ type SearchService interface {
 	StartSearch(ctx context.Context, userID int64, gender domain.Gender, accuracy int) (domain.MatchCandidate, bool, error)
 	NextCandidate(ctx context.Context, userID int64) (domain.MatchCandidate, bool, error)
 	PreviousCandidate(ctx context.Context, userID int64) (domain.MatchCandidate, bool, error)
+	History(ctx context.Context, userID int64, limit, offset int) (domain.MatchHistoryList, error)
 	RecordAction(ctx context.Context, userID, targetID int64, action domain.MatchAction) (domain.MatchActionResult, error)
 	PendingLikes(ctx context.Context, userID int64) ([]domain.Profile, error)
 }
@@ -63,6 +64,8 @@ type AdminService interface {
 	MakeModeratorByUsername(ctx context.Context, username string) error
 	RemoveModerator(ctx context.Context, userID int64) error
 	RemoveModeratorByUsername(ctx context.Context, username string) error
+	ResetUserChoices(ctx context.Context, userID int64) error
+	ResetUserChoicesByUsername(ctx context.Context, username string) error
 }
 
 type service struct {
@@ -114,7 +117,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		msg.Command != domain.CommandAdminBan &&
 		msg.Command != domain.CommandAdminUnban &&
 		msg.Command != domain.CommandAdminModerator &&
-		msg.Command != domain.CommandAdminUnmoderator {
+		msg.Command != domain.CommandAdminUnmoderator &&
+		msg.Command != domain.CommandAdminResetChoices {
 		_ = s.clearAdminAction(ctx, msg.User.ID)
 	}
 
@@ -163,6 +167,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		response.Text, response.InlineKeyboard, replyErr = s.adminModeratorMessage(ctx, msg)
 	case domain.CommandAdminUnmoderator:
 		response.Text, response.InlineKeyboard, replyErr = s.adminUnmoderatorMessage(ctx, msg)
+	case domain.CommandAdminResetChoices:
+		response.Text, response.InlineKeyboard, replyErr = s.adminResetChoicesMessage(ctx, msg)
 	default:
 		response.Text, replyErr = s.reply(ctx, msg)
 		if msg.Command == domain.CommandProfileEdit && replyErr == nil {

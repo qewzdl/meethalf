@@ -202,6 +202,124 @@ func (r *MatchingRepository) SaveHistoryCandidate(ctx context.Context, viewerID 
 	return err
 }
 
+func (r *MatchingRepository) ListHistory(ctx context.Context, viewerID int64, limit, offset int) ([]domain.MatchHistoryItem, int, error) {
+	if r == nil || r.db == nil {
+		return nil, 0, errors.New("postgres matching repository is not configured")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	countQuery := fmt.Sprintf(
+		`SELECT COUNT(DISTINCT h.candidate_id)
+		 FROM %s h
+		 JOIN %s p ON p.user_id = h.candidate_id
+		 WHERE h.viewer_id = $1
+		   AND p.is_banned = FALSE`,
+		r.historyTable,
+		profileTable(r.schema),
+	)
+
+	var total int
+	if err := r.db.QueryRowContext(ctx, countQuery, viewerID).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	if total == 0 {
+		return []domain.MatchHistoryItem{}, 0, nil
+	}
+
+	query := fmt.Sprintf(
+		`SELECT latest.position, latest.action,
+		        latest.user_id, latest.name, latest.gender, latest.birth_date, latest.age, latest.country, latest.city,
+		        latest.description, latest.emoji_code, latest.photos, latest.is_hidden, latest.is_banned, latest.created_at, latest.updated_at
+		 FROM (
+			 SELECT DISTINCT ON (h.candidate_id)
+			        h.position,
+			        COALESCE(i.action, '') AS action,
+			        h.created_at AS last_seen,
+			        p.user_id, p.name, p.gender, p.birth_date, p.age, p.country, p.city, p.description, p.emoji_code,
+			        p.photos, p.is_hidden, p.is_banned, p.created_at, p.updated_at
+			 FROM %s h
+			 JOIN %s p ON p.user_id = h.candidate_id
+			 LEFT JOIN %s i ON i.viewer_id = h.viewer_id AND i.target_id = h.candidate_id
+			 WHERE h.viewer_id = $1
+			   AND p.is_banned = FALSE
+			 ORDER BY h.candidate_id, h.created_at DESC, h.session_version DESC, h.position DESC
+		 ) AS latest
+		 ORDER BY latest.last_seen DESC
+		 LIMIT $2 OFFSET $3`,
+		r.historyTable,
+		profileTable(r.schema),
+		r.interactionsTable,
+	)
+
+	rows, err := r.db.QueryContext(ctx, query, viewerID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	items := make([]domain.MatchHistoryItem, 0)
+	for rows.Next() {
+		item, err := r.scanHistoryItem(rows.Scan)
+		if err != nil {
+			return nil, 0, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return items, total, nil
+}
+
+func (r *MatchingRepository) ResetChoices(ctx context.Context, viewerID int64) error {
+	if r == nil || r.db == nil {
+		return errors.New("postgres matching repository is not configured")
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	historyQuery := fmt.Sprintf(`DELETE FROM %s WHERE viewer_id = $1`, r.historyTable)
+	if _, err := tx.ExecContext(ctx, historyQuery, viewerID); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	interactionQuery := fmt.Sprintf(`DELETE FROM %s WHERE viewer_id = $1`, r.interactionsTable)
+	if _, err := tx.ExecContext(ctx, interactionQuery, viewerID); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	now := time.Now().UTC()
+	sessionQuery := fmt.Sprintf(
+		`UPDATE %s
+		 SET current_index = 0,
+		     created_at = COALESCE(created_at, $2),
+		     updated_at = $2
+		 WHERE viewer_id = $1`,
+		r.sessionsTable,
+	)
+	if _, err := tx.ExecContext(ctx, sessionQuery, viewerID, now); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *MatchingRepository) FindCandidate(ctx context.Context, params matching.CandidateParams) (domain.Profile, bool, error) {
 	if r == nil || r.db == nil {
 		return domain.Profile{}, false, errors.New("postgres matching repository is not configured")
@@ -394,6 +512,55 @@ func (r *MatchingRepository) MarkLikesNotified(ctx context.Context, userID int64
 
 	_, err := r.db.ExecContext(ctx, query, args...)
 	return err
+}
+
+func (r *MatchingRepository) scanHistoryItem(scan func(dest ...any) error) (domain.MatchHistoryItem, error) {
+	typeMap := r.typeMap
+	if typeMap == nil {
+		typeMap = pgtype.NewMap()
+	}
+	var photos []string
+	photosScanner := typeMap.SQLScanner(&photos)
+
+	var stored domain.Profile
+	var position int
+	var action string
+	var birthDate sql.NullTime
+	var age sql.NullInt32
+	if err := scan(
+		&position,
+		&action,
+		&stored.UserID,
+		&stored.Name,
+		&stored.Gender,
+		&birthDate,
+		&age,
+		&stored.Country,
+		&stored.City,
+		&stored.Description,
+		&stored.EmojiCode,
+		photosScanner,
+		&stored.IsHidden,
+		&stored.IsBanned,
+		&stored.CreatedAt,
+		&stored.UpdatedAt,
+	); err != nil {
+		return domain.MatchHistoryItem{}, err
+	}
+
+	if birthDate.Valid {
+		stored.BirthDate = birthDate.Time
+	}
+	if age.Valid {
+		stored.Age = int(age.Int32)
+	}
+	stored.Photos = photos
+
+	return domain.MatchHistoryItem{
+		Profile:  stored,
+		Position: position,
+		Action:   domain.MatchAction(strings.TrimSpace(action)),
+	}, nil
 }
 
 func (r *MatchingRepository) scanProfile(scan func(dest ...any) error) (domain.Profile, error) {

@@ -230,6 +230,22 @@ func (c *AdminClient) RemoveModeratorByUsername(ctx context.Context, username st
 	return c.postAdminAction(ctx, ref, "unmoderator")
 }
 
+func (c *AdminClient) ResetUserChoices(ctx context.Context, userID int64) error {
+	if userID <= 0 {
+		return errors.New("user id is required")
+	}
+	return c.postAdminAction(ctx, fmt.Sprintf("%d", userID), "choices/reset")
+}
+
+func (c *AdminClient) ResetUserChoicesByUsername(ctx context.Context, username string) error {
+	ref, err := normalizeAdminUsernameRef(username)
+	if err != nil {
+		return err
+	}
+
+	return c.postAdminAction(ctx, ref, "choices/reset")
+}
+
 func (c *AdminClient) getAdminUser(ctx context.Context, userRef string) (domain.UserSummary, error) {
 	if c == nil || c.client == nil {
 		return domain.UserSummary{}, errors.New("admin client is not configured")

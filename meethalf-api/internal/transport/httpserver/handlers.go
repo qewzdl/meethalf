@@ -19,6 +19,6 @@ func NewHandlers(healthUC health.Usecase, profileUC profile.Usecase, matchingUC 
 		Health:  NewHealthHandler(healthUC),
 		Profile: NewProfileHandler(profileUC),
 		Search:  NewSearchHandler(matchingUC),
-		Admin:   NewAdminHandler(adminUC),
+		Admin:   NewAdminHandler(adminUC, matchingUC),
 	}
 }

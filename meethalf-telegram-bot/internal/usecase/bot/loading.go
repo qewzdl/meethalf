@@ -73,6 +73,16 @@ func (s *service) loadingForCommand(msg domain.IncomingMessage) (domain.Outgoing
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchNextText}, true
 	case domain.CommandMatchPrevious:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchPrevText}, true
+	case domain.CommandMatchHistory:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchHistoryText}, true
+	case domain.CommandMatchHistoryView:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchHistoryProfileText}, true
+	case domain.CommandMatchHistoryLike:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchHistoryActionText}, true
+	case domain.CommandMatchHistoryDislike:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchHistoryActionText}, true
+	case domain.CommandMatchHistoryReport:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchHistoryActionText}, true
 	case domain.CommandAdminUsers:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminUsersText}, true
 	case domain.CommandAdminBannedUsers:
@@ -101,6 +111,11 @@ func (s *service) loadingForCommand(msg domain.IncomingMessage) (domain.Outgoing
 			return domain.OutgoingMessage{}, false
 		}
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminUnmoderatorText}, true
+	case domain.CommandAdminResetChoices:
+		if strings.TrimSpace(msg.Arguments) == "" {
+			return domain.OutgoingMessage{}, false
+		}
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminResetChoicesText}, true
 	default:
 		return domain.OutgoingMessage{}, false
 	}
@@ -124,6 +139,7 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 	case domain.AdminActionUnban:
 	case domain.AdminActionModerator:
 	case domain.AdminActionUnmoderator:
+	case domain.AdminActionResetChoices:
 	default:
 		return domain.OutgoingMessage{}, false, nil
 	}
@@ -146,6 +162,8 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 		loadingText = loadingAdminModeratorText
 	case domain.AdminActionUnmoderator:
 		loadingText = loadingAdminUnmoderatorText
+	case domain.AdminActionResetChoices:
+		loadingText = loadingAdminResetChoicesText
 	}
 	return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingText}, true, nil
 }

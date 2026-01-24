@@ -28,7 +28,8 @@ menu that opens admin management. The admin panel supports `User list`, `Banned 
 lists (reported users include report counts) that return users (including their Telegram usernames) from the Meethalf API
 with pagination, plus `Ban user` / `Unban user` buttons that prompt for the profile id or `@username` (you can also use
 `/ban <user_id|@username>` and `/unban <user_id|@username>`). It also supports `Make moderator` / `Remove moderator` actions
-(`/moderator <user_id|@username>` and `/unmoderator <user_id|@username>`).
+(`/moderator <user_id|@username>` and `/unmoderator <user_id|@username>`), and `Reset choices` to clear match history and
+decisions (`/reset_choices <user_id|@username>`).
 Moderators (profiles with `is_moderator=true` in the Meethalf API) see a `Moderator access enabled.` badge and a
 `Moderator panel` button, but only with `User list`, `Banned users`, and `Reported users` lists plus `Ban user` / `Unban user`
 (regular users only).
@@ -118,6 +119,7 @@ that it shows profile cards with action buttons:
 - ❤️ - send a like; the recipient gets a like notification (immediately when possible) with a button to open your profile
 - Report - report and show the next profile
 - Back to previous profile - open the previous profile when available
+- History - open the list of viewed profiles across sessions (with current decisions) and change them
 
 When you receive likes, the bot sends a notification right away when it has your chat session; otherwise it shows
 notifications on `/start` with a button to view the sender profile. Mutual likes trigger a match message that shares each

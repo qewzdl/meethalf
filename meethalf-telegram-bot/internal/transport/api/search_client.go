@@ -58,6 +58,19 @@ type likesResponse struct {
 	Likes []profileResponse `json:"likes"`
 }
 
+type historyResponse struct {
+	History []historyItemResponse `json:"history"`
+	Total   int                   `json:"total"`
+	Limit   int                   `json:"limit"`
+	Offset  int                   `json:"offset"`
+}
+
+type historyItemResponse struct {
+	Profile  profileResponse    `json:"profile"`
+	Position int                `json:"position"`
+	Action   domain.MatchAction `json:"action"`
+}
+
 type searchActionResponse struct {
 	Matched bool `json:"matched"`
 }
@@ -235,6 +248,63 @@ func (c *SearchClient) PendingLikes(ctx context.Context, userID int64) ([]domain
 	}
 
 	return likes, nil
+}
+
+func (c *SearchClient) History(ctx context.Context, userID int64, limit, offset int) (domain.MatchHistoryList, error) {
+	if c == nil || c.client == nil {
+		return domain.MatchHistoryList{}, errors.New("search client is not configured")
+	}
+	if c.baseURL == "" {
+		return domain.MatchHistoryList{}, errors.New("search client base url is empty")
+	}
+	if userID <= 0 {
+		return domain.MatchHistoryList{}, errors.New("user id is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return domain.MatchHistoryList{}, err
+	}
+
+	query := fmt.Sprintf("limit=%d&offset=%d", limit, offset)
+	url := fmt.Sprintf("%s/api/v1/search/history/%d?%s", c.baseURL, userID, query)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return domain.MatchHistoryList{}, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return domain.MatchHistoryList{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return domain.MatchHistoryList{}, c.apiError(resp)
+	}
+
+	var payload historyResponse
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return domain.MatchHistoryList{}, err
+	}
+
+	items := make([]domain.MatchHistoryItem, 0, len(payload.History))
+	for _, item := range payload.History {
+		profile, err := profileFromResponse(item.Profile)
+		if err != nil {
+			return domain.MatchHistoryList{}, err
+		}
+		items = append(items, domain.MatchHistoryItem{
+			Profile:  profile,
+			Position: item.Position,
+			Action:   item.Action,
+		})
+	}
+
+	return domain.MatchHistoryList{
+		Items:  items,
+		Total:  payload.Total,
+		Limit:  payload.Limit,
+		Offset: payload.Offset,
+	}, nil
 }
 
 func (c *SearchClient) fetchCandidate(ctx context.Context, path string, request searchUserRequest) (domain.MatchCandidate, bool, error) {

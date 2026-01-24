@@ -11,9 +11,11 @@ import (
 )
 
 const (
-	minAccuracy      = 0
-	maxAccuracy      = 4
-	defaultAgeWindow = 3
+	minAccuracy         = 0
+	maxAccuracy         = 4
+	defaultAgeWindow    = 3
+	defaultHistoryLimit = 20
+	maxHistoryLimit     = 100
 )
 
 var (
@@ -34,6 +36,8 @@ type Usecase interface {
 	Start(ctx context.Context, viewerID int64, gender domain.Gender, accuracy int) (domain.MatchCandidate, error)
 	Next(ctx context.Context, viewerID int64) (domain.MatchCandidate, error)
 	Previous(ctx context.Context, viewerID int64) (domain.MatchCandidate, error)
+	History(ctx context.Context, viewerID int64, limit, offset int) (HistoryList, error)
+	ResetChoices(ctx context.Context, viewerID int64) error
 	RecordAction(ctx context.Context, viewerID, targetID int64, action domain.MatchAction) (domain.MatchActionResult, error)
 	PendingLikes(ctx context.Context, userID int64) ([]domain.Profile, error)
 }
@@ -42,9 +46,10 @@ type Repository interface {
 	GetProfile(ctx context.Context, userID int64) (domain.Profile, error)
 	GetSession(ctx context.Context, viewerID int64) (domain.MatchSession, bool, error)
 	SaveSession(ctx context.Context, session domain.MatchSession) error
-	ResetHistory(ctx context.Context, viewerID int64) error
 	GetHistoryCandidate(ctx context.Context, viewerID int64, sessionVersion int64, position int) (domain.Profile, bool, error)
 	SaveHistoryCandidate(ctx context.Context, viewerID int64, sessionVersion int64, position int, candidateID int64) error
+	ListHistory(ctx context.Context, viewerID int64, limit, offset int) ([]domain.MatchHistoryItem, int, error)
+	ResetChoices(ctx context.Context, viewerID int64) error
 	FindCandidate(ctx context.Context, params CandidateParams) (domain.Profile, bool, error)
 	RecordAction(ctx context.Context, viewerID, targetID int64, action domain.MatchAction) error
 	HasAction(ctx context.Context, viewerID, targetID int64, action domain.MatchAction) (bool, error)
@@ -62,6 +67,13 @@ type CandidateParams struct {
 	ViewerAge      int
 	ViewerEmoji    domain.ProfileEmojiCode
 	AgeWindow      int
+}
+
+type HistoryList struct {
+	Items  []domain.MatchHistoryItem
+	Total  int
+	Limit  int
+	Offset int
 }
 
 type service struct {
@@ -105,10 +117,6 @@ func (s *service) Start(ctx context.Context, viewerID int64, gender domain.Gende
 		return domain.MatchCandidate{}, err
 	} else if found {
 		sessionVersion = existing.SessionVersion + 1
-	}
-
-	if err := s.repo.ResetHistory(ctx, viewerID); err != nil {
-		return domain.MatchCandidate{}, err
 	}
 
 	now := time.Now().UTC()
@@ -204,6 +212,65 @@ func (s *service) Previous(ctx context.Context, viewerID int64) (domain.MatchCan
 		Position:    position,
 		HasPrevious: position > 1,
 	}, nil
+}
+
+func (s *service) History(ctx context.Context, viewerID int64, limit, offset int) (HistoryList, error) {
+	if s == nil || s.repo == nil {
+		return HistoryList{}, errors.New("matching repository is not configured")
+	}
+	if err := ctx.Err(); err != nil {
+		return HistoryList{}, err
+	}
+	if viewerID <= 0 {
+		return HistoryList{}, ErrInvalidUserID
+	}
+
+	normalizedLimit := limit
+	if normalizedLimit <= 0 {
+		normalizedLimit = defaultHistoryLimit
+	}
+	if normalizedLimit > maxHistoryLimit {
+		normalizedLimit = maxHistoryLimit
+	}
+
+	normalizedOffset := offset
+	if normalizedOffset < 0 {
+		normalizedOffset = 0
+	}
+
+	if _, err := s.viewerProfile(ctx, viewerID); err != nil {
+		return HistoryList{}, err
+	}
+
+	items, total, err := s.repo.ListHistory(ctx, viewerID, normalizedLimit, normalizedOffset)
+	if err != nil {
+		return HistoryList{}, err
+	}
+
+	return HistoryList{
+		Items:  items,
+		Total:  total,
+		Limit:  normalizedLimit,
+		Offset: normalizedOffset,
+	}, nil
+}
+
+func (s *service) ResetChoices(ctx context.Context, viewerID int64) error {
+	if s == nil || s.repo == nil {
+		return errors.New("matching repository is not configured")
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if viewerID <= 0 {
+		return ErrInvalidUserID
+	}
+
+	if err := s.ensureUserExists(ctx, viewerID); err != nil {
+		return err
+	}
+
+	return s.repo.ResetChoices(ctx, viewerID)
 }
 
 func (s *service) RecordAction(ctx context.Context, viewerID, targetID int64, action domain.MatchAction) (domain.MatchActionResult, error) {
@@ -399,4 +466,23 @@ func (s *service) viewerProfile(ctx context.Context, userID int64) (domain.Profi
 	}
 
 	return profile, nil
+}
+
+func (s *service) ensureUserExists(ctx context.Context, userID int64) error {
+	if s == nil || s.repo == nil {
+		return errors.New("matching repository is not configured")
+	}
+
+	profile, err := s.repo.GetProfile(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrProfileNotFound
+		}
+		return err
+	}
+	if profile.UserID == 0 {
+		return ErrProfileNotFound
+	}
+
+	return nil
 }

@@ -13,6 +13,8 @@ type statusError interface {
 	StatusCode() int
 }
 
+const historyPageSize = 5
+
 func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage) ([]domain.OutgoingMessage, error) {
 	if s == nil || s.search == nil {
 		return []domain.OutgoingMessage{
@@ -151,6 +153,16 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage) 
 			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchNoPreviousText()}}, nil
 		}
 		return s.matchProfileMessages(msg.ChatID, candidate), nil
+	case domain.CommandMatchHistory:
+		return s.historyListMessages(ctx, msg)
+	case domain.CommandMatchHistoryView:
+		return s.historyViewMessages(ctx, msg)
+	case domain.CommandMatchHistoryLike:
+		return s.historyActionMessages(ctx, msg, domain.MatchActionLike)
+	case domain.CommandMatchHistoryDislike:
+		return s.historyActionMessages(ctx, msg, domain.MatchActionDislike)
+	case domain.CommandMatchHistoryReport:
+		return s.historyActionMessages(ctx, msg, domain.MatchActionReport)
 	case domain.CommandMatchViewProfile:
 		targetID, ok := s.parseTargetID(msg.Arguments)
 		if !ok {
@@ -243,6 +255,114 @@ func (s *service) matchProfileViewMessages(chatID int64, profile domain.Profile)
 		s.profilePreviewCard(profile),
 		"",
 		nil,
+	)
+}
+
+func (s *service) historyListMessages(ctx context.Context, msg domain.IncomingMessage) ([]domain.OutgoingMessage, error) {
+	offset := s.parseHistoryOffset(msg.Arguments)
+	list, err := s.search.History(ctx, msg.User.ID, historyPageSize, offset)
+	if err != nil {
+		return s.searchErrorResponse(msg.ChatID, err), err
+	}
+
+	text := s.searchHistoryText(list)
+	keyboard := s.historyInlineKeyboard(list)
+	return []domain.OutgoingMessage{
+		{
+			ChatID:         msg.ChatID,
+			Text:           text,
+			InlineKeyboard: keyboard,
+		},
+	}, nil
+}
+
+func (s *service) historyViewMessages(ctx context.Context, msg domain.IncomingMessage) ([]domain.OutgoingMessage, error) {
+	targetID, offset, ok := s.parseHistoryTarget(msg.Arguments)
+	if !ok {
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.matchProfileNotFoundText()}}, nil
+	}
+
+	item, list, found, err := s.historyItem(ctx, msg.User.ID, targetID, offset)
+	if err != nil {
+		return s.searchErrorResponse(msg.ChatID, err), err
+	}
+	if !found {
+		text := s.searchHistoryText(list)
+		keyboard := s.historyInlineKeyboard(list)
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: text, InlineKeyboard: keyboard}}, nil
+	}
+
+	return s.historyProfileMessages(msg.ChatID, item, list.Offset), nil
+}
+
+func (s *service) historyActionMessages(ctx context.Context, msg domain.IncomingMessage, action domain.MatchAction) ([]domain.OutgoingMessage, error) {
+	targetID, offset, ok := s.parseHistoryTarget(msg.Arguments)
+	if !ok {
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText()}}, nil
+	}
+
+	actionResult, err := s.search.RecordAction(ctx, msg.User.ID, targetID, action)
+	if err != nil {
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText()}}, err
+	}
+
+	item, list, found, historyErr := s.historyItem(ctx, msg.User.ID, targetID, offset)
+	if !found || historyErr != nil {
+		if historyErr != nil {
+			return s.searchErrorResponse(msg.ChatID, historyErr), historyErr
+		}
+		text := s.searchHistoryText(list)
+		keyboard := s.historyInlineKeyboard(list)
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: text, InlineKeyboard: keyboard}}, nil
+	}
+
+	if action != "" {
+		item.Action = action
+	}
+
+	historyMessages := s.historyProfileMessages(msg.ChatID, item, list.Offset)
+	if action != domain.MatchActionLike {
+		return historyMessages, historyErr
+	}
+	if !actionResult.Matched {
+		likeNotifications, likeErr := s.notifyPendingLikesForUser(ctx, targetID)
+		if len(likeNotifications) > 0 {
+			historyMessages = append(historyMessages, likeNotifications...)
+		}
+		return historyMessages, errors.Join(historyErr, likeErr)
+	}
+
+	currentMatchMessages, targetMatchMessages, matchErr := s.mutualMatchMessages(ctx, msg, targetID)
+	messages := append(currentMatchMessages, historyMessages...)
+	if len(targetMatchMessages) > 0 {
+		messages = append(messages, targetMatchMessages...)
+	}
+
+	return messages, errors.Join(historyErr, matchErr)
+}
+
+func (s *service) historyItem(ctx context.Context, userID, targetID int64, offset int) (domain.MatchHistoryItem, domain.MatchHistoryList, bool, error) {
+	list, err := s.search.History(ctx, userID, historyPageSize, offset)
+	if err != nil {
+		return domain.MatchHistoryItem{}, domain.MatchHistoryList{}, false, err
+	}
+
+	for _, item := range list.Items {
+		if item.Profile.UserID == targetID {
+			return item, list, true, nil
+		}
+	}
+
+	return domain.MatchHistoryItem{}, list, false, nil
+}
+
+func (s *service) historyProfileMessages(chatID int64, item domain.MatchHistoryItem, offset int) []domain.OutgoingMessage {
+	return s.profileAlbumMessagesWithText(
+		chatID,
+		item.Profile,
+		s.profilePreviewCard(item.Profile),
+		s.historyActionsText(item.Action),
+		s.historyActionsInlineKeyboard(item.Profile.UserID, offset),
 	)
 }
 

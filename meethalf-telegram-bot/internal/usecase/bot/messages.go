@@ -46,6 +46,9 @@ const (
 	adminUnmoderatorUsageText         = "Send the user ID or @username to remove the moderator role."
 	adminUnmoderatorFailedText        = "Unable to remove the moderator role. Please try again later."
 	adminUnmoderatorSuccessTemplate   = "User %s is no longer a moderator."
+	adminResetChoicesUsageText        = "Send the user ID or @username to reset match choices."
+	adminResetChoicesFailedText       = "Unable to reset match choices. Please try again later."
+	adminResetChoicesSuccessTemplate  = "Match choices were reset for %s."
 	userBannedText                    = "Your account is banned. Contact support."
 	profileCreatedText                = "Profile created."
 	profileUpdatedText                = "Profile updated."
@@ -64,11 +67,15 @@ const (
 	loadingSearchStartText            = "Finding profiles..."
 	loadingSearchNextText             = "Searching for the next profile..."
 	loadingSearchPrevText             = "Opening the previous profile..."
+	loadingSearchHistoryText          = "Loading search history..."
+	loadingSearchHistoryProfileText   = "Opening history profile..."
+	loadingSearchHistoryActionText    = "Updating decision..."
 	loadingAdminUsersText             = "Loading users..."
 	loadingAdminBanText               = "Banning user..."
 	loadingAdminUnbanText             = "Unbanning user..."
 	loadingAdminModeratorText         = "Assigning moderator role..."
 	loadingAdminUnmoderatorText       = "Removing moderator role..."
+	loadingAdminResetChoicesText      = "Resetting match choices..."
 	loadingAdminBannedUsersText       = "Loading banned users..."
 	loadingAdminModeratorsText        = "Loading moderators..."
 	loadingAdminReportsText           = "Loading reported users..."
@@ -88,10 +95,14 @@ const (
 	searchAccuracyPromptText          = "Match accuracy (0–4): 0 wide/random → 4 strict/precise."
 	searchNoCandidatesText            = "No matching profiles yet. Try again later."
 	searchNoPreviousText              = "No previous profile."
+	searchHistoryEmptyText            = "History is empty."
 	searchStartRequiredText           = "Press \"Start search\" first."
 	searchProfileMissingText          = "Create a profile first to start searching and view profiles."
 	searchUnavailableText             = "Search is currently unavailable."
 	searchActionFailedText            = "Unable to process the action. Try again later."
+	searchHistoryPageTemplate         = "History: %d total. Showing %d-%d."
+	searchHistoryEmptyPageTemplate    = "History: %d total. No profiles found on this page."
+	searchHistoryActionTemplate       = "Current decision: %s.\nChoose an action."
 	matchActionsText                  = "Choose an action."
 	matchProfileNotFoundText          = "Profile not found."
 	profileViewRequiresProfileText    = "Create a profile first to view other profiles."
@@ -260,6 +271,18 @@ func (s *service) adminUnmoderatorSuccessText(userRef string) string {
 	return fmt.Sprintf(adminUnmoderatorSuccessTemplate, userRef)
 }
 
+func (s *service) adminResetChoicesUsageText() string {
+	return adminResetChoicesUsageText
+}
+
+func (s *service) adminResetChoicesFailedText() string {
+	return adminResetChoicesFailedText
+}
+
+func (s *service) adminResetChoicesSuccessText(userRef string) string {
+	return fmt.Sprintf(adminResetChoicesSuccessTemplate, userRef)
+}
+
 func (s *service) userBannedText() string {
 	return userBannedText
 }
@@ -370,6 +393,10 @@ func (s *service) searchNoPreviousText() string {
 	return searchNoPreviousText
 }
 
+func (s *service) searchHistoryEmptyText() string {
+	return searchHistoryEmptyText
+}
+
 func (s *service) searchStartRequiredText() string {
 	return searchStartRequiredText
 }
@@ -386,8 +413,35 @@ func (s *service) searchActionFailedText() string {
 	return searchActionFailedText
 }
 
+func (s *service) searchHistoryText(list domain.MatchHistoryList) string {
+	if len(list.Items) == 0 {
+		if list.Total == 0 {
+			return s.searchHistoryEmptyText()
+		}
+		return fmt.Sprintf(searchHistoryEmptyPageTemplate, list.Total)
+	}
+
+	start := list.Offset + 1
+	end := list.Offset + len(list.Items)
+	if list.Total > 0 && end > list.Total {
+		end = list.Total
+	}
+
+	lines := make([]string, 0, len(list.Items)+1)
+	lines = append(lines, fmt.Sprintf(searchHistoryPageTemplate, list.Total, start, end))
+	for i, item := range list.Items {
+		lines = append(lines, s.historyItemLine(list.Offset+i+1, item))
+	}
+
+	return strings.Join(lines, "\n")
+}
+
 func (s *service) matchActionsText() string {
 	return matchActionsText
+}
+
+func (s *service) historyActionsText(action domain.MatchAction) string {
+	return fmt.Sprintf(searchHistoryActionTemplate, s.historyActionLabel(action))
 }
 
 func (s *service) matchProfileNotFoundText() string {
@@ -410,6 +464,47 @@ func (s *service) matchSuccessText(profile domain.Profile, nickname string) stri
 	}
 
 	return fmt.Sprintf("%s\n%s", fmt.Sprintf(matchSuccessTemplate, name), fmt.Sprintf(matchNicknameTemplate, nickname))
+}
+
+func (s *service) historyItemLine(index int, item domain.MatchHistoryItem) string {
+	name := strings.TrimSpace(item.Profile.Name)
+	if name == "" {
+		name = fmt.Sprintf("User %d", item.Profile.UserID)
+	}
+
+	age := s.ageFromBirthDate(item.Profile.BirthDate, time.Now().UTC())
+	if age == 0 {
+		age = item.Profile.Age
+	}
+
+	details := make([]string, 0, 2)
+	if age > 0 {
+		details = append(details, fmt.Sprintf("%d y.o.", age))
+	}
+	city := strings.TrimSpace(item.Profile.City)
+	if city != "" {
+		details = append(details, city)
+	}
+
+	label := name
+	if len(details) > 0 {
+		label = fmt.Sprintf("%s (%s)", name, strings.Join(details, ", "))
+	}
+
+	return fmt.Sprintf("%d. %s - %s", index, label, s.historyActionLabel(item.Action))
+}
+
+func (s *service) historyActionLabel(action domain.MatchAction) string {
+	switch action {
+	case domain.MatchActionLike:
+		return "Like"
+	case domain.MatchActionDislike:
+		return "Dislike"
+	case domain.MatchActionReport:
+		return "Report"
+	default:
+		return "No decision"
+	}
 }
 
 func (s *service) likeNotificationText(profile domain.Profile) string {

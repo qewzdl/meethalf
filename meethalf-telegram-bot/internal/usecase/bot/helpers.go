@@ -256,7 +256,12 @@ func (s *service) isSearchCommand(command string) bool {
 		domain.CommandMatchDislike,
 		domain.CommandMatchReport,
 		domain.CommandMatchPrevious,
-		domain.CommandMatchViewProfile:
+		domain.CommandMatchViewProfile,
+		domain.CommandMatchHistory,
+		domain.CommandMatchHistoryView,
+		domain.CommandMatchHistoryLike,
+		domain.CommandMatchHistoryDislike,
+		domain.CommandMatchHistoryReport:
 		return true
 	default:
 		return false
@@ -326,6 +331,52 @@ func (s *service) parseTargetID(value string) (int64, bool) {
 		return 0, false
 	}
 	return id, true
+}
+
+func (s *service) parseHistoryOffset(value string) int {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0
+	}
+
+	parts := strings.Split(value, ":")
+	if len(parts) > 0 {
+		value = strings.TrimSpace(parts[0])
+	}
+
+	offset, err := strconv.Atoi(value)
+	if err != nil || offset < 0 {
+		return 0
+	}
+
+	return offset
+}
+
+func (s *service) parseHistoryTarget(value string) (int64, int, bool) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0, 0, false
+	}
+
+	parts := strings.Split(value, ":")
+	if len(parts) == 0 {
+		return 0, 0, false
+	}
+
+	targetID, err := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64)
+	if err != nil || targetID <= 0 {
+		return 0, 0, false
+	}
+
+	offset := 0
+	if len(parts) > 1 {
+		offset, _ = strconv.Atoi(strings.TrimSpace(parts[1]))
+		if offset < 0 {
+			offset = 0
+		}
+	}
+
+	return targetID, offset, true
 }
 
 func (s *service) formatUsername(username string) string {

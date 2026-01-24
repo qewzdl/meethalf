@@ -42,10 +42,11 @@ type ReportedUserList struct {
 type AdminActionType string
 
 const (
-	AdminActionBan         AdminActionType = "ban"
-	AdminActionUnban       AdminActionType = "unban"
-	AdminActionModerator   AdminActionType = "moderator"
-	AdminActionUnmoderator AdminActionType = "unmoderator"
+	AdminActionBan          AdminActionType = "ban"
+	AdminActionUnban        AdminActionType = "unban"
+	AdminActionModerator    AdminActionType = "moderator"
+	AdminActionUnmoderator  AdminActionType = "unmoderator"
+	AdminActionResetChoices AdminActionType = "reset_choices"
 )
 
 type AdminActionState struct {
