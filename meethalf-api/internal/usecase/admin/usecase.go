@@ -17,6 +17,8 @@ const (
 type Usecase interface {
 	ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators bool) (UserList, error)
 	ListReportedUsers(ctx context.Context, limit, offset int) (ReportedUserList, error)
+	GetUser(ctx context.Context, userID int64) (domain.UserSummary, error)
+	GetUserByUsername(ctx context.Context, username string) (domain.UserSummary, error)
 	BanUser(ctx context.Context, userID int64) error
 	BanUserByUsername(ctx context.Context, username string) error
 	UnbanUser(ctx context.Context, userID int64) error
@@ -30,6 +32,7 @@ type Usecase interface {
 type Repository interface {
 	ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators bool) ([]domain.UserSummary, int, error)
 	ListReportedUsers(ctx context.Context, limit, offset int) ([]domain.ReportedUserSummary, int, error)
+	GetUserSummary(ctx context.Context, userID int64) (domain.UserSummary, error)
 	UpdateBanStatus(ctx context.Context, userID int64, isBanned bool) error
 	UpdateModeratorStatus(ctx context.Context, userID int64, isModerator bool) error
 	GetUserIDByUsername(ctx context.Context, username string) (int64, error)
@@ -125,6 +128,47 @@ func (s *service) ListReportedUsers(ctx context.Context, limit, offset int) (Rep
 		Limit:  normalizedLimit,
 		Offset: normalizedOffset,
 	}, nil
+}
+
+func (s *service) GetUser(ctx context.Context, userID int64) (domain.UserSummary, error) {
+	if s == nil || s.repo == nil {
+		return domain.UserSummary{}, errors.New("admin repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return domain.UserSummary{}, err
+	}
+
+	if userID <= 0 {
+		return domain.UserSummary{}, ErrInvalidUserID
+	}
+
+	user, err := s.repo.GetUserSummary(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.UserSummary{}, ErrUserNotFound
+		}
+		return domain.UserSummary{}, err
+	}
+
+	return user, nil
+}
+
+func (s *service) GetUserByUsername(ctx context.Context, username string) (domain.UserSummary, error) {
+	if s == nil || s.repo == nil {
+		return domain.UserSummary{}, errors.New("admin repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return domain.UserSummary{}, err
+	}
+
+	userID, err := s.resolveUserIDByUsername(ctx, username)
+	if err != nil {
+		return domain.UserSummary{}, err
+	}
+
+	return s.GetUser(ctx, userID)
 }
 
 func (s *service) BanUser(ctx context.Context, userID int64) error {

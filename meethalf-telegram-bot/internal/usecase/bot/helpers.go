@@ -282,7 +282,7 @@ func (s *service) parseSearchAccuracy(value string) (int, bool) {
 	if err != nil {
 		return 0, false
 	}
-	if accuracy < 0 || accuracy > 4 {
+	if accuracy < searchAccuracyMin || accuracy > searchAccuracyMax {
 		return 0, false
 	}
 	return accuracy, true

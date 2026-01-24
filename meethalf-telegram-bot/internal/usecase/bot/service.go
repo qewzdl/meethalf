@@ -53,6 +53,8 @@ type SearchService interface {
 type AdminService interface {
 	ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators bool) (domain.UserList, error)
 	ListReportedUsers(ctx context.Context, limit, offset int) (domain.ReportedUserList, error)
+	GetUser(ctx context.Context, userID int64) (domain.UserSummary, error)
+	GetUserByUsername(ctx context.Context, username string) (domain.UserSummary, error)
 	BanUser(ctx context.Context, userID int64) error
 	BanUserByUsername(ctx context.Context, username string) error
 	UnbanUser(ctx context.Context, userID int64) error

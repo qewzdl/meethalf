@@ -10,7 +10,8 @@ func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessa
 	if s == nil || s.adminActions == nil || msg.User.ID == 0 {
 		return msg, nil, false, nil
 	}
-	if !s.isAdminUser(msg.User) {
+	role, roleErr := s.resolveAdminRole(ctx, msg.User)
+	if roleErr != nil || !role.canAccessPanel() {
 		_ = s.adminActions.Delete(ctx, msg.User.ID)
 		return msg, nil, false, nil
 	}
@@ -20,11 +21,15 @@ func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessa
 		response := domain.OutgoingMessage{
 			ChatID:         msg.ChatID,
 			Text:           s.adminActionFailedText(),
-			InlineKeyboard: s.adminMenuInlineKeyboard(),
+			InlineKeyboard: s.adminMenuInlineKeyboard(role),
 		}
 		return msg, &response, true, err
 	}
 	if !found {
+		return msg, nil, false, nil
+	}
+	if !role.allowsAdminAction(action.Action) {
+		_ = s.adminActions.Delete(ctx, msg.User.ID)
 		return msg, nil, false, nil
 	}
 	if action.ChatID != 0 && msg.ChatID != 0 && action.ChatID != msg.ChatID {

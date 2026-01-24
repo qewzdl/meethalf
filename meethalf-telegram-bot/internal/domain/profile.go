@@ -95,6 +95,7 @@ type Profile struct {
 	EmojiCode   ProfileEmojiCode
 	Photos      []string
 	IsHidden    bool
+	IsModerator bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

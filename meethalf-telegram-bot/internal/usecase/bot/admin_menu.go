@@ -13,30 +13,40 @@ import (
 const adminUsersPageSize = 20
 
 func (s *service) adminMenuMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
-	if !s.isAdminUser(msg.User) {
-		return s.adminAccessDeniedMessage(ctx, msg)
+	role, roleErr := s.resolveAdminRole(ctx, msg.User)
+	if roleErr != nil && isBannedError(roleErr) {
+		return s.userBannedText(), nil, roleErr
+	}
+	if !role.canAccessPanel() {
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		return text, keyboard, errors.Join(roleErr, err)
 	}
 
 	if s != nil && s.adminActions != nil && msg.User.ID != 0 {
 		_ = s.adminActions.Delete(ctx, msg.User.ID)
 	}
 
-	return s.adminMenuText(), s.adminMenuInlineKeyboard(), nil
+	return s.adminMenuTextForRole(role), s.adminMenuInlineKeyboard(role), roleErr
 }
 
 func (s *service) adminUsersMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
-	if !s.isAdminUser(msg.User) {
-		return s.adminAccessDeniedMessage(ctx, msg)
+	role, roleErr := s.resolveAdminRole(ctx, msg.User)
+	if roleErr != nil && isBannedError(roleErr) {
+		return s.userBannedText(), nil, roleErr
+	}
+	if !role.canModerateUsers() {
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		return text, keyboard, errors.Join(roleErr, err)
 	}
 
 	if s == nil || s.admin == nil {
-		return s.adminUsersLoadFailedText(), s.adminMenuInlineKeyboard(), errors.New("admin service is not configured")
+		return s.adminUsersLoadFailedText(), s.adminMenuInlineKeyboard(role), errors.New("admin service is not configured")
 	}
 
 	offset := s.parseAdminUsersOffset(msg.Arguments)
 	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, false)
 	if err != nil {
-		return s.adminUsersLoadFailedText(), s.adminMenuInlineKeyboard(), err
+		return s.adminUsersLoadFailedText(), s.adminMenuInlineKeyboard(role), err
 	}
 
 	text := s.adminUsersText(list)
@@ -45,18 +55,23 @@ func (s *service) adminUsersMessage(ctx context.Context, msg domain.IncomingMess
 }
 
 func (s *service) adminBannedUsersMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
-	if !s.isAdminUser(msg.User) {
-		return s.adminAccessDeniedMessage(ctx, msg)
+	role, roleErr := s.resolveAdminRole(ctx, msg.User)
+	if roleErr != nil && isBannedError(roleErr) {
+		return s.userBannedText(), nil, roleErr
+	}
+	if !role.canModerateUsers() {
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		return text, keyboard, errors.Join(roleErr, err)
 	}
 
 	if s == nil || s.admin == nil {
-		return s.adminBannedUsersLoadFailedText(), s.adminMenuInlineKeyboard(), errors.New("admin service is not configured")
+		return s.adminBannedUsersLoadFailedText(), s.adminMenuInlineKeyboard(role), errors.New("admin service is not configured")
 	}
 
 	offset := s.parseAdminUsersOffset(msg.Arguments)
 	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, true, false)
 	if err != nil {
-		return s.adminBannedUsersLoadFailedText(), s.adminMenuInlineKeyboard(), err
+		return s.adminBannedUsersLoadFailedText(), s.adminMenuInlineKeyboard(role), err
 	}
 
 	text := s.adminBannedUsersText(list)
@@ -65,18 +80,23 @@ func (s *service) adminBannedUsersMessage(ctx context.Context, msg domain.Incomi
 }
 
 func (s *service) adminModeratorsMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
-	if !s.isAdminUser(msg.User) {
-		return s.adminAccessDeniedMessage(ctx, msg)
+	role, roleErr := s.resolveAdminRole(ctx, msg.User)
+	if roleErr != nil && isBannedError(roleErr) {
+		return s.userBannedText(), nil, roleErr
+	}
+	if !role.canManageModerators() {
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		return text, keyboard, errors.Join(roleErr, err)
 	}
 
 	if s == nil || s.admin == nil {
-		return s.adminModeratorsLoadFailedText(), s.adminMenuInlineKeyboard(), errors.New("admin service is not configured")
+		return s.adminModeratorsLoadFailedText(), s.adminMenuInlineKeyboard(role), errors.New("admin service is not configured")
 	}
 
 	offset := s.parseAdminUsersOffset(msg.Arguments)
 	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, true)
 	if err != nil {
-		return s.adminModeratorsLoadFailedText(), s.adminMenuInlineKeyboard(), err
+		return s.adminModeratorsLoadFailedText(), s.adminMenuInlineKeyboard(role), err
 	}
 
 	text := s.adminModeratorsText(list)
@@ -85,18 +105,23 @@ func (s *service) adminModeratorsMessage(ctx context.Context, msg domain.Incomin
 }
 
 func (s *service) adminReportsMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
-	if !s.isAdminUser(msg.User) {
-		return s.adminAccessDeniedMessage(ctx, msg)
+	role, roleErr := s.resolveAdminRole(ctx, msg.User)
+	if roleErr != nil && isBannedError(roleErr) {
+		return s.userBannedText(), nil, roleErr
+	}
+	if !role.canModerateUsers() {
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		return text, keyboard, errors.Join(roleErr, err)
 	}
 
 	if s == nil || s.admin == nil {
-		return s.adminReportsLoadFailedText(), s.adminMenuInlineKeyboard(), errors.New("admin service is not configured")
+		return s.adminReportsLoadFailedText(), s.adminMenuInlineKeyboard(role), errors.New("admin service is not configured")
 	}
 
 	offset := s.parseAdminUsersOffset(msg.Arguments)
 	list, err := s.admin.ListReportedUsers(ctx, adminUsersPageSize, offset)
 	if err != nil {
-		return s.adminReportsLoadFailedText(), s.adminMenuInlineKeyboard(), err
+		return s.adminReportsLoadFailedText(), s.adminMenuInlineKeyboard(role), err
 	}
 
 	text := s.adminReportsText(list)
@@ -110,7 +135,7 @@ func (s *service) adminAccessDeniedMessage(ctx context.Context, msg domain.Incom
 		return text, nil, errors.New("service is not configured")
 	}
 
-	_, status, statusErr := s.resolveProfileStatus(ctx, msg.User.ID)
+	profile, status, statusErr := s.resolveProfileStatus(ctx, msg.User.ID)
 	if isBannedError(statusErr) {
 		return s.userBannedText(), nil, statusErr
 	}
@@ -118,7 +143,8 @@ func (s *service) adminAccessDeniedMessage(ctx context.Context, msg domain.Incom
 		text = text + "\n" + s.helpText
 	}
 
-	return text, s.startInlineKeyboardByStatus(status, msg.User), statusErr
+	role := s.adminRoleForProfile(msg.User, profile, status)
+	return text, s.startInlineKeyboardByStatus(status, role), statusErr
 }
 
 func (s *service) parseAdminUsersOffset(value string) int {

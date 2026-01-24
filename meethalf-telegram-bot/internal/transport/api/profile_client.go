@@ -149,6 +149,7 @@ func (c *ProfileClient) GetProfile(ctx context.Context, userID int64) (domain.Pr
 		EmojiCode:   payload.EmojiCode,
 		Photos:      payload.Photos,
 		IsHidden:    payload.IsHidden,
+		IsModerator: payload.IsModerator,
 		CreatedAt:   payload.CreatedAt,
 		UpdatedAt:   payload.UpdatedAt,
 	}, true, nil
@@ -289,6 +290,7 @@ type profileResponse struct {
 	EmojiCode   domain.ProfileEmojiCode `json:"emoji_code"`
 	Photos      []string                `json:"photos"`
 	IsHidden    bool                    `json:"is_hidden"`
+	IsModerator bool                    `json:"is_moderator"`
 	CreatedAt   time.Time               `json:"created_at"`
 	UpdatedAt   time.Time               `json:"updated_at"`
 }

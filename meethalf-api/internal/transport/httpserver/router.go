@@ -36,6 +36,7 @@ func NewRouter(handlers *Handlers, limiter ratelimit.Limiter) *gin.Engine {
 
 	adminGroup := v1.Group("/admin")
 	adminGroup.GET("/users", handlers.Admin.ListUsers)
+	adminGroup.GET("/users/:user_ref", handlers.Admin.GetUser)
 	adminGroup.GET("/reports", handlers.Admin.ListReportedUsers)
 	adminGroup.POST("/users/:user_ref/ban", handlers.Admin.BanUser)
 	adminGroup.POST("/users/:user_ref/unban", handlers.Admin.UnbanUser)

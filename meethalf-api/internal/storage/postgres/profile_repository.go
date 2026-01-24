@@ -75,12 +75,14 @@ func (r *ProfileRepository) Upsert(ctx context.Context, profile domain.Profile) 
 			photos = EXCLUDED.photos,
 			is_hidden = EXCLUDED.is_hidden,
 			updated_at = EXCLUDED.updated_at
-		 RETURNING created_at, updated_at`,
+		 RETURNING created_at, updated_at, is_banned, is_moderator`,
 		r.table,
 	)
 
 	var createdAt time.Time
 	var updatedAt time.Time
+	var isBanned bool
+	var isModerator bool
 	if err := r.db.QueryRowContext(
 		ctx,
 		query,
@@ -98,12 +100,14 @@ func (r *ProfileRepository) Upsert(ctx context.Context, profile domain.Profile) 
 		profile.IsHidden,
 		now,
 		now,
-	).Scan(&createdAt, &updatedAt); err != nil {
+	).Scan(&createdAt, &updatedAt, &isBanned, &isModerator); err != nil {
 		return domain.Profile{}, err
 	}
 
 	profile.CreatedAt = createdAt
 	profile.UpdatedAt = updatedAt
+	profile.IsBanned = isBanned
+	profile.IsModerator = isModerator
 	return profile, nil
 }
 
@@ -117,7 +121,7 @@ func (r *ProfileRepository) GetByUserID(ctx context.Context, userID int64) (doma
 	}
 
 	query := fmt.Sprintf(
-		`SELECT user_id, username, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, is_banned, created_at, updated_at
+		`SELECT user_id, username, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, is_banned, is_moderator, created_at, updated_at
 		 FROM %s
 		 WHERE user_id = $1`,
 		r.table,
@@ -147,6 +151,7 @@ func (r *ProfileRepository) GetByUserID(ctx context.Context, userID int64) (doma
 		photosScanner,
 		&stored.IsHidden,
 		&stored.IsBanned,
+		&stored.IsModerator,
 		&stored.CreatedAt,
 		&stored.UpdatedAt,
 	); err != nil {
@@ -315,6 +320,39 @@ func (r *ProfileRepository) GetUserIDByUsername(ctx context.Context, username st
 	}
 
 	return userID, nil
+}
+
+func (r *ProfileRepository) GetUserSummary(ctx context.Context, userID int64) (domain.UserSummary, error) {
+	if r == nil || r.db == nil {
+		return domain.UserSummary{}, errors.New("postgres profile repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return domain.UserSummary{}, err
+	}
+
+	query := fmt.Sprintf(
+		`SELECT user_id, username, name, is_hidden, is_banned, is_moderator, created_at, updated_at
+		 FROM %s
+		 WHERE user_id = $1`,
+		r.table,
+	)
+
+	var user domain.UserSummary
+	if err := r.db.QueryRowContext(ctx, query, userID).Scan(
+		&user.UserID,
+		&user.Username,
+		&user.Name,
+		&user.IsHidden,
+		&user.IsBanned,
+		&user.IsModerator,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	); err != nil {
+		return domain.UserSummary{}, err
+	}
+
+	return user, nil
 }
 
 func (r *ProfileRepository) ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators bool) ([]domain.UserSummary, int, error) {

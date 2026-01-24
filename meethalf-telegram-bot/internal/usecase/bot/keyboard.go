@@ -15,6 +15,7 @@ const (
 	searchAccuracyCancelButtonText = "Cancel"
 	searchRefreshButtonText        = "Refresh feed"
 	adminMenuButtonText            = "Admin panel"
+	moderatorMenuButtonText        = "Moderator panel"
 	adminUsersButtonText           = "User list"
 	adminBanButtonText             = "Ban user"
 	adminUnbanButtonText           = "Unban user"
@@ -28,12 +29,12 @@ const (
 	adminBackToMenuButtonText      = "Back to admin"
 )
 
-func (s *service) startInlineKeyboardByStatus(status profileStatus, user domain.User) *domain.InlineKeyboard {
+func (s *service) startInlineKeyboardByStatus(status profileStatus, role adminRole) *domain.InlineKeyboard {
 	if status == profileStatusMissing {
-		return s.withAdminMenuInlineKeyboard(s.profileCreateInlineKeyboard(), user)
+		return s.withAdminMenuInlineKeyboard(s.profileCreateInlineKeyboard(), role)
 	}
 
-	return s.withAdminMenuInlineKeyboard(s.profileInlineKeyboard(), user)
+	return s.withAdminMenuInlineKeyboard(s.profileInlineKeyboard(), role)
 }
 
 func (s *service) profileInlineKeyboard() *domain.InlineKeyboard {
@@ -69,58 +70,71 @@ func (s *service) profileStartInlineKeyboard(text, callbackData string) *domain.
 	}
 }
 
-func (s *service) adminMenuInlineKeyboard() *domain.InlineKeyboard {
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{
-		Buttons: [][]domain.InlineButton{
+func (s *service) adminMenuInlineKeyboard(role adminRole) *domain.InlineKeyboard {
+	rows := [][]domain.InlineButton{
+		{
 			{
-				{
-					Text:         adminUsersButtonText,
-					CallbackData: domain.CommandAdminUsers,
-				},
+				Text:         adminUsersButtonText,
+				CallbackData: domain.CommandAdminUsers,
 			},
+		},
+		{
 			{
-				{
-					Text:         adminBannedUsersButtonText,
-					CallbackData: domain.CommandAdminBannedUsers,
-				},
+				Text:         adminBannedUsersButtonText,
+				CallbackData: domain.CommandAdminBannedUsers,
 			},
+		},
+	}
+
+	if role.canManageModerators() {
+		rows = append(rows, []domain.InlineButton{
 			{
-				{
-					Text:         adminModeratorsButtonText,
-					CallbackData: domain.CommandAdminModerators,
-				},
+				Text:         adminModeratorsButtonText,
+				CallbackData: domain.CommandAdminModerators,
 			},
+		})
+	}
+
+	rows = append(rows,
+		[]domain.InlineButton{
 			{
-				{
-					Text:         adminReportsButtonText,
-					CallbackData: domain.CommandAdminReports,
-				},
+				Text:         adminReportsButtonText,
+				CallbackData: domain.CommandAdminReports,
 			},
+		},
+		[]domain.InlineButton{
 			{
-				{
-					Text:         adminBanButtonText,
-					CallbackData: domain.CommandAdminBan,
-				},
+				Text:         adminBanButtonText,
+				CallbackData: domain.CommandAdminBan,
 			},
+		},
+		[]domain.InlineButton{
 			{
-				{
-					Text:         adminUnbanButtonText,
-					CallbackData: domain.CommandAdminUnban,
-				},
+				Text:         adminUnbanButtonText,
+				CallbackData: domain.CommandAdminUnban,
 			},
-			{
+		},
+	)
+
+	if role.canManageModerators() {
+		rows = append(rows,
+			[]domain.InlineButton{
 				{
 					Text:         adminModeratorButtonText,
 					CallbackData: domain.CommandAdminModerator,
 				},
 			},
-			{
+			[]domain.InlineButton{
 				{
 					Text:         adminUnmoderatorButtonText,
 					CallbackData: domain.CommandAdminUnmoderator,
 				},
 			},
-		},
+		)
+	}
+
+	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+		Buttons: rows,
 	})
 }
 
@@ -305,25 +319,34 @@ func (s *service) adminUnmoderatorInlineKeyboard() *domain.InlineKeyboard {
 	return s.adminBanInlineKeyboard()
 }
 
-func (s *service) withAdminMenuInlineKeyboard(keyboard *domain.InlineKeyboard, user domain.User) *domain.InlineKeyboard {
-	if s == nil || !s.isAdminUser(user) {
+func (s *service) withAdminMenuInlineKeyboard(keyboard *domain.InlineKeyboard, role adminRole) *domain.InlineKeyboard {
+	if s == nil || !role.canAccessPanel() {
 		return keyboard
 	}
 	if keyboard == nil {
 		keyboard = &domain.InlineKeyboard{}
 	}
-	if inlineKeyboardHasCallback(keyboard, domain.CommandAdminMenu) || inlineKeyboardHasText(keyboard, adminMenuButtonText) {
+	if inlineKeyboardHasCallback(keyboard, domain.CommandAdminMenu) ||
+		inlineKeyboardHasText(keyboard, adminMenuButtonText) ||
+		inlineKeyboardHasText(keyboard, moderatorMenuButtonText) {
 		return keyboard
 	}
 
 	keyboard.Buttons = append(keyboard.Buttons, []domain.InlineButton{
 		{
-			Text:         adminMenuButtonText,
+			Text:         adminMenuButtonTextForRole(role),
 			CallbackData: domain.CommandAdminMenu,
 		},
 	})
 
 	return keyboard
+}
+
+func adminMenuButtonTextForRole(role adminRole) string {
+	if role == adminRoleModerator {
+		return moderatorMenuButtonText
+	}
+	return adminMenuButtonText
 }
 
 func (s *service) profileViewInlineKeyboard() *domain.InlineKeyboard {
@@ -607,34 +630,31 @@ func (s *service) searchGenderInlineKeyboard() *domain.InlineKeyboard {
 
 func (s *service) searchAccuracyInlineKeyboard(gender domain.Gender) *domain.InlineKeyboard {
 	prefix := domain.CommandSearchAccuracy + ":" + string(gender) + ":"
-	return withSearchGenderCancelInlineKeyboard(&domain.InlineKeyboard{
-		Buttons: [][]domain.InlineButton{
-			{
-				{
-					Text:         "0",
-					CallbackData: prefix + "0",
-				},
-				{
-					Text:         "1",
-					CallbackData: prefix + "1",
-				},
-				{
-					Text:         "2",
-					CallbackData: prefix + "2",
-				},
-			},
-			{
-				{
-					Text:         "3",
-					CallbackData: prefix + "3",
-				},
-				{
-					Text:         "4",
-					CallbackData: prefix + "4",
-				},
-			},
-		},
-	})
+	total := searchAccuracyMax - searchAccuracyMin + 1
+	if total <= 0 {
+		return withSearchGenderCancelInlineKeyboard(nil)
+	}
+
+	columns := searchAccuracyColumns
+	if columns <= 0 {
+		columns = 1
+	}
+
+	rows := make([][]domain.InlineButton, 0, (total+columns-1)/columns)
+	for accuracy := searchAccuracyMin; accuracy <= searchAccuracyMax; accuracy++ {
+		position := accuracy - searchAccuracyMin
+		if position%columns == 0 {
+			rows = append(rows, []domain.InlineButton{})
+		}
+		label := strconv.Itoa(accuracy)
+		rowIndex := len(rows) - 1
+		rows[rowIndex] = append(rows[rowIndex], domain.InlineButton{
+			Text:         label,
+			CallbackData: prefix + label,
+		})
+	}
+
+	return withSearchGenderCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: rows})
 }
 
 func (s *service) searchNoCandidatesInlineKeyboard() *domain.InlineKeyboard {

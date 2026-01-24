@@ -10,16 +10,21 @@ import (
 )
 
 func (s *service) adminModeratorMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
-	if !s.isAdminUser(msg.User) {
-		return s.adminAccessDeniedMessage(ctx, msg)
+	role, roleErr := s.resolveAdminRole(ctx, msg.User)
+	if roleErr != nil && isBannedError(roleErr) {
+		return s.userBannedText(), nil, roleErr
+	}
+	if !role.canManageModerators() {
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		return text, keyboard, errors.Join(roleErr, err)
 	}
 
 	if s == nil || s.admin == nil {
-		return s.adminModeratorFailedText(), s.adminMenuInlineKeyboard(), errors.New("admin service is not configured")
+		return s.adminModeratorFailedText(), s.adminMenuInlineKeyboard(role), errors.New("admin service is not configured")
 	}
 
 	if strings.TrimSpace(msg.Arguments) == "" {
-		return s.startAdminModerator(ctx, msg)
+		return s.startAdminModerator(ctx, msg, role)
 	}
 
 	userID, username, ok := s.parseAdminUserIdentifier(msg.Arguments)
@@ -33,12 +38,12 @@ func (s *service) adminModeratorMessage(ctx context.Context, msg domain.Incoming
 		_ = s.clearAdminAction(ctx, msg.User.ID)
 	}
 
-	return text, s.adminMenuInlineKeyboard(), err
+	return text, s.adminMenuInlineKeyboard(role), err
 }
 
-func (s *service) startAdminModerator(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
+func (s *service) startAdminModerator(ctx context.Context, msg domain.IncomingMessage, role adminRole) (string, *domain.InlineKeyboard, error) {
 	if s == nil || s.adminActions == nil {
-		return s.adminModeratorUsageText(), s.adminMenuInlineKeyboard(), errors.New("admin action repository is not configured")
+		return s.adminModeratorUsageText(), s.adminMenuInlineKeyboard(role), errors.New("admin action repository is not configured")
 	}
 
 	action := domain.AdminActionState{
@@ -48,7 +53,7 @@ func (s *service) startAdminModerator(ctx context.Context, msg domain.IncomingMe
 		RequestedAt: s.now(msg.ReceivedAt),
 	}
 	if err := s.adminActions.Save(ctx, action); err != nil {
-		return s.adminModeratorFailedText(), s.adminMenuInlineKeyboard(), err
+		return s.adminModeratorFailedText(), s.adminMenuInlineKeyboard(role), err
 	}
 
 	return s.adminModeratorUsageText(), s.adminModeratorInlineKeyboard(), nil

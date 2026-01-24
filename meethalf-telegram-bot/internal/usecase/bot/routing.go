@@ -25,13 +25,14 @@ func (s *service) reply(ctx context.Context, msg domain.IncomingMessage) (string
 		return s.startProfileSetup(ctx, msg)
 	}
 
-	return s.helpTextFor(msg.User), nil
+	role, roleErr := s.resolveAdminRole(ctx, msg.User)
+	return s.helpTextFor(msg.User, role), roleErr
 }
 
 func (s *service) handleCommand(ctx context.Context, msg domain.IncomingMessage) (string, error) {
 	switch msg.Command {
 	case domain.CommandStart:
-		text, _, err := s.startText(ctx, msg)
+		text, _, _, err := s.startText(ctx, msg)
 		return text, err
 	case domain.CommandCancel:
 		return s.cancelAction(ctx, msg)
@@ -72,27 +73,30 @@ func (s *service) handleCommand(ctx context.Context, msg domain.IncomingMessage)
 	case domain.CommandProfileDeleteCancel:
 		return s.cancelProfileDelete(ctx, msg)
 	case "":
-		return s.helpTextFor(msg.User), nil
+		role, roleErr := s.resolveAdminRole(ctx, msg.User)
+		return s.helpTextFor(msg.User, role), roleErr
 	default:
-		return "Unknown command.\n" + s.helpTextFor(msg.User), nil
+		role, roleErr := s.resolveAdminRole(ctx, msg.User)
+		return "Unknown command.\n" + s.helpTextFor(msg.User, role), roleErr
 	}
 }
 
 func (s *service) startMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
-	text, status, err := s.startText(ctx, msg)
+	text, status, role, err := s.startText(ctx, msg)
 	if isBannedError(err) {
 		return text, nil, err
 	}
-	return text, s.startInlineKeyboardByStatus(status, msg.User), err
+	return text, s.startInlineKeyboardByStatus(status, role), err
 }
 
-func (s *service) startText(ctx context.Context, msg domain.IncomingMessage) (string, profileStatus, error) {
+func (s *service) startText(ctx context.Context, msg domain.IncomingMessage) (string, profileStatus, adminRole, error) {
 	profile, status, err := s.resolveProfileStatus(ctx, msg.User.ID)
 	if isBannedError(err) {
-		return s.userBannedText(), profileStatusUnknown, err
+		return s.userBannedText(), profileStatusUnknown, adminRoleNone, err
 	}
+	role := s.adminRoleForProfile(msg.User, profile, status)
 	greeting := s.startGreeting(msg.User, profile, status)
-	return greeting + "\n" + s.helpTextFor(msg.User), status, err
+	return greeting + "\n" + s.helpTextFor(msg.User, role), status, role, err
 }
 
 func (s *service) resolveProfileStatus(ctx context.Context, userID int64) (domain.Profile, profileStatus, error) {

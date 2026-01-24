@@ -13,12 +13,13 @@ func (s *service) cancelMessage(ctx context.Context, msg domain.IncomingMessage)
 		return text, nil, cancelErr
 	}
 
-	_, status, statusErr := s.resolveProfileStatus(ctx, msg.User.ID)
+	profile, status, statusErr := s.resolveProfileStatus(ctx, msg.User.ID)
 	if s.helpText != "" {
 		text = text + "\n" + s.helpText
 	}
 
-	return text, s.startInlineKeyboardByStatus(status, msg.User), errors.Join(cancelErr, statusErr)
+	role := s.adminRoleForProfile(msg.User, profile, status)
+	return text, s.startInlineKeyboardByStatus(status, role), errors.Join(cancelErr, statusErr)
 }
 
 func (s *service) cancelAction(ctx context.Context, msg domain.IncomingMessage) (string, error) {

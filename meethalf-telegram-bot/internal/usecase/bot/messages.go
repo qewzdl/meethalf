@@ -11,8 +11,11 @@ import (
 const (
 	defaultHelpText                   = "Use the buttons below to start searching, view or create your profile, or open settings."
 	adminBadgeText                    = "Admin access enabled."
+	moderatorBadgeText                = "Moderator access enabled."
 	adminMenuText                     = "Admin panel. Choose an action."
+	moderatorMenuText                 = "Moderator panel. Choose an action."
 	adminAccessDeniedText             = "Admin access required."
+	adminModerationRestrictedText     = "Moderators can only manage bans for regular users."
 	adminUsersEmptyText               = "No users found."
 	adminUsersLoadFailedText          = "Unable to load users. Please try again later."
 	adminUsersPageTemplate            = "Users: %d total. Showing %d-%d."
@@ -154,8 +157,19 @@ func (s *service) adminMenuText() string {
 	return adminMenuText
 }
 
+func (s *service) adminMenuTextForRole(role adminRole) string {
+	if role == adminRoleModerator {
+		return moderatorMenuText
+	}
+	return adminMenuText
+}
+
 func (s *service) adminAccessDeniedText() string {
 	return adminAccessDeniedText
+}
+
+func (s *service) adminModerationRestrictedText() string {
+	return adminModerationRestrictedText
 }
 
 func (s *service) adminUsersEmptyText() string {

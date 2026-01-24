@@ -37,6 +37,7 @@ curl -X POST http://localhost:8080/api/v1/search/action \
 # {"matched":false}
 curl http://localhost:8080/api/v1/likes/1
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0
+curl http://localhost:8080/api/v1/admin/users/1
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&banned=true
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&moderator=true
 curl http://localhost:8080/api/v1/admin/reports?limit=20&offset=0
@@ -49,6 +50,7 @@ curl -X POST http://localhost:8080/api/v1/admin/users/1/unmoderator
 `birth_date` uses the `YYYY-MM-DD` format; age is derived automatically. `country` must be one of `russia`, `kazakhstan`,
 or `belarus`; `city` must be in the supported list for the selected country. `emoji_code` must be one of the supported
 profile emoji codes listed below. Set `is_hidden=true` to hide a profile from search results.
+Profile responses include `is_moderator` to indicate moderation role; it is managed through the admin endpoints.
 Search and likes endpoints require an existing profile. `gender` can be `male`, `female`, `other`, or `unspecified` (any),
 and `accuracy` is a 0-4 scale where 0 is wider/random and 4 is stricter. If no candidates match the selected accuracy,
 search relaxes the accuracy step-by-step down to 0 while keeping the gender filter. Lower accuracy levels also use wider
@@ -56,6 +58,7 @@ age windows when scoring candidates.
 `/api/v1/search/action` responds with `matched=true` when the like action forms a mutual match.
 `/api/v1/admin/users` returns a paginated list of users (profiles) with `username`, `is_hidden`, `is_banned`, and
 `is_moderator` flags.
+`GET /api/v1/admin/users/{user_ref}` returns a single user summary by id or username (with or without `@`).
 Use `limit` and `offset` query parameters to paginate; pass `banned=true` to list only banned users or
 `moderator=true` to list only moderators. `/api/v1/admin/reports` returns a paginated list of reported users with
 their report counts.
@@ -125,6 +128,7 @@ curl -X POST http://localhost:8080/api/v1/search/action \
 # {"matched":false}
 curl http://localhost:8080/api/v1/likes/1
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0
+curl http://localhost:8080/api/v1/admin/users/1
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&banned=true
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&moderator=true
 curl http://localhost:8080/api/v1/admin/reports?limit=20&offset=0

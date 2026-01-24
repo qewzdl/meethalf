@@ -11,21 +11,31 @@ import (
 )
 
 func (s *service) adminBanMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
-	if !s.isAdminUser(msg.User) {
-		return s.adminAccessDeniedMessage(ctx, msg)
+	role, roleErr := s.resolveAdminRole(ctx, msg.User)
+	if roleErr != nil && isBannedError(roleErr) {
+		return s.userBannedText(), nil, roleErr
+	}
+	if !role.canModerateUsers() {
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		return text, keyboard, errors.Join(roleErr, err)
 	}
 
 	if s == nil || s.admin == nil {
-		return s.adminBanFailedText(), s.adminMenuInlineKeyboard(), errors.New("admin service is not configured")
+		return s.adminBanFailedText(), s.adminMenuInlineKeyboard(role), errors.New("admin service is not configured")
 	}
 
 	if strings.TrimSpace(msg.Arguments) == "" {
-		return s.startAdminBan(ctx, msg)
+		return s.startAdminBan(ctx, msg, role)
 	}
 
 	userID, username, ok := s.parseAdminUserIdentifier(msg.Arguments)
 	if !ok {
 		return s.adminBanUsageText(), s.adminBanInlineKeyboard(), nil
+	}
+
+	restrictionText, restrictionErr := s.ensureModeratorCanModerateUser(ctx, role, userID, username, s.adminBanFailedText(), s.adminBanUsageText())
+	if restrictionText != "" {
+		return restrictionText, s.adminMenuInlineKeyboard(role), restrictionErr
 	}
 
 	shouldClear := s.hasPendingAdminBan(ctx, msg.User.ID)
@@ -34,7 +44,7 @@ func (s *service) adminBanMessage(ctx context.Context, msg domain.IncomingMessag
 		_ = s.clearAdminAction(ctx, msg.User.ID)
 	}
 
-	return text, s.adminMenuInlineKeyboard(), err
+	return text, s.adminMenuInlineKeyboard(role), err
 }
 
 func (s *service) parseAdminUserIdentifier(value string) (int64, string, bool) {
@@ -69,9 +79,9 @@ func (s *service) parseAdminUserIdentifier(value string) (int64, string, bool) {
 	return 0, token, true
 }
 
-func (s *service) startAdminBan(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
+func (s *service) startAdminBan(ctx context.Context, msg domain.IncomingMessage, role adminRole) (string, *domain.InlineKeyboard, error) {
 	if s == nil || s.adminActions == nil {
-		return s.adminBanUsageText(), s.adminMenuInlineKeyboard(), errors.New("admin action repository is not configured")
+		return s.adminBanUsageText(), s.adminMenuInlineKeyboard(role), errors.New("admin action repository is not configured")
 	}
 
 	action := domain.AdminActionState{
@@ -81,7 +91,7 @@ func (s *service) startAdminBan(ctx context.Context, msg domain.IncomingMessage)
 		RequestedAt: s.now(msg.ReceivedAt),
 	}
 	if err := s.adminActions.Save(ctx, action); err != nil {
-		return s.adminBanFailedText(), s.adminMenuInlineKeyboard(), err
+		return s.adminBanFailedText(), s.adminMenuInlineKeyboard(role), err
 	}
 
 	return s.adminBanUsageText(), s.adminBanInlineKeyboard(), nil

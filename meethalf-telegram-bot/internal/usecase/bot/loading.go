@@ -110,7 +110,8 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 	if s == nil || s.adminActions == nil || msg.User.ID == 0 {
 		return domain.OutgoingMessage{}, false, nil
 	}
-	if !s.isAdminUser(msg.User) {
+	role, roleErr := s.resolveAdminRole(ctx, msg.User)
+	if roleErr != nil || !role.canAccessPanel() {
 		return domain.OutgoingMessage{}, false, nil
 	}
 
@@ -124,6 +125,9 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 	case domain.AdminActionModerator:
 	case domain.AdminActionUnmoderator:
 	default:
+		return domain.OutgoingMessage{}, false, nil
+	}
+	if !role.allowsAdminAction(action.Action) {
 		return domain.OutgoingMessage{}, false, nil
 	}
 	if action.ChatID != 0 && msg.ChatID != 0 && action.ChatID != msg.ChatID {

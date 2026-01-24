@@ -50,6 +50,7 @@ type profileResponse struct {
 	EmojiCode   string    `json:"emoji_code"`
 	Photos      []string  `json:"photos"`
 	IsHidden    bool      `json:"is_hidden"`
+	IsModerator bool      `json:"is_moderator"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -108,6 +109,7 @@ func (h *ProfileHandler) Upsert(c *gin.Context) {
 		EmojiCode:   string(stored.EmojiCode),
 		Photos:      stored.Photos,
 		IsHidden:    stored.IsHidden,
+		IsModerator: stored.IsModerator,
 		CreatedAt:   stored.CreatedAt,
 		UpdatedAt:   stored.UpdatedAt,
 	})
@@ -145,6 +147,7 @@ func (h *ProfileHandler) Get(c *gin.Context) {
 		EmojiCode:   string(stored.EmojiCode),
 		Photos:      stored.Photos,
 		IsHidden:    stored.IsHidden,
+		IsModerator: stored.IsModerator,
 		CreatedAt:   stored.CreatedAt,
 		UpdatedAt:   stored.UpdatedAt,
 	})

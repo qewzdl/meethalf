@@ -29,6 +29,10 @@ lists (reported users include report counts) that return users (including their 
 with pagination, plus `Ban user` / `Unban user` buttons that prompt for the profile id or `@username` (you can also use
 `/ban <user_id|@username>` and `/unban <user_id|@username>`). It also supports `Make moderator` / `Remove moderator` actions
 (`/moderator <user_id|@username>` and `/unmoderator <user_id|@username>`).
+Moderators (profiles with `is_moderator=true` in the Meethalf API) see a `Moderator access enabled.` badge and a
+`Moderator panel` button, but only with `User list`, `Banned users`, and `Reported users` lists plus `Ban user` / `Unban user`
+(regular users only).
+Moderator management and the moderators list remain admin-only.
 
 ## Profile setup
 
@@ -106,7 +110,8 @@ profile unchanged.
 
 Use the `Start search` button from `/start` to start browsing. If you press it without a profile, the bot asks you to
 create one first. The bot asks for the gender to search, then the accuracy level (0-4, where 0 is wider/random and 4 is
-stricter). If no profiles match the selected accuracy, the search widens automatically until it finds candidates. After
+stricter) using a single-row 0-4 button layout. If no profiles match the selected accuracy, the search widens
+automatically until it finds candidates. After
 that it shows profile cards with action buttons:
 
 - 👎 - skip and show the next profile

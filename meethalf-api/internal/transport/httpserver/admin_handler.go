@@ -108,6 +108,44 @@ func (h *AdminHandler) ListUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+func (h *AdminHandler) GetUser(c *gin.Context) {
+	if h == nil || h.uc == nil {
+		respondError(c, http.StatusInternalServerError, "admin handler is not configured")
+		return
+	}
+
+	userID, username, ok := parseAdminUserReference(c.Param("user_ref"))
+	if !ok {
+		respondError(c, http.StatusBadRequest, "invalid user reference")
+		return
+	}
+
+	var (
+		user domain.UserSummary
+		err  error
+	)
+	if username != "" {
+		user, err = h.uc.GetUserByUsername(c.Request.Context(), username)
+	} else {
+		user, err = h.uc.GetUser(c.Request.Context(), userID)
+	}
+	if err != nil {
+		switch {
+		case errors.Is(err, admin.ErrInvalidUserID):
+			respondError(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, admin.ErrInvalidUsername):
+			respondError(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, admin.ErrUserNotFound):
+			respondError(c, http.StatusNotFound, err.Error())
+		default:
+			respondError(c, http.StatusInternalServerError, "failed to load user")
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, toAdminUserResponse(user))
+}
+
 func (h *AdminHandler) ListReportedUsers(c *gin.Context) {
 	if h == nil || h.uc == nil {
 		respondError(c, http.StatusInternalServerError, "admin handler is not configured")

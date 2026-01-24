@@ -10,16 +10,21 @@ import (
 )
 
 func (s *service) adminUnmoderatorMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
-	if !s.isAdminUser(msg.User) {
-		return s.adminAccessDeniedMessage(ctx, msg)
+	role, roleErr := s.resolveAdminRole(ctx, msg.User)
+	if roleErr != nil && isBannedError(roleErr) {
+		return s.userBannedText(), nil, roleErr
+	}
+	if !role.canManageModerators() {
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		return text, keyboard, errors.Join(roleErr, err)
 	}
 
 	if s == nil || s.admin == nil {
-		return s.adminUnmoderatorFailedText(), s.adminMenuInlineKeyboard(), errors.New("admin service is not configured")
+		return s.adminUnmoderatorFailedText(), s.adminMenuInlineKeyboard(role), errors.New("admin service is not configured")
 	}
 
 	if strings.TrimSpace(msg.Arguments) == "" {
-		return s.startAdminUnmoderator(ctx, msg)
+		return s.startAdminUnmoderator(ctx, msg, role)
 	}
 
 	userID, username, ok := s.parseAdminUserIdentifier(msg.Arguments)
@@ -33,12 +38,12 @@ func (s *service) adminUnmoderatorMessage(ctx context.Context, msg domain.Incomi
 		_ = s.clearAdminAction(ctx, msg.User.ID)
 	}
 
-	return text, s.adminMenuInlineKeyboard(), err
+	return text, s.adminMenuInlineKeyboard(role), err
 }
 
-func (s *service) startAdminUnmoderator(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
+func (s *service) startAdminUnmoderator(ctx context.Context, msg domain.IncomingMessage, role adminRole) (string, *domain.InlineKeyboard, error) {
 	if s == nil || s.adminActions == nil {
-		return s.adminUnmoderatorUsageText(), s.adminMenuInlineKeyboard(), errors.New("admin action repository is not configured")
+		return s.adminUnmoderatorUsageText(), s.adminMenuInlineKeyboard(role), errors.New("admin action repository is not configured")
 	}
 
 	action := domain.AdminActionState{
@@ -48,7 +53,7 @@ func (s *service) startAdminUnmoderator(ctx context.Context, msg domain.Incoming
 		RequestedAt: s.now(msg.ReceivedAt),
 	}
 	if err := s.adminActions.Save(ctx, action); err != nil {
-		return s.adminUnmoderatorFailedText(), s.adminMenuInlineKeyboard(), err
+		return s.adminUnmoderatorFailedText(), s.adminMenuInlineKeyboard(role), err
 	}
 
 	return s.adminUnmoderatorUsageText(), s.adminUnmoderatorInlineKeyboard(), nil

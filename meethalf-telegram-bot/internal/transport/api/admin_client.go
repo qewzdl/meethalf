@@ -150,6 +150,22 @@ func (c *AdminClient) ListReportedUsers(ctx context.Context, limit, offset int) 
 	}, nil
 }
 
+func (c *AdminClient) GetUser(ctx context.Context, userID int64) (domain.UserSummary, error) {
+	if userID <= 0 {
+		return domain.UserSummary{}, errors.New("user id is required")
+	}
+	return c.getAdminUser(ctx, fmt.Sprintf("%d", userID))
+}
+
+func (c *AdminClient) GetUserByUsername(ctx context.Context, username string) (domain.UserSummary, error) {
+	ref, err := normalizeAdminUsernameRef(username)
+	if err != nil {
+		return domain.UserSummary{}, err
+	}
+
+	return c.getAdminUser(ctx, ref)
+}
+
 func (c *AdminClient) BanUser(ctx context.Context, userID int64) error {
 	if userID <= 0 {
 		return errors.New("user id is required")
@@ -212,6 +228,55 @@ func (c *AdminClient) RemoveModeratorByUsername(ctx context.Context, username st
 	}
 
 	return c.postAdminAction(ctx, ref, "unmoderator")
+}
+
+func (c *AdminClient) getAdminUser(ctx context.Context, userRef string) (domain.UserSummary, error) {
+	if c == nil || c.client == nil {
+		return domain.UserSummary{}, errors.New("admin client is not configured")
+	}
+	if c.baseURL == "" {
+		return domain.UserSummary{}, errors.New("admin client base url is empty")
+	}
+	if err := ctx.Err(); err != nil {
+		return domain.UserSummary{}, err
+	}
+
+	normalized := strings.TrimSpace(userRef)
+	if normalized == "" {
+		return domain.UserSummary{}, errors.New("user reference is required")
+	}
+
+	endpoint := fmt.Sprintf("%s/api/v1/admin/users/%s", c.baseURL, url.PathEscape(normalized))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return domain.UserSummary{}, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return domain.UserSummary{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return domain.UserSummary{}, c.apiError(resp)
+	}
+
+	var payload adminUserResponse
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return domain.UserSummary{}, err
+	}
+
+	return domain.UserSummary{
+		UserID:      payload.UserID,
+		Username:    payload.Username,
+		Name:        payload.Name,
+		IsHidden:    payload.IsHidden,
+		IsBanned:    payload.IsBanned,
+		IsModerator: payload.IsModerator,
+		CreatedAt:   payload.CreatedAt,
+		UpdatedAt:   payload.UpdatedAt,
+	}, nil
 }
 
 func (c *AdminClient) postAdminAction(ctx context.Context, userRef, action string) error {
