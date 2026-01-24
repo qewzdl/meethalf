@@ -79,6 +79,8 @@ func (s *service) loadingForCommand(msg domain.IncomingMessage) (domain.Outgoing
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminBannedUsersText}, true
 	case domain.CommandAdminModerators:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminModeratorsText}, true
+	case domain.CommandAdminReports:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminReportsText}, true
 	case domain.CommandAdminBan:
 		if strings.TrimSpace(msg.Arguments) == "" {
 			return domain.OutgoingMessage{}, false

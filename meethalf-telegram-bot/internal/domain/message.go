@@ -36,6 +36,7 @@ const (
 	CommandAdminUsers           = "admin_users"
 	CommandAdminBannedUsers     = "admin_banned_users"
 	CommandAdminModerators      = "admin_moderators"
+	CommandAdminReports         = "admin_reports"
 	CommandAdminBan             = "ban"
 	CommandAdminUnban           = "unban"
 	CommandAdminModerator       = "moderator"

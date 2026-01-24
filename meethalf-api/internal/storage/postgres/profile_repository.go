@@ -387,6 +387,77 @@ func (r *ProfileRepository) ListUsers(ctx context.Context, limit, offset int, on
 	return users, total, nil
 }
 
+func (r *ProfileRepository) ListReportedUsers(ctx context.Context, limit, offset int) ([]domain.ReportedUserSummary, int, error) {
+	if r == nil || r.db == nil {
+		return nil, 0, errors.New("postgres profile repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	interactionsTable := matchInteractionsTable(r.schema)
+	countQuery := fmt.Sprintf(
+		`SELECT COUNT(DISTINCT i.target_id)
+		 FROM %s i
+		 JOIN %s p ON p.user_id = i.target_id
+		 WHERE i.action = $1`,
+		interactionsTable,
+		r.table,
+	)
+
+	total := 0
+	if err := r.db.QueryRowContext(ctx, countQuery, domain.MatchActionReport).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	if total == 0 {
+		return []domain.ReportedUserSummary{}, 0, nil
+	}
+
+	query := fmt.Sprintf(
+		`SELECT p.user_id, p.username, p.name, p.is_hidden, p.is_banned, p.is_moderator, p.created_at, p.updated_at,
+				COUNT(i.viewer_id) AS report_count
+		 FROM %s i
+		 JOIN %s p ON p.user_id = i.target_id
+		 WHERE i.action = $1
+		 GROUP BY p.user_id, p.username, p.name, p.is_hidden, p.is_banned, p.is_moderator, p.created_at, p.updated_at
+		 ORDER BY report_count DESC, p.updated_at DESC, p.user_id ASC
+		 LIMIT $2 OFFSET $3`,
+		interactionsTable,
+		r.table,
+	)
+
+	rows, err := r.db.QueryContext(ctx, query, domain.MatchActionReport, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	users := make([]domain.ReportedUserSummary, 0, limit)
+	for rows.Next() {
+		var user domain.ReportedUserSummary
+		if err := rows.Scan(
+			&user.UserID,
+			&user.Username,
+			&user.Name,
+			&user.IsHidden,
+			&user.IsBanned,
+			&user.IsModerator,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+			&user.ReportCount,
+		); err != nil {
+			return nil, 0, err
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
+}
+
 func (r *ProfileRepository) ensureTable(ctx context.Context) error {
 	query := fmt.Sprintf(
 		`CREATE TABLE IF NOT EXISTS %s (

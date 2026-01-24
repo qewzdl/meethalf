@@ -94,6 +94,62 @@ func (c *AdminClient) ListUsers(ctx context.Context, limit, offset int, onlyBann
 	}, nil
 }
 
+func (c *AdminClient) ListReportedUsers(ctx context.Context, limit, offset int) (domain.ReportedUserList, error) {
+	if c == nil || c.client == nil {
+		return domain.ReportedUserList{}, errors.New("admin client is not configured")
+	}
+	if c.baseURL == "" {
+		return domain.ReportedUserList{}, errors.New("admin client base url is empty")
+	}
+	if err := ctx.Err(); err != nil {
+		return domain.ReportedUserList{}, err
+	}
+
+	query := fmt.Sprintf("limit=%d&offset=%d", limit, offset)
+	url := fmt.Sprintf("%s/api/v1/admin/reports?%s", c.baseURL, query)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return domain.ReportedUserList{}, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return domain.ReportedUserList{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return domain.ReportedUserList{}, c.apiError(resp)
+	}
+
+	var payload adminReportedUsersResponse
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return domain.ReportedUserList{}, err
+	}
+
+	users := make([]domain.ReportedUserSummary, 0, len(payload.Users))
+	for _, user := range payload.Users {
+		users = append(users, domain.ReportedUserSummary{
+			UserID:      user.UserID,
+			Username:    user.Username,
+			Name:        user.Name,
+			IsHidden:    user.IsHidden,
+			IsBanned:    user.IsBanned,
+			IsModerator: user.IsModerator,
+			ReportCount: user.ReportCount,
+			CreatedAt:   user.CreatedAt,
+			UpdatedAt:   user.UpdatedAt,
+		})
+	}
+
+	return domain.ReportedUserList{
+		Users:  users,
+		Total:  payload.Total,
+		Limit:  payload.Limit,
+		Offset: payload.Offset,
+	}, nil
+}
+
 func (c *AdminClient) BanUser(ctx context.Context, userID int64) error {
 	if userID <= 0 {
 		return errors.New("user id is required")
@@ -229,6 +285,25 @@ type adminUserResponse struct {
 	IsHidden    bool      `json:"is_hidden"`
 	IsBanned    bool      `json:"is_banned"`
 	IsModerator bool      `json:"is_moderator"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type adminReportedUsersResponse struct {
+	Users  []adminReportedUserResponse `json:"users"`
+	Total  int                         `json:"total"`
+	Limit  int                         `json:"limit"`
+	Offset int                         `json:"offset"`
+}
+
+type adminReportedUserResponse struct {
+	UserID      int64     `json:"user_id"`
+	Username    string    `json:"username"`
+	Name        string    `json:"name"`
+	IsHidden    bool      `json:"is_hidden"`
+	IsBanned    bool      `json:"is_banned"`
+	IsModerator bool      `json:"is_moderator"`
+	ReportCount int       `json:"report_count"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

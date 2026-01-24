@@ -20,6 +20,25 @@ type UserList struct {
 	Offset int
 }
 
+type ReportedUserSummary struct {
+	UserID      int64
+	Username    string
+	Name        string
+	IsHidden    bool
+	IsBanned    bool
+	IsModerator bool
+	ReportCount int
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type ReportedUserList struct {
+	Users  []ReportedUserSummary
+	Total  int
+	Limit  int
+	Offset int
+}
+
 type AdminActionType string
 
 const (

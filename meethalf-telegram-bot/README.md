@@ -24,10 +24,10 @@ go run ./cmd/bot
 ## Admin
 
 Set `BOT_ADMIN_USERNAME` to one or more Telegram usernames (comma-separated). Admins see an `Admin panel` button in the main
-menu that opens admin management. The admin panel supports `User list`, `Banned users`, and `Moderators` lists that return
-users (including their Telegram usernames) from the Meethalf API with pagination, plus `Ban user` / `Unban user` buttons
-that prompt for the profile id or `@username` (you can also use `/ban <user_id|@username>` and
-`/unban <user_id|@username>`). It also supports `Make moderator` / `Remove moderator` actions
+menu that opens admin management. The admin panel supports `User list`, `Banned users`, `Moderators`, and `Reported users`
+lists (reported users include report counts) that return users (including their Telegram usernames) from the Meethalf API
+with pagination, plus `Ban user` / `Unban user` buttons that prompt for the profile id or `@username` (you can also use
+`/ban <user_id|@username>` and `/unban <user_id|@username>`). It also supports `Make moderator` / `Remove moderator` actions
 (`/moderator <user_id|@username>` and `/unmoderator <user_id|@username>`).
 
 ## Profile setup

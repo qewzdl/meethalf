@@ -40,6 +40,25 @@ type adminUserResponse struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+type adminReportedUsersResponse struct {
+	Users  []adminReportedUserResponse `json:"users"`
+	Total  int                         `json:"total"`
+	Limit  int                         `json:"limit"`
+	Offset int                         `json:"offset"`
+}
+
+type adminReportedUserResponse struct {
+	UserID      int64     `json:"user_id"`
+	Username    string    `json:"username"`
+	Name        string    `json:"name"`
+	IsHidden    bool      `json:"is_hidden"`
+	IsBanned    bool      `json:"is_banned"`
+	IsModerator bool      `json:"is_moderator"`
+	ReportCount int       `json:"report_count"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 func (h *AdminHandler) ListUsers(c *gin.Context) {
 	if h == nil || h.uc == nil {
 		respondError(c, http.StatusInternalServerError, "admin handler is not configured")
@@ -84,6 +103,53 @@ func (h *AdminHandler) ListUsers(c *gin.Context) {
 	}
 	for _, user := range list.Users {
 		resp.Users = append(resp.Users, toAdminUserResponse(user))
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *AdminHandler) ListReportedUsers(c *gin.Context) {
+	if h == nil || h.uc == nil {
+		respondError(c, http.StatusInternalServerError, "admin handler is not configured")
+		return
+	}
+
+	limit, err := parseNonNegativeIntQuery(c, "limit")
+	if err != nil {
+		respondError(c, http.StatusBadRequest, "invalid limit")
+		return
+	}
+
+	offset, err := parseNonNegativeIntQuery(c, "offset")
+	if err != nil {
+		respondError(c, http.StatusBadRequest, "invalid offset")
+		return
+	}
+
+	list, err := h.uc.ListReportedUsers(c.Request.Context(), limit, offset)
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, "failed to list reported users")
+		return
+	}
+
+	resp := adminReportedUsersResponse{
+		Users:  make([]adminReportedUserResponse, 0, len(list.Users)),
+		Total:  list.Total,
+		Limit:  list.Limit,
+		Offset: list.Offset,
+	}
+	for _, user := range list.Users {
+		resp.Users = append(resp.Users, adminReportedUserResponse{
+			UserID:      user.UserID,
+			Username:    user.Username,
+			Name:        user.Name,
+			IsHidden:    user.IsHidden,
+			IsBanned:    user.IsBanned,
+			IsModerator: user.IsModerator,
+			ReportCount: user.ReportCount,
+			CreatedAt:   user.CreatedAt.UTC(),
+			UpdatedAt:   user.UpdatedAt.UTC(),
+		})
 	}
 
 	c.JSON(http.StatusOK, resp)

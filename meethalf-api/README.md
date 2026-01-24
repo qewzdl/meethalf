@@ -39,6 +39,7 @@ curl http://localhost:8080/api/v1/likes/1
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&banned=true
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&moderator=true
+curl http://localhost:8080/api/v1/admin/reports?limit=20&offset=0
 curl -X POST http://localhost:8080/api/v1/admin/users/1/ban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/moderator
@@ -56,7 +57,8 @@ age windows when scoring candidates.
 `/api/v1/admin/users` returns a paginated list of users (profiles) with `username`, `is_hidden`, `is_banned`, and
 `is_moderator` flags.
 Use `limit` and `offset` query parameters to paginate; pass `banned=true` to list only banned users or
-`moderator=true` to list only moderators.
+`moderator=true` to list only moderators. `/api/v1/admin/reports` returns a paginated list of reported users with
+their report counts.
 `POST /api/v1/admin/users/{user_ref}/ban` bans the user by id or username (with or without `@`), and
 `POST /api/v1/admin/users/{user_ref}/unban` removes the ban. `POST /api/v1/admin/users/{user_ref}/moderator` assigns the
 moderator role, and `POST /api/v1/admin/users/{user_ref}/unmoderator` removes it. Banned users cannot use profile or
@@ -125,6 +127,7 @@ curl http://localhost:8080/api/v1/likes/1
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&banned=true
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&moderator=true
+curl http://localhost:8080/api/v1/admin/reports?limit=20&offset=0
 curl -X POST http://localhost:8080/api/v1/admin/users/1/ban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/moderator

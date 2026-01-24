@@ -22,6 +22,7 @@ const (
 	adminUnmoderatorButtonText     = "Remove moderator"
 	adminBannedUsersButtonText     = "Banned users"
 	adminModeratorsButtonText      = "Moderators"
+	adminReportsButtonText         = "Reported users"
 	adminUsersPrevButtonText       = "Previous"
 	adminUsersNextButtonText       = "Next"
 	adminBackToMenuButtonText      = "Back to admin"
@@ -87,6 +88,12 @@ func (s *service) adminMenuInlineKeyboard() *domain.InlineKeyboard {
 				{
 					Text:         adminModeratorsButtonText,
 					CallbackData: domain.CommandAdminModerators,
+				},
+			},
+			{
+				{
+					Text:         adminReportsButtonText,
+					CallbackData: domain.CommandAdminReports,
 				},
 			},
 			{
@@ -234,6 +241,45 @@ func (s *service) adminModeratorsInlineKeyboard(offset, limit, total int) *domai
 			row = append(row, domain.InlineButton{
 				Text:         adminUsersNextButtonText,
 				CallbackData: domain.CommandAdminModerators + ":" + strconv.Itoa(nextOffset),
+			})
+		}
+		if len(row) > 0 {
+			rows = append(rows, row)
+		}
+	}
+
+	rows = append(rows, []domain.InlineButton{
+		{
+			Text:         adminBackToMenuButtonText,
+			CallbackData: domain.CommandAdminMenu,
+		},
+	})
+
+	return withCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: rows})
+}
+
+func (s *service) adminReportsInlineKeyboard(offset, limit, total int) *domain.InlineKeyboard {
+	rows := [][]domain.InlineButton{}
+
+	hasPrev := offset > 0
+	hasNext := limit > 0 && (offset+limit) < total
+	if hasPrev || hasNext {
+		row := []domain.InlineButton{}
+		if hasPrev {
+			prevOffset := offset - limit
+			if prevOffset < 0 {
+				prevOffset = 0
+			}
+			row = append(row, domain.InlineButton{
+				Text:         adminUsersPrevButtonText,
+				CallbackData: domain.CommandAdminReports + ":" + strconv.Itoa(prevOffset),
+			})
+		}
+		if hasNext {
+			nextOffset := offset + limit
+			row = append(row, domain.InlineButton{
+				Text:         adminUsersNextButtonText,
+				CallbackData: domain.CommandAdminReports + ":" + strconv.Itoa(nextOffset),
 			})
 		}
 		if len(row) > 0 {

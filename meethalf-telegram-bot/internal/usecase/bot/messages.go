@@ -25,6 +25,10 @@ const (
 	adminModeratorsLoadFailedText     = "Unable to load moderators. Please try again later."
 	adminModeratorsPageTemplate       = "Moderators: %d total. Showing %d-%d."
 	adminModeratorsEmptyPageTemplate  = "Moderators: %d total. No users found on this page."
+	adminReportsEmptyText             = "No reported users found."
+	adminReportsLoadFailedText        = "Unable to load reported users. Please try again later."
+	adminReportsPageTemplate          = "Reported users: %d total. Showing %d-%d."
+	adminReportsEmptyPageTemplate     = "Reported users: %d total. No users found on this page."
 	adminBanUsageText                 = "Send the user ID or @username to ban."
 	adminBanFailedText                = "Unable to ban user. Please try again later."
 	adminUserNotFoundText             = "User not found."
@@ -64,6 +68,7 @@ const (
 	loadingAdminUnmoderatorText       = "Removing moderator role..."
 	loadingAdminBannedUsersText       = "Loading banned users..."
 	loadingAdminModeratorsText        = "Loading moderators..."
+	loadingAdminReportsText           = "Loading reported users..."
 	creatingProfileText               = "Creating your profile..."
 	updatingProfileText               = "Updating your profile..."
 	deletingProfileText               = "Deleting your profile..."
@@ -175,6 +180,14 @@ func (s *service) adminModeratorsEmptyText() string {
 
 func (s *service) adminModeratorsLoadFailedText() string {
 	return adminModeratorsLoadFailedText
+}
+
+func (s *service) adminReportsEmptyText() string {
+	return adminReportsEmptyText
+}
+
+func (s *service) adminReportsLoadFailedText() string {
+	return adminReportsLoadFailedText
 }
 
 func (s *service) adminBanUsageText() string {

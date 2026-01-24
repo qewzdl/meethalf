@@ -52,6 +52,7 @@ type SearchService interface {
 
 type AdminService interface {
 	ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators bool) (domain.UserList, error)
+	ListReportedUsers(ctx context.Context, limit, offset int) (domain.ReportedUserList, error)
 	BanUser(ctx context.Context, userID int64) error
 	BanUserByUsername(ctx context.Context, username string) error
 	UnbanUser(ctx context.Context, userID int64) error
@@ -150,6 +151,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		response.Text, response.InlineKeyboard, replyErr = s.adminBannedUsersMessage(ctx, msg)
 	case domain.CommandAdminModerators:
 		response.Text, response.InlineKeyboard, replyErr = s.adminModeratorsMessage(ctx, msg)
+	case domain.CommandAdminReports:
+		response.Text, response.InlineKeyboard, replyErr = s.adminReportsMessage(ctx, msg)
 	case domain.CommandAdminBan:
 		response.Text, response.InlineKeyboard, replyErr = s.adminBanMessage(ctx, msg)
 	case domain.CommandAdminUnban:

@@ -16,6 +16,7 @@ const (
 
 type Usecase interface {
 	ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators bool) (UserList, error)
+	ListReportedUsers(ctx context.Context, limit, offset int) (ReportedUserList, error)
 	BanUser(ctx context.Context, userID int64) error
 	BanUserByUsername(ctx context.Context, username string) error
 	UnbanUser(ctx context.Context, userID int64) error
@@ -28,6 +29,7 @@ type Usecase interface {
 
 type Repository interface {
 	ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators bool) ([]domain.UserSummary, int, error)
+	ListReportedUsers(ctx context.Context, limit, offset int) ([]domain.ReportedUserSummary, int, error)
 	UpdateBanStatus(ctx context.Context, userID int64, isBanned bool) error
 	UpdateModeratorStatus(ctx context.Context, userID int64, isModerator bool) error
 	GetUserIDByUsername(ctx context.Context, username string) (int64, error)
@@ -35,6 +37,13 @@ type Repository interface {
 
 type UserList struct {
 	Users  []domain.UserSummary
+	Total  int
+	Limit  int
+	Offset int
+}
+
+type ReportedUserList struct {
+	Users  []domain.ReportedUserSummary
 	Total  int
 	Limit  int
 	Offset int
@@ -76,6 +85,41 @@ func (s *service) ListUsers(ctx context.Context, limit, offset int, onlyBanned, 
 	}
 
 	return UserList{
+		Users:  users,
+		Total:  total,
+		Limit:  normalizedLimit,
+		Offset: normalizedOffset,
+	}, nil
+}
+
+func (s *service) ListReportedUsers(ctx context.Context, limit, offset int) (ReportedUserList, error) {
+	if s == nil || s.repo == nil {
+		return ReportedUserList{}, errors.New("admin repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return ReportedUserList{}, err
+	}
+
+	normalizedLimit := limit
+	if normalizedLimit <= 0 {
+		normalizedLimit = defaultListLimit
+	}
+	if normalizedLimit > maxListLimit {
+		normalizedLimit = maxListLimit
+	}
+
+	normalizedOffset := offset
+	if normalizedOffset < 0 {
+		normalizedOffset = 0
+	}
+
+	users, total, err := s.repo.ListReportedUsers(ctx, normalizedLimit, normalizedOffset)
+	if err != nil {
+		return ReportedUserList{}, err
+	}
+
+	return ReportedUserList{
 		Users:  users,
 		Total:  total,
 		Limit:  normalizedLimit,
@@ -273,9 +317,9 @@ func (s *service) resolveUserIDByUsername(ctx context.Context, username string) 
 }
 
 var (
-	ErrInvalidUserID = errors.New("user id is required")
+	ErrInvalidUserID   = errors.New("user id is required")
 	ErrInvalidUsername = errors.New("username is required")
-	ErrUserNotFound  = errors.New("user not found")
+	ErrUserNotFound    = errors.New("user not found")
 )
 
 func normalizeUsername(value string) (string, error) {

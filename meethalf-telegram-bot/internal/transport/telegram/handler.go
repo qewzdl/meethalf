@@ -210,6 +210,9 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 	case strings.HasPrefix(text, domain.CommandAdminModerators+":"):
 		command = domain.CommandAdminModerators
 		arguments = strings.TrimPrefix(text, domain.CommandAdminModerators+":")
+	case strings.HasPrefix(text, domain.CommandAdminReports+":"):
+		command = domain.CommandAdminReports
+		arguments = strings.TrimPrefix(text, domain.CommandAdminReports+":")
 	default:
 		switch text {
 		case domain.CommandProfile:
@@ -264,6 +267,8 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandAdminBannedUsers
 		case domain.CommandAdminModerators:
 			command = domain.CommandAdminModerators
+		case domain.CommandAdminReports:
+			command = domain.CommandAdminReports
 		case domain.CommandAdminBan:
 			command = domain.CommandAdminBan
 		case domain.CommandAdminUnban:
