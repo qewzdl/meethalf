@@ -32,6 +32,14 @@ const (
 	CommandMatchReport          = "match_report"
 	CommandMatchPrevious        = "match_previous"
 	CommandMatchViewProfile     = "match_view_profile"
+	CommandAdminMenu            = "admin_menu"
+	CommandAdminUsers           = "admin_users"
+	CommandAdminBannedUsers     = "admin_banned_users"
+	CommandAdminModerators      = "admin_moderators"
+	CommandAdminBan             = "ban"
+	CommandAdminUnban           = "unban"
+	CommandAdminModerator       = "moderator"
+	CommandAdminUnmoderator     = "unmoderator"
 )
 
 type OutgoingMessageKind string

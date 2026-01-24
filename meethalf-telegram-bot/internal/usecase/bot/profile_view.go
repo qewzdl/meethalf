@@ -44,6 +44,9 @@ func (s *service) fetchProfile(ctx context.Context, msg domain.IncomingMessage) 
 
 	profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 	if err != nil {
+		if isBannedError(err) {
+			return domain.Profile{}, false, s.userBannedText(), err
+		}
 		return domain.Profile{}, false, "Unable to load profile. Please try again later.", err
 	}
 	if !found {

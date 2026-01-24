@@ -34,5 +34,12 @@ func NewRouter(handlers *Handlers, limiter ratelimit.Limiter) *gin.Engine {
 	likesGroup := v1.Group("/likes")
 	likesGroup.GET("/:user_id", handlers.Search.PendingLikes)
 
+	adminGroup := v1.Group("/admin")
+	adminGroup.GET("/users", handlers.Admin.ListUsers)
+	adminGroup.POST("/users/:user_ref/ban", handlers.Admin.BanUser)
+	adminGroup.POST("/users/:user_ref/unban", handlers.Admin.UnbanUser)
+	adminGroup.POST("/users/:user_ref/moderator", handlers.Admin.MakeModerator)
+	adminGroup.POST("/users/:user_ref/unmoderator", handlers.Admin.RemoveModerator)
+
 	return router
 }

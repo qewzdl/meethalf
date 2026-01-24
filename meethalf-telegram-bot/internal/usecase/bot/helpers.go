@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"context"
 	"strconv"
 	"strings"
 	"time"
@@ -336,6 +337,29 @@ func (s *service) formatUsername(username string) string {
 		return normalized
 	}
 	return "@" + normalized
+}
+
+func (s *service) profileUsername(ctx context.Context, userID int64) string {
+	if s == nil || s.sessions == nil || userID == 0 {
+		return ""
+	}
+
+	session, found, err := s.sessions.Get(ctx, userID)
+	if err != nil || !found {
+		return ""
+	}
+
+	return strings.TrimSpace(session.Username)
+}
+
+func (s *service) adminUserIdentifierLabel(userID int64, username string) string {
+	if username != "" {
+		return s.formatUsername(username)
+	}
+	if userID <= 0 {
+		return ""
+	}
+	return strconv.FormatInt(userID, 10)
 }
 
 func (s *service) nicknameFromUser(user domain.User, profile domain.Profile) string {

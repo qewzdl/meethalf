@@ -21,6 +21,11 @@ func (s *service) LoadingMessage(ctx context.Context, msg domain.IncomingMessage
 		return loading, ok, nil
 	}
 
+	loading, ok, err := s.loadingForAdminAction(ctx, msg)
+	if err != nil || ok {
+		return loading, ok, err
+	}
+
 	return s.loadingForDraft(ctx, msg)
 }
 
@@ -68,9 +73,75 @@ func (s *service) loadingForCommand(msg domain.IncomingMessage) (domain.Outgoing
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchNextText}, true
 	case domain.CommandMatchPrevious:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchPrevText}, true
+	case domain.CommandAdminUsers:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminUsersText}, true
+	case domain.CommandAdminBannedUsers:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminBannedUsersText}, true
+	case domain.CommandAdminModerators:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminModeratorsText}, true
+	case domain.CommandAdminBan:
+		if strings.TrimSpace(msg.Arguments) == "" {
+			return domain.OutgoingMessage{}, false
+		}
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminBanText}, true
+	case domain.CommandAdminUnban:
+		if strings.TrimSpace(msg.Arguments) == "" {
+			return domain.OutgoingMessage{}, false
+		}
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminUnbanText}, true
+	case domain.CommandAdminModerator:
+		if strings.TrimSpace(msg.Arguments) == "" {
+			return domain.OutgoingMessage{}, false
+		}
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminModeratorText}, true
+	case domain.CommandAdminUnmoderator:
+		if strings.TrimSpace(msg.Arguments) == "" {
+			return domain.OutgoingMessage{}, false
+		}
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminUnmoderatorText}, true
 	default:
 		return domain.OutgoingMessage{}, false
 	}
+}
+
+func (s *service) loadingForAdminAction(ctx context.Context, msg domain.IncomingMessage) (domain.OutgoingMessage, bool, error) {
+	if s == nil || s.adminActions == nil || msg.User.ID == 0 {
+		return domain.OutgoingMessage{}, false, nil
+	}
+	if !s.isAdminUser(msg.User) {
+		return domain.OutgoingMessage{}, false, nil
+	}
+
+	action, found, err := s.adminActions.Get(ctx, msg.User.ID)
+	if err != nil || !found {
+		return domain.OutgoingMessage{}, false, err
+	}
+	switch action.Action {
+	case domain.AdminActionBan:
+	case domain.AdminActionUnban:
+	case domain.AdminActionModerator:
+	case domain.AdminActionUnmoderator:
+	default:
+		return domain.OutgoingMessage{}, false, nil
+	}
+	if action.ChatID != 0 && msg.ChatID != 0 && action.ChatID != msg.ChatID {
+		return domain.OutgoingMessage{}, false, nil
+	}
+
+	if _, _, ok := s.parseAdminUserIdentifier(msg.Text); !ok {
+		return domain.OutgoingMessage{}, false, nil
+	}
+
+	loadingText := loadingAdminBanText
+	switch action.Action {
+	case domain.AdminActionUnban:
+		loadingText = loadingAdminUnbanText
+	case domain.AdminActionModerator:
+		loadingText = loadingAdminModeratorText
+	case domain.AdminActionUnmoderator:
+		loadingText = loadingAdminUnmoderatorText
+	}
+	return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingText}, true, nil
 }
 
 func (s *service) loadingForDraft(ctx context.Context, msg domain.IncomingMessage) (domain.OutgoingMessage, bool, error) {

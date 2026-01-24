@@ -201,6 +201,15 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 	case strings.HasPrefix(text, domain.CommandMatchViewProfile+":"):
 		command = domain.CommandMatchViewProfile
 		arguments = strings.TrimPrefix(text, domain.CommandMatchViewProfile+":")
+	case strings.HasPrefix(text, domain.CommandAdminUsers+":"):
+		command = domain.CommandAdminUsers
+		arguments = strings.TrimPrefix(text, domain.CommandAdminUsers+":")
+	case strings.HasPrefix(text, domain.CommandAdminBannedUsers+":"):
+		command = domain.CommandAdminBannedUsers
+		arguments = strings.TrimPrefix(text, domain.CommandAdminBannedUsers+":")
+	case strings.HasPrefix(text, domain.CommandAdminModerators+":"):
+		command = domain.CommandAdminModerators
+		arguments = strings.TrimPrefix(text, domain.CommandAdminModerators+":")
 	default:
 		switch text {
 		case domain.CommandProfile:
@@ -247,6 +256,22 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandSearchGender
 		case domain.CommandMatchPrevious:
 			command = domain.CommandMatchPrevious
+		case domain.CommandAdminMenu:
+			command = domain.CommandAdminMenu
+		case domain.CommandAdminUsers:
+			command = domain.CommandAdminUsers
+		case domain.CommandAdminBannedUsers:
+			command = domain.CommandAdminBannedUsers
+		case domain.CommandAdminModerators:
+			command = domain.CommandAdminModerators
+		case domain.CommandAdminBan:
+			command = domain.CommandAdminBan
+		case domain.CommandAdminUnban:
+			command = domain.CommandAdminUnban
+		case domain.CommandAdminModerator:
+			command = domain.CommandAdminModerator
+		case domain.CommandAdminUnmoderator:
+			command = domain.CommandAdminUnmoderator
 		}
 	}
 

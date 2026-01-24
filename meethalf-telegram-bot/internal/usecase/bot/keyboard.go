@@ -14,14 +14,25 @@ const (
 	editCancelButtonText           = "Cancel"
 	searchAccuracyCancelButtonText = "Cancel"
 	searchRefreshButtonText        = "Refresh feed"
+	adminMenuButtonText            = "Admin panel"
+	adminUsersButtonText           = "User list"
+	adminBanButtonText             = "Ban user"
+	adminUnbanButtonText           = "Unban user"
+	adminModeratorButtonText       = "Make moderator"
+	adminUnmoderatorButtonText     = "Remove moderator"
+	adminBannedUsersButtonText     = "Banned users"
+	adminModeratorsButtonText      = "Moderators"
+	adminUsersPrevButtonText       = "Previous"
+	adminUsersNextButtonText       = "Next"
+	adminBackToMenuButtonText      = "Back to admin"
 )
 
-func (s *service) startInlineKeyboardByStatus(status profileStatus) *domain.InlineKeyboard {
+func (s *service) startInlineKeyboardByStatus(status profileStatus, user domain.User) *domain.InlineKeyboard {
 	if status == profileStatusMissing {
-		return s.profileCreateInlineKeyboard()
+		return s.withAdminMenuInlineKeyboard(s.profileCreateInlineKeyboard(), user)
 	}
 
-	return s.profileInlineKeyboard()
+	return s.withAdminMenuInlineKeyboard(s.profileInlineKeyboard(), user)
 }
 
 func (s *service) profileInlineKeyboard() *domain.InlineKeyboard {
@@ -55,6 +66,218 @@ func (s *service) profileStartInlineKeyboard(text, callbackData string) *domain.
 			},
 		},
 	}
+}
+
+func (s *service) adminMenuInlineKeyboard() *domain.InlineKeyboard {
+	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+		Buttons: [][]domain.InlineButton{
+			{
+				{
+					Text:         adminUsersButtonText,
+					CallbackData: domain.CommandAdminUsers,
+				},
+			},
+			{
+				{
+					Text:         adminBannedUsersButtonText,
+					CallbackData: domain.CommandAdminBannedUsers,
+				},
+			},
+			{
+				{
+					Text:         adminModeratorsButtonText,
+					CallbackData: domain.CommandAdminModerators,
+				},
+			},
+			{
+				{
+					Text:         adminBanButtonText,
+					CallbackData: domain.CommandAdminBan,
+				},
+			},
+			{
+				{
+					Text:         adminUnbanButtonText,
+					CallbackData: domain.CommandAdminUnban,
+				},
+			},
+			{
+				{
+					Text:         adminModeratorButtonText,
+					CallbackData: domain.CommandAdminModerator,
+				},
+			},
+			{
+				{
+					Text:         adminUnmoderatorButtonText,
+					CallbackData: domain.CommandAdminUnmoderator,
+				},
+			},
+		},
+	})
+}
+
+func (s *service) adminBanInlineKeyboard() *domain.InlineKeyboard {
+	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+		Buttons: [][]domain.InlineButton{
+			{
+				{
+					Text:         adminBackToMenuButtonText,
+					CallbackData: domain.CommandAdminMenu,
+				},
+			},
+		},
+	})
+}
+
+func (s *service) adminModeratorInlineKeyboard() *domain.InlineKeyboard {
+	return s.adminBanInlineKeyboard()
+}
+
+func (s *service) adminUsersInlineKeyboard(offset, limit, total int) *domain.InlineKeyboard {
+	rows := [][]domain.InlineButton{}
+
+	hasPrev := offset > 0
+	hasNext := limit > 0 && (offset+limit) < total
+	if hasPrev || hasNext {
+		row := []domain.InlineButton{}
+		if hasPrev {
+			prevOffset := offset - limit
+			if prevOffset < 0 {
+				prevOffset = 0
+			}
+			row = append(row, domain.InlineButton{
+				Text:         adminUsersPrevButtonText,
+				CallbackData: domain.CommandAdminUsers + ":" + strconv.Itoa(prevOffset),
+			})
+		}
+		if hasNext {
+			nextOffset := offset + limit
+			row = append(row, domain.InlineButton{
+				Text:         adminUsersNextButtonText,
+				CallbackData: domain.CommandAdminUsers + ":" + strconv.Itoa(nextOffset),
+			})
+		}
+		if len(row) > 0 {
+			rows = append(rows, row)
+		}
+	}
+
+	rows = append(rows, []domain.InlineButton{
+		{
+			Text:         adminBackToMenuButtonText,
+			CallbackData: domain.CommandAdminMenu,
+		},
+	})
+
+	return withCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: rows})
+}
+
+func (s *service) adminBannedUsersInlineKeyboard(offset, limit, total int) *domain.InlineKeyboard {
+	rows := [][]domain.InlineButton{}
+
+	hasPrev := offset > 0
+	hasNext := limit > 0 && (offset+limit) < total
+	if hasPrev || hasNext {
+		row := []domain.InlineButton{}
+		if hasPrev {
+			prevOffset := offset - limit
+			if prevOffset < 0 {
+				prevOffset = 0
+			}
+			row = append(row, domain.InlineButton{
+				Text:         adminUsersPrevButtonText,
+				CallbackData: domain.CommandAdminBannedUsers + ":" + strconv.Itoa(prevOffset),
+			})
+		}
+		if hasNext {
+			nextOffset := offset + limit
+			row = append(row, domain.InlineButton{
+				Text:         adminUsersNextButtonText,
+				CallbackData: domain.CommandAdminBannedUsers + ":" + strconv.Itoa(nextOffset),
+			})
+		}
+		if len(row) > 0 {
+			rows = append(rows, row)
+		}
+	}
+
+	rows = append(rows, []domain.InlineButton{
+		{
+			Text:         adminBackToMenuButtonText,
+			CallbackData: domain.CommandAdminMenu,
+		},
+	})
+
+	return withCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: rows})
+}
+
+func (s *service) adminModeratorsInlineKeyboard(offset, limit, total int) *domain.InlineKeyboard {
+	rows := [][]domain.InlineButton{}
+
+	hasPrev := offset > 0
+	hasNext := limit > 0 && (offset+limit) < total
+	if hasPrev || hasNext {
+		row := []domain.InlineButton{}
+		if hasPrev {
+			prevOffset := offset - limit
+			if prevOffset < 0 {
+				prevOffset = 0
+			}
+			row = append(row, domain.InlineButton{
+				Text:         adminUsersPrevButtonText,
+				CallbackData: domain.CommandAdminModerators + ":" + strconv.Itoa(prevOffset),
+			})
+		}
+		if hasNext {
+			nextOffset := offset + limit
+			row = append(row, domain.InlineButton{
+				Text:         adminUsersNextButtonText,
+				CallbackData: domain.CommandAdminModerators + ":" + strconv.Itoa(nextOffset),
+			})
+		}
+		if len(row) > 0 {
+			rows = append(rows, row)
+		}
+	}
+
+	rows = append(rows, []domain.InlineButton{
+		{
+			Text:         adminBackToMenuButtonText,
+			CallbackData: domain.CommandAdminMenu,
+		},
+	})
+
+	return withCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: rows})
+}
+
+func (s *service) adminUnbanInlineKeyboard() *domain.InlineKeyboard {
+	return s.adminBanInlineKeyboard()
+}
+
+func (s *service) adminUnmoderatorInlineKeyboard() *domain.InlineKeyboard {
+	return s.adminBanInlineKeyboard()
+}
+
+func (s *service) withAdminMenuInlineKeyboard(keyboard *domain.InlineKeyboard, user domain.User) *domain.InlineKeyboard {
+	if s == nil || !s.isAdminUser(user) {
+		return keyboard
+	}
+	if keyboard == nil {
+		keyboard = &domain.InlineKeyboard{}
+	}
+	if inlineKeyboardHasCallback(keyboard, domain.CommandAdminMenu) || inlineKeyboardHasText(keyboard, adminMenuButtonText) {
+		return keyboard
+	}
+
+	keyboard.Buttons = append(keyboard.Buttons, []domain.InlineButton{
+		{
+			Text:         adminMenuButtonText,
+			CallbackData: domain.CommandAdminMenu,
+		},
+	})
+
+	return keyboard
 }
 
 func (s *service) profileViewInlineKeyboard() *domain.InlineKeyboard {

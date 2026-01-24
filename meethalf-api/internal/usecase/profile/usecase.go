@@ -31,6 +31,7 @@ var (
 	ErrInvalidEmojiCode   = errors.New("profile emoji code is invalid")
 	ErrInvalidPhotos      = errors.New("profile photos must include 1 to 4 entries")
 	ErrProfileNotFound    = errors.New("profile not found")
+	ErrUserBanned         = errors.New("user is banned")
 )
 
 var countryCities = map[domain.Country][]string{
@@ -113,6 +114,10 @@ func (s *service) Upsert(ctx context.Context, profile domain.Profile) (domain.Pr
 		return domain.Profile{}, err
 	}
 
+	if err := s.ensureNotBanned(ctx, normalized.UserID); err != nil {
+		return domain.Profile{}, err
+	}
+
 	return s.repo.Upsert(ctx, normalized)
 }
 
@@ -137,6 +142,10 @@ func (s *service) GetByUserID(ctx context.Context, userID int64) (domain.Profile
 		return domain.Profile{}, err
 	}
 
+	if stored.IsBanned {
+		return domain.Profile{}, ErrUserBanned
+	}
+
 	stored.BirthDate = normalizeBirthDateValue(stored.BirthDate)
 	if !stored.BirthDate.IsZero() {
 		stored.Age = ageFromBirthDate(stored.BirthDate, time.Now().UTC())
@@ -156,6 +165,10 @@ func (s *service) DeleteByUserID(ctx context.Context, userID int64) error {
 
 	if userID <= 0 {
 		return ErrInvalidUserID
+	}
+
+	if err := s.ensureNotBanned(ctx, userID); err != nil {
+		return err
 	}
 
 	if err := s.repo.DeleteByUserID(ctx, userID); err != nil {
@@ -181,11 +194,35 @@ func (s *service) UpdateVisibility(ctx context.Context, userID int64, isHidden b
 		return ErrInvalidUserID
 	}
 
+	if err := s.ensureNotBanned(ctx, userID); err != nil {
+		return err
+	}
+
 	if err := s.repo.UpdateVisibility(ctx, userID, isHidden); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrProfileNotFound
 		}
 		return err
+	}
+
+	return nil
+}
+
+func (s *service) ensureNotBanned(ctx context.Context, userID int64) error {
+	if s == nil || s.repo == nil {
+		return errors.New("profile repository is not configured")
+	}
+
+	stored, err := s.repo.GetByUserID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return err
+	}
+
+	if stored.IsBanned {
+		return ErrUserBanned
 	}
 
 	return nil
@@ -238,6 +275,7 @@ func normalize(profile domain.Profile) (domain.Profile, error) {
 	}
 
 	profile.Name = name
+	profile.Username = normalizeUsername(profile.Username)
 	profile.Gender = gender
 	profile.BirthDate = birthDate
 	profile.Age = age
@@ -260,6 +298,17 @@ func normalize(profile domain.Profile) (domain.Profile, error) {
 
 	profile.Photos = photos
 	return profile, nil
+}
+
+func normalizeUsername(value string) string {
+	normalized := strings.TrimSpace(value)
+	if normalized == "" {
+		return ""
+	}
+	if strings.HasPrefix(normalized, "@") {
+		normalized = strings.TrimPrefix(normalized, "@")
+	}
+	return normalized
 }
 
 func normalizeEmojiCode(code domain.ProfileEmojiCode) (domain.ProfileEmojiCode, error) {

@@ -321,7 +321,7 @@ type apiError struct {
 }
 
 func (e *apiError) Error() string {
-	return fmt.Sprintf("search api error: %s", e.message)
+	return fmt.Sprintf("api error: %s", e.message)
 }
 
 func (e *apiError) StatusCode() int {

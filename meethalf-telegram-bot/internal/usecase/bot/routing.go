@@ -25,7 +25,7 @@ func (s *service) reply(ctx context.Context, msg domain.IncomingMessage) (string
 		return s.startProfileSetup(ctx, msg)
 	}
 
-	return s.helpText, nil
+	return s.helpTextFor(msg.User), nil
 }
 
 func (s *service) handleCommand(ctx context.Context, msg domain.IncomingMessage) (string, error) {
@@ -72,21 +72,27 @@ func (s *service) handleCommand(ctx context.Context, msg domain.IncomingMessage)
 	case domain.CommandProfileDeleteCancel:
 		return s.cancelProfileDelete(ctx, msg)
 	case "":
-		return s.helpText, nil
+		return s.helpTextFor(msg.User), nil
 	default:
-		return "Unknown command.\n" + s.helpText, nil
+		return "Unknown command.\n" + s.helpTextFor(msg.User), nil
 	}
 }
 
 func (s *service) startMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
 	text, status, err := s.startText(ctx, msg)
-	return text, s.startInlineKeyboardByStatus(status), err
+	if isBannedError(err) {
+		return text, nil, err
+	}
+	return text, s.startInlineKeyboardByStatus(status, msg.User), err
 }
 
 func (s *service) startText(ctx context.Context, msg domain.IncomingMessage) (string, profileStatus, error) {
 	profile, status, err := s.resolveProfileStatus(ctx, msg.User.ID)
+	if isBannedError(err) {
+		return s.userBannedText(), profileStatusUnknown, err
+	}
 	greeting := s.startGreeting(msg.User, profile, status)
-	return greeting + "\n" + s.helpText, status, err
+	return greeting + "\n" + s.helpTextFor(msg.User), status, err
 }
 
 func (s *service) resolveProfileStatus(ctx context.Context, userID int64) (domain.Profile, profileStatus, error) {

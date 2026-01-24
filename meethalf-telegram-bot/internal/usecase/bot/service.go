@@ -29,6 +29,12 @@ type ProfileDeletionConfirmationRepository interface {
 	Delete(ctx context.Context, userID int64) error
 }
 
+type AdminActionRepository interface {
+	Get(ctx context.Context, userID int64) (domain.AdminActionState, bool, error)
+	Save(ctx context.Context, action domain.AdminActionState) error
+	Delete(ctx context.Context, userID int64) error
+}
+
 type ProfileService interface {
 	CreateProfile(ctx context.Context, profile domain.Profile) error
 	GetProfile(ctx context.Context, userID int64) (domain.Profile, bool, error)
@@ -44,13 +50,28 @@ type SearchService interface {
 	PendingLikes(ctx context.Context, userID int64) ([]domain.Profile, error)
 }
 
+type AdminService interface {
+	ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators bool) (domain.UserList, error)
+	BanUser(ctx context.Context, userID int64) error
+	BanUserByUsername(ctx context.Context, username string) error
+	UnbanUser(ctx context.Context, userID int64) error
+	UnbanUserByUsername(ctx context.Context, username string) error
+	MakeModerator(ctx context.Context, userID int64) error
+	MakeModeratorByUsername(ctx context.Context, username string) error
+	RemoveModerator(ctx context.Context, userID int64) error
+	RemoveModeratorByUsername(ctx context.Context, username string) error
+}
+
 type service struct {
 	sessions            SessionRepository
 	drafts              ProfileDraftRepository
 	deleteConfirmations ProfileDeletionConfirmationRepository
+	adminActions        AdminActionRepository
 	profiles            ProfileService
 	search              SearchService
+	admin               AdminService
 	helpText            string
+	adminUsernames      map[string]struct{}
 	setupCleanupMu      sync.Mutex
 	setupCleanup        map[int64]setupCleanupInfo
 }
@@ -60,14 +81,17 @@ type setupCleanupInfo struct {
 	startMessageID int
 }
 
-func New(sessions SessionRepository, drafts ProfileDraftRepository, deleteConfirmations ProfileDeletionConfirmationRepository, profiles ProfileService, search SearchService) Usecase {
+func New(sessions SessionRepository, drafts ProfileDraftRepository, deleteConfirmations ProfileDeletionConfirmationRepository, adminActions AdminActionRepository, profiles ProfileService, search SearchService, admin AdminService, adminUsernames []string) Usecase {
 	return &service{
 		sessions:            sessions,
 		drafts:              drafts,
 		deleteConfirmations: deleteConfirmations,
+		adminActions:        adminActions,
 		profiles:            profiles,
 		search:              search,
+		admin:               admin,
 		helpText:            defaultHelpText,
+		adminUsernames:      normalizeAdminUsernames(adminUsernames),
 		setupCleanup:        make(map[int64]setupCleanupInfo),
 	}
 }
@@ -81,6 +105,25 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 			Username: msg.User.Username,
 			LastSeen: s.now(msg.ReceivedAt),
 		})
+	}
+
+	if msg.Command != "" &&
+		msg.Command != domain.CommandAdminBan &&
+		msg.Command != domain.CommandAdminUnban &&
+		msg.Command != domain.CommandAdminModerator &&
+		msg.Command != domain.CommandAdminUnmoderator {
+		_ = s.clearAdminAction(ctx, msg.User.ID)
+	}
+
+	if msg.Command == "" {
+		updatedMsg, response, handled, err := s.applyAdminAction(ctx, msg)
+		if handled {
+			if response == nil {
+				return nil, errors.Join(touchErr, err)
+			}
+			return []domain.OutgoingMessage{*response}, errors.Join(touchErr, err)
+		}
+		msg = updatedMsg
 	}
 
 	if s.isSearchCommand(msg.Command) {
@@ -99,6 +142,22 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		response.Text, response.InlineKeyboard, replyErr = s.startMessage(ctx, msg)
 	case domain.CommandCancel:
 		response.Text, response.InlineKeyboard, replyErr = s.cancelMessage(ctx, msg)
+	case domain.CommandAdminMenu:
+		response.Text, response.InlineKeyboard, replyErr = s.adminMenuMessage(ctx, msg)
+	case domain.CommandAdminUsers:
+		response.Text, response.InlineKeyboard, replyErr = s.adminUsersMessage(ctx, msg)
+	case domain.CommandAdminBannedUsers:
+		response.Text, response.InlineKeyboard, replyErr = s.adminBannedUsersMessage(ctx, msg)
+	case domain.CommandAdminModerators:
+		response.Text, response.InlineKeyboard, replyErr = s.adminModeratorsMessage(ctx, msg)
+	case domain.CommandAdminBan:
+		response.Text, response.InlineKeyboard, replyErr = s.adminBanMessage(ctx, msg)
+	case domain.CommandAdminUnban:
+		response.Text, response.InlineKeyboard, replyErr = s.adminUnbanMessage(ctx, msg)
+	case domain.CommandAdminModerator:
+		response.Text, response.InlineKeyboard, replyErr = s.adminModeratorMessage(ctx, msg)
+	case domain.CommandAdminUnmoderator:
+		response.Text, response.InlineKeyboard, replyErr = s.adminUnmoderatorMessage(ctx, msg)
 	default:
 		response.Text, replyErr = s.reply(ctx, msg)
 		if msg.Command == domain.CommandProfileEdit && replyErr == nil {
@@ -135,6 +194,11 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		case domain.CommandProfileView:
 			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 			if err != nil {
+				if isBannedError(err) {
+					response.Text = s.userBannedText()
+					response.InlineKeyboard = nil
+					messages[0] = response
+				}
 				replyErr = errors.Join(replyErr, err)
 				break
 			}
@@ -152,6 +216,11 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		case domain.CommandProfilePreview:
 			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 			if err != nil {
+				if isBannedError(err) {
+					response.Text = s.userBannedText()
+					response.InlineKeyboard = nil
+					messages[0] = response
+				}
 				replyErr = errors.Join(replyErr, err)
 				break
 			}
@@ -169,6 +238,11 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		case domain.CommandProfileSettings:
 			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 			if err != nil {
+				if isBannedError(err) {
+					response.Text = s.userBannedText()
+					response.InlineKeyboard = nil
+					messages[0] = response
+				}
 				replyErr = errors.Join(replyErr, err)
 				break
 			}
@@ -183,6 +257,11 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		case domain.CommandProfileVisibility:
 			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 			if err != nil {
+				if isBannedError(err) {
+					response.Text = s.userBannedText()
+					response.InlineKeyboard = nil
+					messages[0] = response
+				}
 				replyErr = errors.Join(replyErr, err)
 				break
 			}
@@ -196,6 +275,11 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		case domain.CommandProfileDeleteCancel:
 			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 			if err != nil {
+				if isBannedError(err) {
+					response.Text = s.userBannedText()
+					response.InlineKeyboard = nil
+					messages[0] = response
+				}
 				replyErr = errors.Join(replyErr, err)
 				break
 			}
@@ -212,6 +296,11 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 			}
 			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 			if err != nil {
+				if isBannedError(err) {
+					response.Text = s.userBannedText()
+					response.InlineKeyboard = nil
+					messages[0] = response
+				}
 				replyErr = errors.Join(replyErr, err)
 				break
 			}

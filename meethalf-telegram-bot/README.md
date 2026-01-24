@@ -21,6 +21,15 @@ go run ./cmd/bot
 - /start - greet user by profile name when available, otherwise Telegram name; show inline Start Search, Profile (or Create Profile when missing), and Settings buttons
 - /cancel - cancel the current action and return to the main menu
 
+## Admin
+
+Set `BOT_ADMIN_USERNAME` to one or more Telegram usernames (comma-separated). Admins see an `Admin panel` button in the main
+menu that opens admin management. The admin panel supports `User list`, `Banned users`, and `Moderators` lists that return
+users (including their Telegram usernames) from the Meethalf API with pagination, plus `Ban user` / `Unban user` buttons
+that prompt for the profile id or `@username` (you can also use `/ban <user_id|@username>` and
+`/unban <user_id|@username>`). It also supports `Make moderator` / `Remove moderator` actions
+(`/moderator <user_id|@username>` and `/unmoderator <user_id|@username>`).
+
 ## Profile setup
 
 The bot guides users through a nine-step profile setup: a short anti-bot verification check (choose the correct answer
@@ -129,6 +138,7 @@ docker compose down
 
 - APP_ENV (dev)
 - BOT_TOKEN ()
+- BOT_ADMIN_USERNAME ()
 - BOT_DEBUG (false)
 - BOT_ALLOWED_UPDATES (message,callback_query)
 - BOT_POLLING_TIMEOUT (10s)
@@ -156,7 +166,9 @@ docker compose down
 default. Use `SESSION_STORE=redis` with `REDIS_ENABLED=true` to share session state across multiple bot
 instances. Use `BOT_API_ENDPOINT` to override the Telegram API endpoint (accepts a full format string
 like `https://api.telegram.org/bot%s/%s` or a base URL). Set `BOT_PROXY_URL` to force a proxy for
-Telegram requests; if it is empty, `HTTP_PROXY` and `HTTPS_PROXY` are still honored.
+Telegram requests; if it is empty, `HTTP_PROXY` and `HTTPS_PROXY` are still honored. Set
+`BOT_ADMIN_USERNAME` to the admin Telegram username (with or without `@`) to mark admin users in the
+bot greeting; comma-separated values are accepted.
 
 ## Structure
 

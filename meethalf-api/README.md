@@ -16,7 +16,7 @@ curl http://localhost:8080/api/v1/health/readiness
 curl http://localhost:8080/api/v1/health
 curl -X POST http://localhost:8080/api/v1/profiles \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1,"name":"Jane Doe","gender":"female","birth_date":"1996-04-23","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"],"is_hidden":false}'
+  -d '{"user_id":1,"username":"janedoe","name":"Jane Doe","gender":"female","birth_date":"1996-04-23","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"],"is_hidden":false}'
 curl http://localhost:8080/api/v1/profiles/1
 curl -X PATCH http://localhost:8080/api/v1/profiles/1/visibility \
   -H "Content-Type: application/json" \
@@ -36,6 +36,13 @@ curl -X POST http://localhost:8080/api/v1/search/action \
   -d '{"user_id":1,"target_id":2,"action":"like"}'
 # {"matched":false}
 curl http://localhost:8080/api/v1/likes/1
+curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0
+curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&banned=true
+curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&moderator=true
+curl -X POST http://localhost:8080/api/v1/admin/users/1/ban
+curl -X POST http://localhost:8080/api/v1/admin/users/1/unban
+curl -X POST http://localhost:8080/api/v1/admin/users/1/moderator
+curl -X POST http://localhost:8080/api/v1/admin/users/1/unmoderator
 ```
 
 `birth_date` uses the `YYYY-MM-DD` format; age is derived automatically. `country` must be one of `russia`, `kazakhstan`,
@@ -46,6 +53,14 @@ and `accuracy` is a 0-4 scale where 0 is wider/random and 4 is stricter. If no c
 search relaxes the accuracy step-by-step down to 0 while keeping the gender filter. Lower accuracy levels also use wider
 age windows when scoring candidates.
 `/api/v1/search/action` responds with `matched=true` when the like action forms a mutual match.
+`/api/v1/admin/users` returns a paginated list of users (profiles) with `username`, `is_hidden`, `is_banned`, and
+`is_moderator` flags.
+Use `limit` and `offset` query parameters to paginate; pass `banned=true` to list only banned users or
+`moderator=true` to list only moderators.
+`POST /api/v1/admin/users/{user_ref}/ban` bans the user by id or username (with or without `@`), and
+`POST /api/v1/admin/users/{user_ref}/unban` removes the ban. `POST /api/v1/admin/users/{user_ref}/moderator` assigns the
+moderator role, and `POST /api/v1/admin/users/{user_ref}/unmoderator` removes it. Banned users cannot use profile or
+search endpoints.
 
 Supported cities:
 
@@ -87,7 +102,7 @@ curl http://localhost:8080/api/v1/health/readiness
 curl http://localhost:8080/api/v1/health
 curl -X POST http://localhost:8080/api/v1/profiles \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1,"name":"Jane Doe","gender":"female","birth_date":"1996-04-23","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"],"is_hidden":false}'
+  -d '{"user_id":1,"username":"janedoe","name":"Jane Doe","gender":"female","birth_date":"1996-04-23","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"],"is_hidden":false}'
 curl http://localhost:8080/api/v1/profiles/1
 curl -X PATCH http://localhost:8080/api/v1/profiles/1/visibility \
   -H "Content-Type: application/json" \
@@ -107,6 +122,13 @@ curl -X POST http://localhost:8080/api/v1/search/action \
   -d '{"user_id":1,"target_id":2,"action":"like"}'
 # {"matched":false}
 curl http://localhost:8080/api/v1/likes/1
+curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0
+curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&banned=true
+curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&moderator=true
+curl -X POST http://localhost:8080/api/v1/admin/users/1/ban
+curl -X POST http://localhost:8080/api/v1/admin/users/1/unban
+curl -X POST http://localhost:8080/api/v1/admin/users/1/moderator
+curl -X POST http://localhost:8080/api/v1/admin/users/1/unmoderator
 ```
 
 Stop:

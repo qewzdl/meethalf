@@ -27,6 +27,7 @@ var (
 	ErrNoPrevious       = errors.New("no previous candidate")
 	ErrInvalidTargetID  = errors.New("target user id is required")
 	ErrInvalidSelfMatch = errors.New("viewer and target must be different")
+	ErrUserBanned       = errors.New("user is banned")
 )
 
 type Usecase interface {
@@ -94,11 +95,8 @@ func (s *service) Start(ctx context.Context, viewerID int64, gender domain.Gende
 		return domain.MatchCandidate{}, ErrInvalidAccuracy
 	}
 
-	viewer, err := s.repo.GetProfile(ctx, viewerID)
+	viewer, err := s.viewerProfile(ctx, viewerID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return domain.MatchCandidate{}, ErrProfileNotFound
-		}
 		return domain.MatchCandidate{}, err
 	}
 
@@ -149,11 +147,8 @@ func (s *service) Next(ctx context.Context, viewerID int64) (domain.MatchCandida
 		return domain.MatchCandidate{}, ErrSessionNotFound
 	}
 
-	viewer, err := s.repo.GetProfile(ctx, viewerID)
+	viewer, err := s.viewerProfile(ctx, viewerID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return domain.MatchCandidate{}, ErrProfileNotFound
-		}
 		return domain.MatchCandidate{}, err
 	}
 
@@ -177,6 +172,9 @@ func (s *service) Previous(ctx context.Context, viewerID int64) (domain.MatchCan
 	}
 	if !found {
 		return domain.MatchCandidate{}, ErrSessionNotFound
+	}
+	if _, err := s.viewerProfile(ctx, viewerID); err != nil {
+		return domain.MatchCandidate{}, err
 	}
 	if session.CurrentIndex <= 1 {
 		return domain.MatchCandidate{}, ErrNoPrevious
@@ -225,6 +223,10 @@ func (s *service) RecordAction(ctx context.Context, viewerID, targetID int64, ac
 		return domain.MatchActionResult{}, ErrInvalidSelfMatch
 	}
 
+	if _, err := s.viewerProfile(ctx, viewerID); err != nil {
+		return domain.MatchActionResult{}, err
+	}
+
 	normalized, err := normalizeAction(action)
 	if err != nil {
 		return domain.MatchActionResult{}, err
@@ -268,10 +270,7 @@ func (s *service) PendingLikes(ctx context.Context, userID int64) ([]domain.Prof
 		return nil, ErrInvalidUserID
 	}
 
-	if _, err := s.repo.GetProfile(ctx, userID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrProfileNotFound
-		}
+	if _, err := s.viewerProfile(ctx, userID); err != nil {
 		return nil, err
 	}
 
@@ -384,4 +383,20 @@ func normalizeAction(action domain.MatchAction) (domain.MatchAction, error) {
 	default:
 		return "", ErrInvalidAction
 	}
+}
+
+func (s *service) viewerProfile(ctx context.Context, userID int64) (domain.Profile, error) {
+	profile, err := s.repo.GetProfile(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.Profile{}, ErrProfileNotFound
+		}
+		return domain.Profile{}, err
+	}
+
+	if profile.IsBanned {
+		return domain.Profile{}, ErrUserBanned
+	}
+
+	return profile, nil
 }

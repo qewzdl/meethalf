@@ -7,13 +7,13 @@ import (
 	"log"
 	"strings"
 
+	redisgo "github.com/redis/go-redis/v9"
 	"meethalf-telegram-bot/internal/config"
 	"meethalf-telegram-bot/internal/storage/memory"
 	redisstorage "meethalf-telegram-bot/internal/storage/redis"
 	"meethalf-telegram-bot/internal/transport/api"
 	"meethalf-telegram-bot/internal/transport/telegram"
 	botusecase "meethalf-telegram-bot/internal/usecase/bot"
-	redisgo "github.com/redis/go-redis/v9"
 )
 
 type App struct {
@@ -44,12 +44,14 @@ func New(cfg config.Config, logger *log.Logger) (*App, error) {
 	var sessionRepo botusecase.SessionRepository
 	var draftRepo botusecase.ProfileDraftRepository
 	var deleteConfirmRepo botusecase.ProfileDeletionConfirmationRepository
+	var adminActionRepo botusecase.AdminActionRepository
 
 	switch store {
 	case "", "memory", "inmemory":
 		sessionRepo = memory.NewSessionRepository()
 		draftRepo = memory.NewProfileDraftRepository()
 		deleteConfirmRepo = memory.NewProfileDeletionConfirmationRepository()
+		adminActionRepo = memory.NewAdminActionRepository(cfg.Session.TTL)
 	case "redis":
 		if !cfg.Redis.Enabled {
 			return nil, errors.New("redis session store requested but redis is not enabled")
@@ -62,13 +64,15 @@ func New(cfg config.Config, logger *log.Logger) (*App, error) {
 		sessionRepo = redisstorage.NewSessionRepository(redisClient, cfg.Session.TTL)
 		draftRepo = redisstorage.NewProfileDraftRepository(redisClient, cfg.Session.TTL)
 		deleteConfirmRepo = redisstorage.NewProfileDeletionConfirmationRepository(redisClient, cfg.Session.TTL)
+		adminActionRepo = redisstorage.NewAdminActionRepository(redisClient, cfg.Session.TTL)
 	default:
 		return nil, fmt.Errorf("unsupported session store: %s", store)
 	}
 
 	profileClient := api.NewProfileClient(cfg.API.BaseURL, cfg.API.Timeout)
 	searchClient := api.NewSearchClient(cfg.API.BaseURL, cfg.API.Timeout)
-	usecase := botusecase.New(sessionRepo, draftRepo, deleteConfirmRepo, profileClient, searchClient)
+	adminClient := api.NewAdminClient(cfg.API.BaseURL, cfg.API.Timeout)
+	usecase := botusecase.New(sessionRepo, draftRepo, deleteConfirmRepo, adminActionRepo, profileClient, searchClient, adminClient, cfg.Bot.AdminUsernames)
 	sender := telegram.NewSender(bot)
 	handler := telegram.NewHandler(usecase, sender, logger)
 	pool := telegram.NewWorkerPool(cfg.Workers.PoolSize, cfg.Workers.QueueSize, handler)

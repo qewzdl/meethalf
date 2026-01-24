@@ -60,7 +60,7 @@ func (r *MatchingRepository) GetProfile(ctx context.Context, userID int64) (doma
 	}
 
 	query := fmt.Sprintf(
-		`SELECT user_id, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, created_at, updated_at
+		`SELECT user_id, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, is_banned, created_at, updated_at
 		 FROM %s
 		 WHERE user_id = $1`,
 		profileTable(r.schema),
@@ -162,10 +162,11 @@ func (r *MatchingRepository) GetHistoryCandidate(ctx context.Context, viewerID i
 	}
 
 	query := fmt.Sprintf(
-		`SELECT p.user_id, p.name, p.gender, p.birth_date, p.age, p.country, p.city, p.description, p.emoji_code, p.photos, p.is_hidden, p.created_at, p.updated_at
+		`SELECT p.user_id, p.name, p.gender, p.birth_date, p.age, p.country, p.city, p.description, p.emoji_code, p.photos, p.is_hidden, p.is_banned, p.created_at, p.updated_at
 		 FROM %s h
 		 JOIN %s p ON p.user_id = h.candidate_id
-		 WHERE h.viewer_id = $1 AND h.session_version = $2 AND h.position = $3`,
+		 WHERE h.viewer_id = $1 AND h.session_version = $2 AND h.position = $3
+		   AND p.is_banned = FALSE`,
 		r.historyTable,
 		profileTable(r.schema),
 	)
@@ -220,10 +221,11 @@ func (r *MatchingRepository) FindCandidate(ctx context.Context, params matching.
 		`(CASE WHEN p.emoji_code = $8 THEN 1 ELSE 0 END)`
 
 	query := fmt.Sprintf(
-		`SELECT user_id, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, created_at, updated_at
+		`SELECT user_id, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, is_banned, created_at, updated_at
 		 FROM %s p
 		 WHERE p.user_id <> $1
 		   AND p.is_hidden = FALSE
+		   AND p.is_banned = FALSE
 		   AND ($2 = '' OR p.gender = $2)
 		   AND NOT EXISTS (
 				SELECT 1 FROM %s i
@@ -329,10 +331,11 @@ func (r *MatchingRepository) ListPendingLikes(ctx context.Context, userID int64)
 	}
 
 	query := fmt.Sprintf(
-		`SELECT p.user_id, p.name, p.gender, p.birth_date, p.age, p.country, p.city, p.description, p.emoji_code, p.photos, p.is_hidden, p.created_at, p.updated_at
+		`SELECT p.user_id, p.name, p.gender, p.birth_date, p.age, p.country, p.city, p.description, p.emoji_code, p.photos, p.is_hidden, p.is_banned, p.created_at, p.updated_at
 		 FROM %s i
 		 JOIN %s p ON p.user_id = i.viewer_id
 		 WHERE i.target_id = $1 AND i.action = $2 AND i.notified_at IS NULL
+		   AND p.is_banned = FALSE
 		 ORDER BY i.created_at ASC`,
 		r.interactionsTable,
 		profileTable(r.schema),
@@ -416,6 +419,7 @@ func (r *MatchingRepository) scanProfile(scan func(dest ...any) error) (domain.P
 		&stored.EmojiCode,
 		photosScanner,
 		&stored.IsHidden,
+		&stored.IsBanned,
 		&stored.CreatedAt,
 		&stored.UpdatedAt,
 	); err != nil {

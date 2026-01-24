@@ -42,6 +42,7 @@ const (
 
 type Profile struct {
 	UserID      int64            `json:"user_id"`
+	Username    string           `json:"username"`
 	Name        string           `json:"name"`
 	Gender      Gender           `json:"gender"`
 	BirthDate   time.Time        `json:"birth_date"`
@@ -52,6 +53,7 @@ type Profile struct {
 	EmojiCode   ProfileEmojiCode `json:"emoji_code"`
 	Photos      []string         `json:"photos"`
 	IsHidden    bool             `json:"is_hidden"`
+	IsBanned    bool             `json:"is_banned"`
 	CreatedAt   time.Time        `json:"created_at"`
 	UpdatedAt   time.Time        `json:"updated_at"`
 }

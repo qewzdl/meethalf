@@ -14,6 +14,7 @@ type BotConfig struct {
 	PollingTimeout time.Duration
 	APIEndpoint    string
 	ProxyURL       string
+	AdminUsernames []string
 }
 
 type WorkerConfig struct {
@@ -71,6 +72,7 @@ func Load() Config {
 			PollingTimeout: getDuration("BOT_POLLING_TIMEOUT", "10s"),
 			APIEndpoint:    getEnv("BOT_API_ENDPOINT", ""),
 			ProxyURL:       getEnv("BOT_PROXY_URL", ""),
+			AdminUsernames: getEnvCSV("BOT_ADMIN_USERNAME", ""),
 		},
 		Workers: WorkerConfig{
 			PoolSize:  getEnvInt("BOT_WORKERS", 4),

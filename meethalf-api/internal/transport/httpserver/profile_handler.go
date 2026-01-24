@@ -25,6 +25,7 @@ func NewProfileHandler(uc profile.Usecase) *ProfileHandler {
 
 type profileRequest struct {
 	UserID      int64    `json:"user_id"`
+	Username    string   `json:"username"`
 	Name        string   `json:"name"`
 	Gender      string   `json:"gender"`
 	BirthDate   string   `json:"birth_date"`
@@ -38,6 +39,7 @@ type profileRequest struct {
 
 type profileResponse struct {
 	UserID      int64     `json:"user_id"`
+	Username    string    `json:"username"`
 	Name        string    `json:"name"`
 	Gender      string    `json:"gender"`
 	BirthDate   string    `json:"birth_date"`
@@ -76,6 +78,7 @@ func (h *ProfileHandler) Upsert(c *gin.Context) {
 
 	stored, err := h.uc.Upsert(c.Request.Context(), domain.Profile{
 		UserID:      req.UserID,
+		Username:    req.Username,
 		Name:        req.Name,
 		Gender:      domain.Gender(req.Gender),
 		BirthDate:   birthDate,
@@ -94,6 +97,7 @@ func (h *ProfileHandler) Upsert(c *gin.Context) {
 
 	c.JSON(http.StatusOK, profileResponse{
 		UserID:      stored.UserID,
+		Username:    stored.Username,
 		Name:        stored.Name,
 		Gender:      string(stored.Gender),
 		BirthDate:   formatBirthDate(stored.BirthDate),
@@ -130,6 +134,7 @@ func (h *ProfileHandler) Get(c *gin.Context) {
 
 	c.JSON(http.StatusOK, profileResponse{
 		UserID:      stored.UserID,
+		Username:    stored.Username,
 		Name:        stored.Name,
 		Gender:      string(stored.Gender),
 		BirthDate:   formatBirthDate(stored.BirthDate),
@@ -211,6 +216,8 @@ func profileHTTPError(err error) (int, string) {
 		return http.StatusBadRequest, err.Error()
 	case errors.Is(err, profile.ErrProfileNotFound):
 		return http.StatusNotFound, err.Error()
+	case errors.Is(err, profile.ErrUserBanned):
+		return http.StatusForbidden, err.Error()
 	default:
 		return http.StatusInternalServerError, "internal error"
 	}

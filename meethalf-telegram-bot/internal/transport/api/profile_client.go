@@ -50,6 +50,7 @@ func (c *ProfileClient) CreateProfile(ctx context.Context, profile domain.Profil
 
 	payload, err := json.Marshal(profileRequest{
 		UserID:      profile.UserID,
+		Username:    profile.Username,
 		Name:        profile.Name,
 		Gender:      profile.Gender,
 		BirthDate:   formatBirthDate(profile.BirthDate),
@@ -85,11 +86,7 @@ func (c *ProfileClient) CreateProfile(ctx context.Context, profile domain.Profil
 		return nil
 	}
 
-	message := c.extractError(resp)
-	if message == "" {
-		message = resp.Status
-	}
-	return fmt.Errorf("profile api error: %s", message)
+	return c.apiError(resp)
 }
 
 func (c *ProfileClient) GetProfile(ctx context.Context, userID int64) (domain.Profile, bool, error) {
@@ -126,11 +123,7 @@ func (c *ProfileClient) GetProfile(ctx context.Context, userID int64) (domain.Pr
 	}
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		message := c.extractError(resp)
-		if message == "" {
-			message = resp.Status
-		}
-		return domain.Profile{}, false, fmt.Errorf("profile api error: %s", message)
+		return domain.Profile{}, false, c.apiError(resp)
 	}
 
 	var payload profileResponse
@@ -145,6 +138,7 @@ func (c *ProfileClient) GetProfile(ctx context.Context, userID int64) (domain.Pr
 
 	return domain.Profile{
 		UserID:      payload.UserID,
+		Username:    payload.Username,
 		Name:        payload.Name,
 		Gender:      payload.Gender,
 		BirthDate:   birthDate,
@@ -197,11 +191,7 @@ func (c *ProfileClient) DeleteProfile(ctx context.Context, userID int64) (bool, 
 		return true, nil
 	}
 
-	message := c.extractError(resp)
-	if message == "" {
-		message = resp.Status
-	}
-	return false, fmt.Errorf("profile api error: %s", message)
+	return false, c.apiError(resp)
 }
 
 func (c *ProfileClient) SetProfileVisibility(ctx context.Context, userID int64, isHidden bool) (bool, error) {
@@ -247,11 +237,15 @@ func (c *ProfileClient) SetProfileVisibility(ctx context.Context, userID int64, 
 		return true, nil
 	}
 
+	return false, c.apiError(resp)
+}
+
+func (c *ProfileClient) apiError(resp *http.Response) error {
 	message := c.extractError(resp)
 	if message == "" {
 		message = resp.Status
 	}
-	return false, fmt.Errorf("profile api error: %s", message)
+	return &apiError{status: resp.StatusCode, message: message}
 }
 
 func (c *ProfileClient) extractError(resp *http.Response) string {
@@ -270,6 +264,7 @@ func (c *ProfileClient) extractError(resp *http.Response) string {
 
 type profileRequest struct {
 	UserID      int64                   `json:"user_id"`
+	Username    string                  `json:"username"`
 	Name        string                  `json:"name"`
 	Gender      domain.Gender           `json:"gender"`
 	BirthDate   string                  `json:"birth_date"`
@@ -283,6 +278,7 @@ type profileRequest struct {
 
 type profileResponse struct {
 	UserID      int64                   `json:"user_id"`
+	Username    string                  `json:"username"`
 	Name        string                  `json:"name"`
 	Gender      domain.Gender           `json:"gender"`
 	BirthDate   string                  `json:"birth_date"`

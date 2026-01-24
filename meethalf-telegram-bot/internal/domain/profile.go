@@ -84,6 +84,7 @@ type ProfileDraft struct {
 
 type Profile struct {
 	UserID      int64
+	Username    string
 	Name        string
 	Gender      Gender
 	BirthDate   time.Time

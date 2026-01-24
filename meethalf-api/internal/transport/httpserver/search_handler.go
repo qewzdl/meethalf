@@ -207,6 +207,8 @@ func searchHTTPError(err error) (int, string) {
 		return http.StatusNotFound, err.Error()
 	case errors.Is(err, matching.ErrSessionNotFound):
 		return http.StatusConflict, err.Error()
+	case errors.Is(err, matching.ErrUserBanned):
+		return http.StatusForbidden, err.Error()
 	default:
 		return http.StatusInternalServerError, "internal error"
 	}

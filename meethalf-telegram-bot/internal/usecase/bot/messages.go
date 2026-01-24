@@ -10,6 +10,36 @@ import (
 
 const (
 	defaultHelpText                   = "Use the buttons below to start searching, view or create your profile, or open settings."
+	adminBadgeText                    = "Admin access enabled."
+	adminMenuText                     = "Admin panel. Choose an action."
+	adminAccessDeniedText             = "Admin access required."
+	adminUsersEmptyText               = "No users found."
+	adminUsersLoadFailedText          = "Unable to load users. Please try again later."
+	adminUsersPageTemplate            = "Users: %d total. Showing %d-%d."
+	adminUsersEmptyPageTemplate       = "Users: %d total. No users found on this page."
+	adminBannedUsersEmptyText         = "No banned users found."
+	adminBannedUsersLoadFailedText    = "Unable to load banned users. Please try again later."
+	adminBannedUsersPageTemplate      = "Banned users: %d total. Showing %d-%d."
+	adminBannedUsersEmptyPageTemplate = "Banned users: %d total. No users found on this page."
+	adminModeratorsEmptyText          = "No moderators found."
+	adminModeratorsLoadFailedText     = "Unable to load moderators. Please try again later."
+	adminModeratorsPageTemplate       = "Moderators: %d total. Showing %d-%d."
+	adminModeratorsEmptyPageTemplate  = "Moderators: %d total. No users found on this page."
+	adminBanUsageText                 = "Send the user ID or @username to ban."
+	adminBanFailedText                = "Unable to ban user. Please try again later."
+	adminUserNotFoundText             = "User not found."
+	adminBanSuccessTemplate           = "User %s has been banned."
+	adminUnbanUsageText               = "Send the user ID or @username to unban."
+	adminUnbanFailedText              = "Unable to unban user. Please try again later."
+	adminUnbanSuccessTemplate         = "User %s has been unbanned."
+	adminActionFailedText             = "Unable to complete the admin action. Please try again later."
+	adminModeratorUsageText           = "Send the user ID or @username to assign the moderator role."
+	adminModeratorFailedText          = "Unable to assign the moderator role. Please try again later."
+	adminModeratorSuccessTemplate     = "User %s is now a moderator."
+	adminUnmoderatorUsageText         = "Send the user ID or @username to remove the moderator role."
+	adminUnmoderatorFailedText        = "Unable to remove the moderator role. Please try again later."
+	adminUnmoderatorSuccessTemplate   = "User %s is no longer a moderator."
+	userBannedText                    = "Your account is banned. Contact support."
 	profileCreatedText                = "Profile created."
 	profileUpdatedText                = "Profile updated."
 	loadingStartText                  = "Checking your profile..."
@@ -27,6 +57,13 @@ const (
 	loadingSearchStartText            = "Finding profiles..."
 	loadingSearchNextText             = "Searching for the next profile..."
 	loadingSearchPrevText             = "Opening the previous profile..."
+	loadingAdminUsersText             = "Loading users..."
+	loadingAdminBanText               = "Banning user..."
+	loadingAdminUnbanText             = "Unbanning user..."
+	loadingAdminModeratorText         = "Assigning moderator role..."
+	loadingAdminUnmoderatorText       = "Removing moderator role..."
+	loadingAdminBannedUsersText       = "Loading banned users..."
+	loadingAdminModeratorsText        = "Loading moderators..."
 	creatingProfileText               = "Creating your profile..."
 	updatingProfileText               = "Updating your profile..."
 	deletingProfileText               = "Deleting your profile..."
@@ -106,6 +143,98 @@ func (s *service) photosPrompt() string {
 
 func (s *service) profileEditMenuText() string {
 	return "Choose what you want to update in your profile."
+}
+
+func (s *service) adminMenuText() string {
+	return adminMenuText
+}
+
+func (s *service) adminAccessDeniedText() string {
+	return adminAccessDeniedText
+}
+
+func (s *service) adminUsersEmptyText() string {
+	return adminUsersEmptyText
+}
+
+func (s *service) adminUsersLoadFailedText() string {
+	return adminUsersLoadFailedText
+}
+
+func (s *service) adminBannedUsersEmptyText() string {
+	return adminBannedUsersEmptyText
+}
+
+func (s *service) adminBannedUsersLoadFailedText() string {
+	return adminBannedUsersLoadFailedText
+}
+
+func (s *service) adminModeratorsEmptyText() string {
+	return adminModeratorsEmptyText
+}
+
+func (s *service) adminModeratorsLoadFailedText() string {
+	return adminModeratorsLoadFailedText
+}
+
+func (s *service) adminBanUsageText() string {
+	return adminBanUsageText
+}
+
+func (s *service) adminBanFailedText() string {
+	return adminBanFailedText
+}
+
+func (s *service) adminUserNotFoundText() string {
+	return adminUserNotFoundText
+}
+
+func (s *service) adminBanSuccessText(userRef string) string {
+	return fmt.Sprintf(adminBanSuccessTemplate, userRef)
+}
+
+func (s *service) adminUnbanUsageText() string {
+	return adminUnbanUsageText
+}
+
+func (s *service) adminUnbanFailedText() string {
+	return adminUnbanFailedText
+}
+
+func (s *service) adminUnbanSuccessText(userRef string) string {
+	return fmt.Sprintf(adminUnbanSuccessTemplate, userRef)
+}
+
+func (s *service) adminActionFailedText() string {
+	return adminActionFailedText
+}
+
+func (s *service) adminModeratorUsageText() string {
+	return adminModeratorUsageText
+}
+
+func (s *service) adminModeratorFailedText() string {
+	return adminModeratorFailedText
+}
+
+func (s *service) adminModeratorSuccessText(userRef string) string {
+	return fmt.Sprintf(adminModeratorSuccessTemplate, userRef)
+}
+
+func (s *service) adminUnmoderatorUsageText() string {
+	return adminUnmoderatorUsageText
+}
+
+func (s *service) adminUnmoderatorFailedText() string {
+	return adminUnmoderatorFailedText
+}
+
+func (s *service) adminUnmoderatorSuccessText(userRef string) string {
+	return fmt.Sprintf(adminUnmoderatorSuccessTemplate, userRef)
+}
+
+func (s *service) userBannedText() string {
+	return userBannedText
 }
 
 func (s *service) profileSettingsText() string {

@@ -23,6 +23,9 @@ func (s *service) updateProfileVisibility(ctx context.Context, msg domain.Incomi
 
 	updated, err := s.profiles.SetProfileVisibility(ctx, msg.User.ID, isHidden)
 	if err != nil {
+		if isBannedError(err) {
+			return s.userBannedText(), err
+		}
 		return s.profileVisibilityUpdateFailedText(), err
 	}
 	if !updated {

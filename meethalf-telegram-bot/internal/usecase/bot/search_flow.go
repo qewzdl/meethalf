@@ -29,6 +29,9 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage) 
 	case domain.CommandSearchStart:
 		hasProfile, err := s.viewerHasProfile(ctx, msg.User.ID)
 		if err != nil {
+			if isBannedError(err) {
+				return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.userBannedText()}}, err
+			}
 			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText()}}, err
 		}
 		if !hasProfile {
@@ -155,6 +158,9 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage) 
 		}
 		hasProfile, err := s.viewerHasProfile(ctx, msg.User.ID)
 		if err != nil {
+			if isBannedError(err) {
+				return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.userBannedText()}}, err
+			}
 			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText()}}, err
 		}
 		if !hasProfile {
@@ -202,6 +208,8 @@ func (s *service) searchErrorResponse(chatID int64, err error) []domain.Outgoing
 	var status statusError
 	if errors.As(err, &status) {
 		switch status.StatusCode() {
+		case http.StatusForbidden:
+			return []domain.OutgoingMessage{{ChatID: chatID, Text: s.userBannedText()}}
 		case http.StatusNotFound:
 			return []domain.OutgoingMessage{
 				{

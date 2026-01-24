@@ -18,7 +18,7 @@ func (s *service) cancelMessage(ctx context.Context, msg domain.IncomingMessage)
 		text = text + "\n" + s.helpText
 	}
 
-	return text, s.startInlineKeyboardByStatus(status), errors.Join(cancelErr, statusErr)
+	return text, s.startInlineKeyboardByStatus(status, msg.User), errors.Join(cancelErr, statusErr)
 }
 
 func (s *service) cancelAction(ctx context.Context, msg domain.IncomingMessage) (string, error) {
@@ -50,6 +50,12 @@ func (s *service) cancelAction(ctx context.Context, msg domain.IncomingMessage) 
 
 	if s != nil && s.deleteConfirmations != nil {
 		if err := s.deleteConfirmations.Delete(ctx, msg.User.ID); err != nil {
+			cancelErr = errors.Join(cancelErr, err)
+		}
+	}
+
+	if s != nil && s.adminActions != nil {
+		if err := s.adminActions.Delete(ctx, msg.User.ID); err != nil {
 			cancelErr = errors.Join(cancelErr, err)
 		}
 	}

@@ -137,6 +137,9 @@ func (s *service) startProfileEdit(ctx context.Context, msg domain.IncomingMessa
 
 	profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 	if err != nil {
+		if isBannedError(err) {
+			return s.userBannedText(), err
+		}
 		return "Unable to load profile. Please try again later.", err
 	}
 	if !found {
@@ -204,6 +207,9 @@ func (s *service) deleteProfile(ctx context.Context, msg domain.IncomingMessage)
 
 	deleted, err := s.profiles.DeleteProfile(ctx, msg.User.ID)
 	if err != nil {
+		if isBannedError(err) {
+			return s.userBannedText(), err
+		}
 		return "Unable to delete profile. Please try again later.", err
 	}
 	if !deleted {
@@ -556,6 +562,7 @@ func (s *service) saveProfile(ctx context.Context, draft domain.ProfileDraft) (s
 
 	if err := s.profiles.CreateProfile(ctx, domain.Profile{
 		UserID:      draft.UserID,
+		Username:    s.profileUsername(ctx, draft.UserID),
 		Name:        draft.Name,
 		Gender:      draft.Gender,
 		BirthDate:   draft.BirthDate,
@@ -566,6 +573,9 @@ func (s *service) saveProfile(ctx context.Context, draft domain.ProfileDraft) (s
 		Photos:      draft.Photos,
 		IsHidden:    draft.IsHidden,
 	}); err != nil {
+		if isBannedError(err) {
+			return s.userBannedText(), err
+		}
 		return "Failed to save profile. Please try again later.", err
 	}
 
