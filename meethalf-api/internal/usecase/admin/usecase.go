@@ -371,9 +371,7 @@ func normalizeUsername(value string) (string, error) {
 	if normalized == "" {
 		return "", ErrInvalidUsername
 	}
-	if strings.HasPrefix(normalized, "@") {
-		normalized = strings.TrimPrefix(normalized, "@")
-	}
+	normalized = strings.TrimPrefix(normalized, "@")
 	if normalized == "" {
 		return "", ErrInvalidUsername
 	}
