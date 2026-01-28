@@ -9,46 +9,46 @@ import (
 	"meethalf-telegram-bot/internal/domain"
 )
 
-func (s *service) adminClearReportsMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
+func (s *service) adminClearReportsMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
 	role, roleErr := s.resolveAdminRole(ctx, msg.User)
 	if roleErr != nil && isBannedError(roleErr) {
-		return s.userBannedText(), nil, roleErr
+		return s.userBannedText(l), nil, roleErr
 	}
 	if !role.canModerateUsers() {
-		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg, l)
 		return text, keyboard, errors.Join(roleErr, err)
 	}
 
 	if s == nil || s.admin == nil {
-		return s.adminClearReportsFailedText(), s.adminMenuInlineKeyboard(role), errors.New("admin service is not configured")
+		return s.adminClearReportsFailedText(l), s.adminMenuInlineKeyboard(l, role), errors.New("admin service is not configured")
 	}
 
 	if strings.TrimSpace(msg.Arguments) == "" {
-		return s.startAdminClearReports(ctx, msg, role)
+		return s.startAdminClearReports(ctx, msg, role, l)
 	}
 
 	userID, username, ok := s.parseAdminUserIdentifier(msg.Arguments)
 	if !ok {
-		return s.adminClearReportsUsageText(), s.adminClearReportsInlineKeyboard(), nil
+		return s.adminClearReportsUsageText(l), s.adminClearReportsInlineKeyboard(l), nil
 	}
 
-	restrictionText, restrictionErr := s.ensureModeratorCanModerateUser(ctx, role, userID, username, s.adminClearReportsFailedText(), s.adminClearReportsUsageText())
+	restrictionText, restrictionErr := s.ensureModeratorCanModerateUser(ctx, role, userID, username, s.adminClearReportsFailedText(l), s.adminClearReportsUsageText(l), l)
 	if restrictionText != "" {
-		return restrictionText, s.adminMenuInlineKeyboard(role), restrictionErr
+		return restrictionText, s.adminMenuInlineKeyboard(l, role), restrictionErr
 	}
 
 	shouldClear := s.hasPendingAdminClearReports(ctx, msg.User.ID)
-	text, err := s.performAdminClearReports(ctx, userID, username)
+	text, err := s.performAdminClearReports(ctx, userID, username, l)
 	if err == nil && shouldClear {
 		_ = s.clearAdminAction(ctx, msg.User.ID)
 	}
 
-	return text, s.adminMenuInlineKeyboard(role), err
+	return text, s.adminMenuInlineKeyboard(l, role), err
 }
 
-func (s *service) startAdminClearReports(ctx context.Context, msg domain.IncomingMessage, role adminRole) (string, *domain.InlineKeyboard, error) {
+func (s *service) startAdminClearReports(ctx context.Context, msg domain.IncomingMessage, role adminRole, l localizer) (string, *domain.InlineKeyboard, error) {
 	if s == nil || s.adminActions == nil {
-		return s.adminClearReportsUsageText(), s.adminMenuInlineKeyboard(role), errors.New("admin action repository is not configured")
+		return s.adminClearReportsUsageText(l), s.adminMenuInlineKeyboard(l, role), errors.New("admin action repository is not configured")
 	}
 
 	action := domain.AdminActionState{
@@ -58,15 +58,15 @@ func (s *service) startAdminClearReports(ctx context.Context, msg domain.Incomin
 		RequestedAt: s.now(msg.ReceivedAt),
 	}
 	if err := s.adminActions.Save(ctx, action); err != nil {
-		return s.adminClearReportsFailedText(), s.adminMenuInlineKeyboard(role), err
+		return s.adminClearReportsFailedText(l), s.adminMenuInlineKeyboard(l, role), err
 	}
 
-	return s.adminClearReportsUsageText(), s.adminClearReportsInlineKeyboard(), nil
+	return s.adminClearReportsUsageText(l), s.adminClearReportsInlineKeyboard(l), nil
 }
 
-func (s *service) performAdminClearReports(ctx context.Context, userID int64, username string) (string, error) {
+func (s *service) performAdminClearReports(ctx context.Context, userID int64, username string, l localizer) (string, error) {
 	if s == nil || s.admin == nil {
-		return s.adminClearReportsFailedText(), errors.New("admin service is not configured")
+		return s.adminClearReportsFailedText(l), errors.New("admin service is not configured")
 	}
 
 	var err error
@@ -76,20 +76,20 @@ func (s *service) performAdminClearReports(ctx context.Context, userID int64, us
 		err = s.admin.ClearUserReports(ctx, userID)
 	}
 	if err != nil {
-		text := s.adminClearReportsFailedText()
+		text := s.adminClearReportsFailedText(l)
 		var status statusError
 		if errors.As(err, &status) {
 			switch status.StatusCode() {
 			case http.StatusBadRequest:
-				text = s.adminClearReportsUsageText()
+				text = s.adminClearReportsUsageText(l)
 			case http.StatusNotFound:
-				text = s.adminUserNotFoundText()
+				text = s.adminUserNotFoundText(l)
 			}
 		}
 		return text, err
 	}
 
-	return s.adminClearReportsSuccessText(s.adminUserIdentifierLabel(userID, username)), nil
+	return s.adminClearReportsSuccessText(l, s.adminUserIdentifierLabel(userID, username)), nil
 }
 
 func (s *service) hasPendingAdminClearReports(ctx context.Context, userID int64) bool {

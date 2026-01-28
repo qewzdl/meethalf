@@ -6,8 +6,8 @@ import (
 	"meethalf-telegram-bot/internal/domain"
 )
 
-func (s *service) profileDetailsFollowUp(ctx context.Context, msg domain.IncomingMessage, text string, replyErr error) ([]domain.OutgoingMessage, error) {
-	if replyErr != nil || !s.needsProfileDetailsFollowUp(text) {
+func (s *service) profileDetailsFollowUp(ctx context.Context, msg domain.IncomingMessage, l localizer, text string, replyErr error) ([]domain.OutgoingMessage, error) {
+	if replyErr != nil || !s.needsProfileDetailsFollowUp(l, text) {
 		return nil, nil
 	}
 
@@ -27,12 +27,12 @@ func (s *service) profileDetailsFollowUp(ctx context.Context, msg domain.Incomin
 		return nil, nil
 	}
 
-	return s.profileAlbumMessages(msg.ChatID, profile, s.profileViewInlineKeyboard()), nil
+	return s.profileAlbumMessages(msg.ChatID, profile, s.profileViewInlineKeyboard(l), l), nil
 }
 
-func (s *service) needsProfileDetailsFollowUp(text string) bool {
+func (s *service) needsProfileDetailsFollowUp(l localizer, text string) bool {
 	switch text {
-	case profileCreatedText, profileUpdatedText:
+	case s.profileCreated(l), s.profileUpdated(l):
 		return true
 	default:
 		return false

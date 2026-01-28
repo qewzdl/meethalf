@@ -70,7 +70,7 @@ var profileEmojiCodeByEmoji = map[string]domain.ProfileEmojiCode{
 	"🛡":  domain.ProfileEmojiSkeptic,
 }
 
-func (s *service) emojiInlineKeyboard() *domain.InlineKeyboard {
+func (s *service) emojiInlineKeyboard(l localizer) *domain.InlineKeyboard {
 	if len(profileEmojiOptions) == 0 {
 		return nil
 	}
@@ -87,7 +87,7 @@ func (s *service) emojiInlineKeyboard() *domain.InlineKeyboard {
 		})
 	}
 
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: rows})
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: rows})
 }
 
 func (s *service) normalizeEmojiCode(value string) (domain.ProfileEmojiCode, bool) {
@@ -109,10 +109,10 @@ func (s *service) normalizeEmojiCode(value string) (domain.ProfileEmojiCode, boo
 	return "", false
 }
 
-func (s *service) emojiLabel(code domain.ProfileEmojiCode) string {
+func (s *service) emojiLabel(l localizer, code domain.ProfileEmojiCode) string {
 	if emoji, ok := profileEmojiByCode[code]; ok {
 		return emoji
 	}
 
-	return "Not set"
+	return l.label(labelNotSet)
 }

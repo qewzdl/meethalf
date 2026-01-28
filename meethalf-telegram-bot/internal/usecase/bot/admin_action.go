@@ -6,7 +6,7 @@ import (
 	"meethalf-telegram-bot/internal/domain"
 )
 
-func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessage) (domain.IncomingMessage, *domain.OutgoingMessage, bool, error) {
+func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessage, l localizer) (domain.IncomingMessage, *domain.OutgoingMessage, bool, error) {
 	if s == nil || s.adminActions == nil || msg.User.ID == 0 {
 		return msg, nil, false, nil
 	}
@@ -20,8 +20,8 @@ func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessa
 	if err != nil {
 		response := domain.OutgoingMessage{
 			ChatID:         msg.ChatID,
-			Text:           s.adminActionFailedText(),
-			InlineKeyboard: s.adminMenuInlineKeyboard(role),
+			Text:           s.adminActionFailedText(l),
+			InlineKeyboard: s.adminMenuInlineKeyboard(l, role),
 		}
 		return msg, &response, true, err
 	}
@@ -42,8 +42,8 @@ func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessa
 		if !ok {
 			response := domain.OutgoingMessage{
 				ChatID:         msg.ChatID,
-				Text:           s.adminBanUsageText(),
-				InlineKeyboard: s.adminBanInlineKeyboard(),
+				Text:           s.adminBanUsageText(l),
+				InlineKeyboard: s.adminBanInlineKeyboard(l),
 			}
 			return msg, &response, true, nil
 		}
@@ -55,8 +55,8 @@ func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessa
 		if !ok {
 			response := domain.OutgoingMessage{
 				ChatID:         msg.ChatID,
-				Text:           s.adminUnbanUsageText(),
-				InlineKeyboard: s.adminUnbanInlineKeyboard(),
+				Text:           s.adminUnbanUsageText(l),
+				InlineKeyboard: s.adminUnbanInlineKeyboard(l),
 			}
 			return msg, &response, true, nil
 		}
@@ -68,8 +68,8 @@ func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessa
 		if !ok {
 			response := domain.OutgoingMessage{
 				ChatID:         msg.ChatID,
-				Text:           s.adminModeratorUsageText(),
-				InlineKeyboard: s.adminModeratorInlineKeyboard(),
+				Text:           s.adminModeratorUsageText(l),
+				InlineKeyboard: s.adminModeratorInlineKeyboard(l),
 			}
 			return msg, &response, true, nil
 		}
@@ -81,8 +81,8 @@ func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessa
 		if !ok {
 			response := domain.OutgoingMessage{
 				ChatID:         msg.ChatID,
-				Text:           s.adminUnmoderatorUsageText(),
-				InlineKeyboard: s.adminUnmoderatorInlineKeyboard(),
+				Text:           s.adminUnmoderatorUsageText(l),
+				InlineKeyboard: s.adminUnmoderatorInlineKeyboard(l),
 			}
 			return msg, &response, true, nil
 		}
@@ -94,8 +94,8 @@ func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessa
 		if !ok {
 			response := domain.OutgoingMessage{
 				ChatID:         msg.ChatID,
-				Text:           s.adminResetChoicesUsageText(),
-				InlineKeyboard: s.adminResetChoicesInlineKeyboard(),
+				Text:           s.adminResetChoicesUsageText(l),
+				InlineKeyboard: s.adminResetChoicesInlineKeyboard(l),
 			}
 			return msg, &response, true, nil
 		}
@@ -107,8 +107,8 @@ func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessa
 		if !ok {
 			response := domain.OutgoingMessage{
 				ChatID:         msg.ChatID,
-				Text:           s.adminClearReportsUsageText(),
-				InlineKeyboard: s.adminClearReportsInlineKeyboard(),
+				Text:           s.adminClearReportsUsageText(l),
+				InlineKeyboard: s.adminClearReportsInlineKeyboard(l),
 			}
 			return msg, &response, true, nil
 		}

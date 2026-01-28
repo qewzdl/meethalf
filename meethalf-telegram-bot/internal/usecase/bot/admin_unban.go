@@ -9,46 +9,46 @@ import (
 	"meethalf-telegram-bot/internal/domain"
 )
 
-func (s *service) adminUnbanMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
+func (s *service) adminUnbanMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
 	role, roleErr := s.resolveAdminRole(ctx, msg.User)
 	if roleErr != nil && isBannedError(roleErr) {
-		return s.userBannedText(), nil, roleErr
+		return s.userBannedText(l), nil, roleErr
 	}
 	if !role.canModerateUsers() {
-		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg, l)
 		return text, keyboard, errors.Join(roleErr, err)
 	}
 
 	if s == nil || s.admin == nil {
-		return s.adminUnbanFailedText(), s.adminMenuInlineKeyboard(role), errors.New("admin service is not configured")
+		return s.adminUnbanFailedText(l), s.adminMenuInlineKeyboard(l, role), errors.New("admin service is not configured")
 	}
 
 	if strings.TrimSpace(msg.Arguments) == "" {
-		return s.startAdminUnban(ctx, msg, role)
+		return s.startAdminUnban(ctx, msg, role, l)
 	}
 
 	userID, username, ok := s.parseAdminUserIdentifier(msg.Arguments)
 	if !ok {
-		return s.adminUnbanUsageText(), s.adminUnbanInlineKeyboard(), nil
+		return s.adminUnbanUsageText(l), s.adminUnbanInlineKeyboard(l), nil
 	}
 
-	restrictionText, restrictionErr := s.ensureModeratorCanModerateUser(ctx, role, userID, username, s.adminUnbanFailedText(), s.adminUnbanUsageText())
+	restrictionText, restrictionErr := s.ensureModeratorCanModerateUser(ctx, role, userID, username, s.adminUnbanFailedText(l), s.adminUnbanUsageText(l), l)
 	if restrictionText != "" {
-		return restrictionText, s.adminMenuInlineKeyboard(role), restrictionErr
+		return restrictionText, s.adminMenuInlineKeyboard(l, role), restrictionErr
 	}
 
 	shouldClear := s.hasPendingAdminUnban(ctx, msg.User.ID)
-	text, err := s.performAdminUnban(ctx, userID, username)
+	text, err := s.performAdminUnban(ctx, userID, username, l)
 	if err == nil && shouldClear {
 		_ = s.clearAdminAction(ctx, msg.User.ID)
 	}
 
-	return text, s.adminMenuInlineKeyboard(role), err
+	return text, s.adminMenuInlineKeyboard(l, role), err
 }
 
-func (s *service) startAdminUnban(ctx context.Context, msg domain.IncomingMessage, role adminRole) (string, *domain.InlineKeyboard, error) {
+func (s *service) startAdminUnban(ctx context.Context, msg domain.IncomingMessage, role adminRole, l localizer) (string, *domain.InlineKeyboard, error) {
 	if s == nil || s.adminActions == nil {
-		return s.adminUnbanUsageText(), s.adminMenuInlineKeyboard(role), errors.New("admin action repository is not configured")
+		return s.adminUnbanUsageText(l), s.adminMenuInlineKeyboard(l, role), errors.New("admin action repository is not configured")
 	}
 
 	action := domain.AdminActionState{
@@ -58,15 +58,15 @@ func (s *service) startAdminUnban(ctx context.Context, msg domain.IncomingMessag
 		RequestedAt: s.now(msg.ReceivedAt),
 	}
 	if err := s.adminActions.Save(ctx, action); err != nil {
-		return s.adminUnbanFailedText(), s.adminMenuInlineKeyboard(role), err
+		return s.adminUnbanFailedText(l), s.adminMenuInlineKeyboard(l, role), err
 	}
 
-	return s.adminUnbanUsageText(), s.adminUnbanInlineKeyboard(), nil
+	return s.adminUnbanUsageText(l), s.adminUnbanInlineKeyboard(l), nil
 }
 
-func (s *service) performAdminUnban(ctx context.Context, userID int64, username string) (string, error) {
+func (s *service) performAdminUnban(ctx context.Context, userID int64, username string, l localizer) (string, error) {
 	if s == nil || s.admin == nil {
-		return s.adminUnbanFailedText(), errors.New("admin service is not configured")
+		return s.adminUnbanFailedText(l), errors.New("admin service is not configured")
 	}
 
 	var err error
@@ -76,20 +76,20 @@ func (s *service) performAdminUnban(ctx context.Context, userID int64, username 
 		err = s.admin.UnbanUser(ctx, userID)
 	}
 	if err != nil {
-		text := s.adminUnbanFailedText()
+		text := s.adminUnbanFailedText(l)
 		var status statusError
 		if errors.As(err, &status) {
 			switch status.StatusCode() {
 			case http.StatusBadRequest:
-				text = s.adminUnbanUsageText()
+				text = s.adminUnbanUsageText(l)
 			case http.StatusNotFound:
-				text = s.adminUserNotFoundText()
+				text = s.adminUserNotFoundText(l)
 			}
 		}
 		return text, err
 	}
 
-	return s.adminUnbanSuccessText(s.adminUserIdentifierLabel(userID, username)), nil
+	return s.adminUnbanSuccessText(l, s.adminUserIdentifierLabel(userID, username)), nil
 }
 
 func (s *service) hasPendingAdminUnban(ctx context.Context, userID int64) bool {

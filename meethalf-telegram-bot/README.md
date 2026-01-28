@@ -103,10 +103,16 @@ prompt or result. This keeps the chat tidy and makes each step feel like a repla
 ## Profile settings
 
 Use the inline `Settings` button from `/start` to open profile settings. The menu includes a `Delete profile`
-button that opens a confirmation step, along with a `Hide from search` / `Show in search` toggle that controls whether
-your profile appears in search results. If the profile does not exist, Settings returns a not-found message and shows the
-`Create Profile` button instead of delete. Confirming removes the profile via the Meethalf API, and cancel keeps the
-profile unchanged.
+button that opens a confirmation step, a `Language` button to switch between English and Russian, and a
+`Hide from search` / `Show in search` toggle that controls whether your profile appears in search results. If the
+profile does not exist, Settings returns a not-found message and shows the `Create Profile` button instead of delete.
+Confirming removes the profile via the Meethalf API, and cancel keeps the profile unchanged.
+
+## Language
+
+The bot supports English and Russian. The initial language is picked from the Telegram `language_code` when available,
+otherwise English. You can change it anytime in Settings → Language; the selection is stored in the session store and
+applies to all future bot responses.
 
 ## Search flow
 

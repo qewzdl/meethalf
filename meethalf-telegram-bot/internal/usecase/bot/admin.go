@@ -118,14 +118,14 @@ func (s *service) resolveAdminRole(ctx context.Context, user domain.User) (admin
 	return adminRoleNone, nil
 }
 
-func (s *service) helpTextFor(user domain.User, role adminRole) string {
-	base := strings.TrimSpace(s.helpText)
+func (s *service) helpTextFor(l localizer, role adminRole) string {
+	base := strings.TrimSpace(l.message(msgDefaultHelp))
 	badge := ""
 	switch role {
 	case adminRoleAdmin:
-		badge = adminBadgeText
+		badge = l.message(msgAdminBadge)
 	case adminRoleModerator:
-		badge = moderatorBadgeText
+		badge = l.message(msgModeratorBadge)
 	}
 
 	if badge == "" {

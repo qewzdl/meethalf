@@ -3,68 +3,67 @@ package bot
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"meethalf-telegram-bot/internal/domain"
 )
 
-func (s *service) handleDraft(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft) (string, error) {
+func (s *service) handleDraft(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft, l localizer) (string, error) {
 	draft = s.ensureProfileSetupStart(ctx, msg, draft)
 	if s.draftMode(draft) == domain.ProfileDraftModeEdit {
 		switch draft.Step {
 		case domain.ProfileDraftStepName:
-			return s.applyName(ctx, msg, draft)
+			return s.applyName(ctx, msg, draft, l)
 		case domain.ProfileDraftStepGender:
-			return s.applyGender(ctx, msg, draft)
+			return s.applyGender(ctx, msg, draft, l)
 		case domain.ProfileDraftStepBirthDate:
-			return s.applyBirthDate(ctx, msg, draft)
+			return s.applyBirthDate(ctx, msg, draft, l)
 		case domain.ProfileDraftStepCountry:
-			return s.applyCountry(ctx, msg, draft)
+			return s.applyCountry(ctx, msg, draft, l)
 		case domain.ProfileDraftStepCity:
-			return s.applyCity(ctx, msg, draft)
+			return s.applyCity(ctx, msg, draft, l)
 		case domain.ProfileDraftStepDescription:
-			return s.applyDescription(ctx, msg, draft)
+			return s.applyDescription(ctx, msg, draft, l)
 		case domain.ProfileDraftStepEmoji:
-			return s.applyEmoji(ctx, msg, draft)
+			return s.applyEmoji(ctx, msg, draft, l)
 		case domain.ProfileDraftStepPhotos:
-			return s.applyPhotos(ctx, msg, draft)
+			return s.applyPhotos(ctx, msg, draft, l)
 		default:
-			return s.profileEditMenuText(), nil
+			return s.profileEditMenuText(l), nil
 		}
 	}
 
 	switch draft.Step {
 	case domain.ProfileDraftStepBotCheck:
-		return s.applyBotCheck(ctx, msg, draft)
+		return s.applyBotCheck(ctx, msg, draft, l)
 	case domain.ProfileDraftStepName:
-		return s.applyName(ctx, msg, draft)
+		return s.applyName(ctx, msg, draft, l)
 	case domain.ProfileDraftStepGender:
-		return s.applyGender(ctx, msg, draft)
+		return s.applyGender(ctx, msg, draft, l)
 	case domain.ProfileDraftStepBirthDate:
-		return s.applyBirthDate(ctx, msg, draft)
+		return s.applyBirthDate(ctx, msg, draft, l)
 	case domain.ProfileDraftStepCountry:
-		return s.applyCountry(ctx, msg, draft)
+		return s.applyCountry(ctx, msg, draft, l)
 	case domain.ProfileDraftStepCity:
-		return s.applyCity(ctx, msg, draft)
+		return s.applyCity(ctx, msg, draft, l)
 	case domain.ProfileDraftStepDescription:
-		return s.applyDescription(ctx, msg, draft)
+		return s.applyDescription(ctx, msg, draft, l)
 	case domain.ProfileDraftStepEmoji:
-		return s.applyEmoji(ctx, msg, draft)
+		return s.applyEmoji(ctx, msg, draft, l)
 	case domain.ProfileDraftStepPhotos:
-		return s.applyPhotos(ctx, msg, draft)
+		return s.applyPhotos(ctx, msg, draft, l)
 	default:
-		return s.startProfileSetup(ctx, msg)
+		return s.startProfileSetup(ctx, msg, l)
 	}
 }
 
-func (s *service) startProfileSetup(ctx context.Context, msg domain.IncomingMessage) (string, error) {
+func (s *service) startProfileSetup(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, error) {
 	if s == nil || s.drafts == nil {
-		return "Profile setup is not available right now.", errors.New("profile draft repository is not configured")
+		return l.message(msgProfileSetupUnavailable), errors.New("profile draft repository is not configured")
 	}
 
 	if msg.User.ID == 0 {
-		return "Profile setup is not available for this chat.", errors.New("user id is missing")
+		return l.message(msgProfileSetupUnavailableChat), errors.New("user id is missing")
 	}
 
 	draft := domain.ProfileDraft{
@@ -78,36 +77,36 @@ func (s *service) startProfileSetup(ctx context.Context, msg domain.IncomingMess
 	s.resetBotCheck(&draft, msg.ReceivedAt)
 
 	if err := s.drafts.Save(ctx, draft); err != nil {
-		return "Failed to start profile setup. Please try again later.", err
+		return l.message(msgProfileSetupStartFailed), err
 	}
 
-	return s.botCheckPrompt(draft.BotCheckQuestion), nil
+	return s.botCheckPrompt(l, draft.BotCheckQuestion), nil
 }
 
-func (s *service) profileSetupBack(ctx context.Context, msg domain.IncomingMessage) (string, error) {
+func (s *service) profileSetupBack(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, error) {
 	if s == nil || s.drafts == nil {
-		return "Profile setup is not available right now.", errors.New("profile draft repository is not configured")
+		return l.message(msgProfileSetupUnavailable), errors.New("profile draft repository is not configured")
 	}
 
 	if msg.User.ID == 0 {
-		return "Profile setup is not available for this chat.", errors.New("user id is missing")
+		return l.message(msgProfileSetupUnavailableChat), errors.New("user id is missing")
 	}
 
 	draft, found, err := s.drafts.Get(ctx, msg.User.ID)
 	if err != nil {
-		return "Unable to load profile setup. Please try again later.", err
+		return l.message(msgProfileSetupLoadFailed), err
 	}
 	if !found {
-		return "Profile setup is not active. Use /profile to start.", nil
+		return l.message(msgProfileSetupNotActive), nil
 	}
 
 	if s.draftMode(draft) != domain.ProfileDraftModeCreate {
-		return s.editPrompt(draft.Step), nil
+		return s.editPrompt(l, draft.Step), nil
 	}
 
 	previousStep := s.previousProfileSetupStep(draft.Step)
 	if previousStep == "" {
-		return s.profileSetupPrompt(draft.Step, draft, msg.User), nil
+		return s.profileSetupPrompt(l, draft.Step, draft, msg.User), nil
 	}
 
 	draft.Step = previousStep
@@ -116,53 +115,45 @@ func (s *service) profileSetupBack(ctx context.Context, msg domain.IncomingMessa
 	}
 	draft.UpdatedAt = s.now(msg.ReceivedAt)
 	if err := s.drafts.Save(ctx, draft); err != nil {
-		return "Failed to save profile setup. Please try again later.", err
+		return l.message(msgProfileSetupSaveFailed), err
 	}
 
-	return s.profileSetupPrompt(previousStep, draft, msg.User), nil
+	return s.profileSetupPrompt(l, previousStep, draft, msg.User), nil
 }
 
-func (s *service) startProfileEdit(ctx context.Context, msg domain.IncomingMessage, step domain.ProfileDraftStep) (string, error) {
+func (s *service) startProfileEdit(ctx context.Context, msg domain.IncomingMessage, step domain.ProfileDraftStep, l localizer) (string, error) {
 	if s == nil || s.drafts == nil {
-		return "Profile edit is not available right now.", errors.New("profile draft repository is not configured")
+		return l.message(msgProfileEditUnavailable), errors.New("profile draft repository is not configured")
 	}
 
 	if s.profiles == nil {
-		return "Profile service is not available right now.", errors.New("profile service is not configured")
+		return l.message(msgProfileServiceUnavailable), errors.New("profile service is not configured")
 	}
 
 	if msg.User.ID == 0 {
-		return "Profile edit is not available for this chat.", errors.New("user id is missing")
+		return l.message(msgProfileEditUnavailableChat), errors.New("user id is missing")
 	}
 
 	profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 	if err != nil {
 		if isBannedError(err) {
-			return s.userBannedText(), err
+			return s.userBannedText(l), err
 		}
-		return "Unable to load profile. Please try again later.", err
+		return l.message(msgProfileLoadFailed), err
 	}
 	if !found {
-		return "Profile not found. Use /profile to create it.", nil
+		return l.message(msgProfileNotFoundUseProfile), nil
 	}
 
 	stepToEdit := step
-	customPrompt := ""
 	if profile.BirthDate.IsZero() && step != domain.ProfileDraftStepBirthDate {
 		stepToEdit = domain.ProfileDraftStepBirthDate
-		customPrompt = s.editText(stepToEdit, fmt.Sprintf("Birth date is required before editing other fields. Enter it in %s format (for example, 1990-04-23).", birthDateLayout))
-	}
-	if customPrompt == "" && !profile.BirthDate.IsZero() && profile.Country == "" && step != domain.ProfileDraftStepCountry {
+	} else if !profile.BirthDate.IsZero() && profile.Country == "" && step != domain.ProfileDraftStepCountry {
 		stepToEdit = domain.ProfileDraftStepCountry
-		customPrompt = s.editText(stepToEdit, "Country is required before editing other fields. Select it using the buttons below.")
-	}
-	if customPrompt == "" && !profile.BirthDate.IsZero() && profile.Country != "" && strings.TrimSpace(profile.City) == "" && step != domain.ProfileDraftStepCity {
+	} else if profile.Country != "" && strings.TrimSpace(profile.City) == "" && step != domain.ProfileDraftStepCity {
 		stepToEdit = domain.ProfileDraftStepCity
-		customPrompt = s.editText(stepToEdit, "City is required before editing other fields. Enter it.")
-	}
-	if customPrompt == "" && profile.EmojiCode == "" && step != domain.ProfileDraftStepEmoji {
+	} else if profile.EmojiCode == "" && step != domain.ProfileDraftStepEmoji {
 		stepToEdit = domain.ProfileDraftStepEmoji
-		customPrompt = s.editText(stepToEdit, "Emoji is required before editing other fields. Select it using the buttons below.")
 	}
 
 	draft := domain.ProfileDraft{
@@ -186,54 +177,50 @@ func (s *service) startProfileEdit(ctx context.Context, msg domain.IncomingMessa
 	}
 
 	if err := s.drafts.Save(ctx, draft); err != nil {
-		return "Failed to start profile edit. Please try again later.", err
+		return l.message(msgProfileEditStartFailed), err
 	}
 
-	if customPrompt != "" {
-		return customPrompt, nil
-	}
-
-	return s.editPrompt(stepToEdit), nil
+	return s.editPrompt(l, stepToEdit), nil
 }
 
-func (s *service) deleteProfile(ctx context.Context, msg domain.IncomingMessage) (string, error) {
+func (s *service) deleteProfile(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, error) {
 	if s == nil || s.profiles == nil {
-		return "Profile service is not available right now.", errors.New("profile service is not configured")
+		return l.message(msgProfileServiceUnavailable), errors.New("profile service is not configured")
 	}
 
 	if msg.User.ID == 0 {
-		return "Profile delete is not available for this chat.", errors.New("user id is missing")
+		return l.message(msgProfileDeleteUnavailableChat), errors.New("user id is missing")
 	}
 
 	deleted, err := s.profiles.DeleteProfile(ctx, msg.User.ID)
 	if err != nil {
 		if isBannedError(err) {
-			return s.userBannedText(), err
+			return s.userBannedText(l), err
 		}
-		return "Unable to delete profile. Please try again later.", err
+		return l.message(msgProfileDeleteFailed), err
 	}
 	if !deleted {
-		return "Profile not found. Use the Create Profile button to create it.", nil
+		return l.message(msgProfileNotFoundCreateButton), nil
 	}
 
 	if s.drafts != nil {
 		if err := s.drafts.Delete(ctx, msg.User.ID); err != nil {
-			return "Profile deleted. Note: could not clear the profile draft.", err
+			return l.message(msgProfileDeletedDraftWarning), err
 		}
 	}
 
-	return "Profile deleted. Use the Create Profile button to create a new one.", nil
+	return l.message(msgProfileDeleted), nil
 }
 
-func (s *service) applyBotCheck(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft) (string, error) {
+func (s *service) applyBotCheck(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft, l localizer) (string, error) {
 	if s.drafts == nil {
-		return "Profile setup is not available right now.", errors.New("profile draft repository is not configured")
+		return l.message(msgProfileSetupUnavailable), errors.New("profile draft repository is not configured")
 	}
 
 	s.ensureBotCheck(&draft, msg.ReceivedAt)
 	answer := strings.TrimSpace(msg.Text)
 	if answer == "" {
-		return s.botCheckPrompt(draft.BotCheckQuestion), nil
+		return s.botCheckPrompt(l, draft.BotCheckQuestion), nil
 	}
 
 	if s.botCheckMatches(draft, answer) {
@@ -243,38 +230,38 @@ func (s *service) applyBotCheck(ctx context.Context, msg domain.IncomingMessage,
 		draft.BotCheckAttempts = 0
 		draft.UpdatedAt = s.now(msg.ReceivedAt)
 		if err := s.drafts.Save(ctx, draft); err != nil {
-			return "Failed to start profile setup. Please try again later.", err
+			return l.message(msgProfileSetupSaveFailed), err
 		}
 
-		return s.namePrompt(msg.User), nil
+		return s.namePrompt(l, msg.User), nil
 	}
 
 	draft.BotCheckAttempts++
 	if draft.BotCheckAttempts >= botCheckMaxAttempts {
 		s.resetBotCheck(&draft, msg.ReceivedAt)
 		if err := s.drafts.Save(ctx, draft); err != nil {
-			return "Failed to save profile setup. Please try again later.", err
+			return l.message(msgProfileSetupSaveFailed), err
 		}
-		return s.botCheckRetryPrompt("Too many attempts. Let's try a new check.", draft.BotCheckQuestion), nil
+		return s.botCheckRetryPrompt(l, l.message(msgBotCheckTooManyAttempts), draft.BotCheckQuestion), nil
 	}
 
 	draft.UpdatedAt = s.now(msg.ReceivedAt)
 	if err := s.drafts.Save(ctx, draft); err != nil {
-		return "Failed to save profile setup. Please try again later.", err
+		return l.message(msgProfileSetupSaveFailed), err
 	}
 
-	return s.botCheckRetryPrompt("Incorrect answer. Try again.", draft.BotCheckQuestion), nil
+	return s.botCheckRetryPrompt(l, l.message(msgBotCheckIncorrect), draft.BotCheckQuestion), nil
 }
 
-func (s *service) applyName(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft) (string, error) {
+func (s *service) applyName(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft, l localizer) (string, error) {
 	value := strings.TrimSpace(msg.Text)
 	draft.Mode = s.draftMode(draft)
 	isEdit := draft.Mode == domain.ProfileDraftModeEdit
 	if value == "" {
 		if isEdit {
-			return s.editText(domain.ProfileDraftStepName, "Please enter a name."), nil
+			return s.editText(l, domain.ProfileDraftStepName, l.message(msgNamePromptEmpty)), nil
 		}
-		return s.stepText(domain.ProfileDraftStepName, "Please enter a name or use the button below to use your Telegram name."), nil
+		return s.stepText(l, domain.ProfileDraftStepName, l.message(msgNamePromptEmptyCreate)), nil
 	}
 
 	name := value
@@ -282,87 +269,86 @@ func (s *service) applyName(ctx context.Context, msg domain.IncomingMessage, dra
 		telegramName := s.userFullName(msg.User)
 		if telegramName == "" {
 			if isEdit {
-				return s.editText(domain.ProfileDraftStepName, "Your Telegram profile has no name set. Please type the name you want to use."), nil
+				return s.editText(l, domain.ProfileDraftStepName, l.message(msgNamePromptTelegramMissing)), nil
 			}
-			return s.stepText(domain.ProfileDraftStepName, "Your Telegram profile has no name set. Please type the name you want to use."), nil
+			return s.stepText(l, domain.ProfileDraftStepName, l.message(msgNamePromptTelegramMissing)), nil
 		}
 		name = telegramName
 	}
 
 	if len(name) > maxNameLength {
 		if isEdit {
-			return s.editText(domain.ProfileDraftStepName, fmt.Sprintf("Name is too long (max %d characters).", maxNameLength)), nil
+			return s.editText(l, domain.ProfileDraftStepName, l.message(msgNameTooLong, maxNameLength)), nil
 		}
-		return s.stepText(domain.ProfileDraftStepName, fmt.Sprintf("Name is too long (max %d characters).", maxNameLength)), nil
+		return s.stepText(l, domain.ProfileDraftStepName, l.message(msgNameTooLong, maxNameLength)), nil
 	}
 
 	draft.Name = name
 	draft.UpdatedAt = s.now(msg.ReceivedAt)
 	if isEdit {
 		if err := s.drafts.Save(ctx, draft); err != nil {
-			return "Failed to save profile edit. Please try again later.", err
+			return l.message(msgProfileEditSaveFailed), err
 		}
 
-		return s.saveProfile(ctx, draft)
+		return s.saveProfile(ctx, draft, l)
 	}
 
 	draft.Step = domain.ProfileDraftStepGender
 	if err := s.drafts.Save(ctx, draft); err != nil {
-		return "Failed to save profile setup. Please try again later.", err
+		return l.message(msgProfileSetupSaveFailed), err
 	}
 
-	return s.genderPrompt(), nil
+	return s.genderPrompt(l), nil
 }
 
-func (s *service) applyGender(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft) (string, error) {
+func (s *service) applyGender(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft, l localizer) (string, error) {
 	value := strings.TrimSpace(msg.Text)
 	draft.Mode = s.draftMode(draft)
 	isEdit := draft.Mode == domain.ProfileDraftModeEdit
 	gender, ok := s.normalizeGender(value)
 	if !ok {
-		text := "Gender must be one of: male, female, or other."
 		if isEdit {
-			return s.editText(domain.ProfileDraftStepGender, text), nil
+			return s.editText(l, domain.ProfileDraftStepGender, l.message(msgGenderInvalid)), nil
 		}
-		return s.stepText(domain.ProfileDraftStepGender, text+" Try again."), nil
+		return s.stepText(l, domain.ProfileDraftStepGender, l.message(msgGenderInvalid)), nil
 	}
 
 	draft.Gender = gender
 	draft.UpdatedAt = s.now(msg.ReceivedAt)
 	if isEdit {
 		if err := s.drafts.Save(ctx, draft); err != nil {
-			return "Failed to save profile edit. Please try again later.", err
+			return l.message(msgProfileEditSaveFailed), err
 		}
 
-		return s.saveProfile(ctx, draft)
+		return s.saveProfile(ctx, draft, l)
 	}
 
 	draft.Step = domain.ProfileDraftStepBirthDate
 	if err := s.drafts.Save(ctx, draft); err != nil {
-		return "Failed to save profile setup. Please try again later.", err
+		return l.message(msgProfileSetupSaveFailed), err
 	}
 
-	return s.birthDatePrompt(), nil
+	return s.birthDatePrompt(l), nil
 }
 
-func (s *service) applyBirthDate(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft) (string, error) {
+func (s *service) applyBirthDate(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft, l localizer) (string, error) {
 	value := strings.TrimSpace(msg.Text)
 	draft.Mode = s.draftMode(draft)
 	isEdit := draft.Mode == domain.ProfileDraftModeEdit
 	birthDate, ok := s.parseBirthDate(value)
 	if !ok {
 		if isEdit {
-			return s.editText(domain.ProfileDraftStepBirthDate, fmt.Sprintf("Birth date must be in %s format (for example, 1990-04-23). Try again.", birthDateLayout)), nil
+			return s.editText(l, domain.ProfileDraftStepBirthDate, l.message(msgBirthDateInvalid, birthDateLayout)), nil
 		}
-		return s.stepText(domain.ProfileDraftStepBirthDate, fmt.Sprintf("Birth date must be in %s format (for example, 1990-04-23). Try again.", birthDateLayout)), nil
+		return s.stepText(l, domain.ProfileDraftStepBirthDate, l.message(msgBirthDateInvalid, birthDateLayout)), nil
 	}
 
 	age := s.ageFromBirthDate(birthDate, s.now(msg.ReceivedAt))
 	if age < minAge || age > maxAge {
 		if isEdit {
-			return s.editText(domain.ProfileDraftStepBirthDate, fmt.Sprintf("Age must be between %d and %d years. Please check the birth date.", minAge, maxAge)), nil
+			return s.editText(l, domain.ProfileDraftStepBirthDate, l.message(msgAgeInvalid, minAge, maxAge)), nil
 		}
-		return s.stepText(domain.ProfileDraftStepBirthDate, fmt.Sprintf("Age must be between %d and %d years. Please check the birth date.", minAge, maxAge)), nil
+		return s.stepText(l, domain.ProfileDraftStepBirthDate, l.message(msgAgeInvalid, minAge, maxAge)), nil
 	}
 
 	draft.BirthDate = birthDate
@@ -371,37 +357,36 @@ func (s *service) applyBirthDate(ctx context.Context, msg domain.IncomingMessage
 		if missingStep := s.nextRequiredStep(draft); missingStep != "" {
 			draft.Step = missingStep
 			if err := s.drafts.Save(ctx, draft); err != nil {
-				return "Failed to save profile edit. Please try again later.", err
+				return l.message(msgProfileEditSaveFailed), err
 			}
-			return s.editPrompt(missingStep), nil
+			return s.editPrompt(l, missingStep), nil
 		}
 
 		if err := s.drafts.Save(ctx, draft); err != nil {
-			return "Failed to save profile edit. Please try again later.", err
+			return l.message(msgProfileEditSaveFailed), err
 		}
 
-		return s.saveProfile(ctx, draft)
+		return s.saveProfile(ctx, draft, l)
 	}
 
 	draft.Step = domain.ProfileDraftStepCountry
 	if err := s.drafts.Save(ctx, draft); err != nil {
-		return "Failed to save profile setup. Please try again later.", err
+		return l.message(msgProfileSetupSaveFailed), err
 	}
 
-	return s.countryPrompt(), nil
+	return s.countryPrompt(l), nil
 }
 
-func (s *service) applyCountry(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft) (string, error) {
+func (s *service) applyCountry(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft, l localizer) (string, error) {
 	value := strings.TrimSpace(msg.Text)
 	draft.Mode = s.draftMode(draft)
 	isEdit := draft.Mode == domain.ProfileDraftModeEdit
 	country, ok := s.normalizeCountry(value)
 	if !ok {
-		text := "Country must be one of: Russia, Kazakhstan, or Belarus."
 		if isEdit {
-			return s.editText(domain.ProfileDraftStepCountry, text), nil
+			return s.editText(l, domain.ProfileDraftStepCountry, l.message(msgCountryInvalid)), nil
 		}
-		return s.stepText(domain.ProfileDraftStepCountry, text+" Try again."), nil
+		return s.stepText(l, domain.ProfileDraftStepCountry, l.message(msgCountryInvalid)), nil
 	}
 
 	previousCountry := draft.Country
@@ -420,36 +405,35 @@ func (s *service) applyCountry(ctx context.Context, msg domain.IncomingMessage, 
 		if missingStep := s.nextRequiredStep(draft); missingStep != "" {
 			draft.Step = missingStep
 			if err := s.drafts.Save(ctx, draft); err != nil {
-				return "Failed to save profile edit. Please try again later.", err
+				return l.message(msgProfileEditSaveFailed), err
 			}
-			return s.editPrompt(missingStep), nil
+			return s.editPrompt(l, missingStep), nil
 		}
 
 		if err := s.drafts.Save(ctx, draft); err != nil {
-			return "Failed to save profile edit. Please try again later.", err
+			return l.message(msgProfileEditSaveFailed), err
 		}
 
-		return s.saveProfile(ctx, draft)
+		return s.saveProfile(ctx, draft, l)
 	}
 
 	draft.Step = domain.ProfileDraftStepCity
 	if err := s.drafts.Save(ctx, draft); err != nil {
-		return "Failed to save profile setup. Please try again later.", err
+		return l.message(msgProfileSetupSaveFailed), err
 	}
 
-	return s.cityPrompt(), nil
+	return s.cityPrompt(l), nil
 }
 
-func (s *service) applyCity(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft) (string, error) {
+func (s *service) applyCity(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft, l localizer) (string, error) {
 	draft.Mode = s.draftMode(draft)
 	isEdit := draft.Mode == domain.ProfileDraftModeEdit
 	city, ok := s.normalizeCity(draft.Country, msg.Text)
 	if !ok {
-		text := "City must be selected from the list for your country."
 		if isEdit {
-			return s.editText(domain.ProfileDraftStepCity, text), nil
+			return s.editText(l, domain.ProfileDraftStepCity, l.message(msgCityInvalid)), nil
 		}
-		return s.stepText(domain.ProfileDraftStepCity, text+" Try again."), nil
+		return s.stepText(l, domain.ProfileDraftStepCity, l.message(msgCityInvalid)), nil
 	}
 
 	draft.City = city
@@ -458,75 +442,74 @@ func (s *service) applyCity(ctx context.Context, msg domain.IncomingMessage, dra
 		if missingStep := s.nextRequiredStep(draft); missingStep != "" {
 			draft.Step = missingStep
 			if err := s.drafts.Save(ctx, draft); err != nil {
-				return "Failed to save profile edit. Please try again later.", err
+				return l.message(msgProfileEditSaveFailed), err
 			}
-			return s.editPrompt(missingStep), nil
+			return s.editPrompt(l, missingStep), nil
 		}
 
 		if err := s.drafts.Save(ctx, draft); err != nil {
-			return "Failed to save profile edit. Please try again later.", err
+			return l.message(msgProfileEditSaveFailed), err
 		}
 
-		return s.saveProfile(ctx, draft)
+		return s.saveProfile(ctx, draft, l)
 	}
 
 	draft.Step = domain.ProfileDraftStepDescription
 	if err := s.drafts.Save(ctx, draft); err != nil {
-		return "Failed to save profile setup. Please try again later.", err
+		return l.message(msgProfileSetupSaveFailed), err
 	}
 
-	return s.descriptionPrompt(), nil
+	return s.descriptionPrompt(l), nil
 }
 
-func (s *service) applyDescription(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft) (string, error) {
+func (s *service) applyDescription(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft, l localizer) (string, error) {
 	description := strings.TrimSpace(msg.Text)
 	draft.Mode = s.draftMode(draft)
 	isEdit := draft.Mode == domain.ProfileDraftModeEdit
 	if description == "" {
 		if isEdit {
-			return s.editText(domain.ProfileDraftStepDescription, "Description cannot be empty. Please try again."), nil
+			return s.editText(l, domain.ProfileDraftStepDescription, l.message(msgDescriptionEmpty)), nil
 		}
-		return s.stepText(domain.ProfileDraftStepDescription, "Description cannot be empty. Please try again."), nil
+		return s.stepText(l, domain.ProfileDraftStepDescription, l.message(msgDescriptionEmpty)), nil
 	}
 	if len(description) > maxDescriptionLength {
 		if isEdit {
-			return s.editText(domain.ProfileDraftStepDescription, fmt.Sprintf("Description is too long (max %d characters).", maxDescriptionLength)), nil
+			return s.editText(l, domain.ProfileDraftStepDescription, l.message(msgDescriptionTooLong, maxDescriptionLength)), nil
 		}
-		return s.stepText(domain.ProfileDraftStepDescription, fmt.Sprintf("Description is too long (max %d characters).", maxDescriptionLength)), nil
+		return s.stepText(l, domain.ProfileDraftStepDescription, l.message(msgDescriptionTooLong, maxDescriptionLength)), nil
 	}
 
 	draft.Description = description
 	draft.UpdatedAt = s.now(msg.ReceivedAt)
 	if err := s.drafts.Save(ctx, draft); err != nil {
 		if isEdit {
-			return "Failed to save profile edit. Please try again later.", err
+			return l.message(msgProfileEditSaveFailed), err
 		}
-		return "Failed to save profile setup. Please try again later.", err
+		return l.message(msgProfileSetupSaveFailed), err
 	}
 
 	if isEdit {
-		return s.saveProfile(ctx, draft)
+		return s.saveProfile(ctx, draft, l)
 	}
 
 	draft.Step = domain.ProfileDraftStepEmoji
 	if err := s.drafts.Save(ctx, draft); err != nil {
-		return "Failed to save profile setup. Please try again later.", err
+		return l.message(msgProfileSetupSaveFailed), err
 	}
 
-	return s.emojiPrompt(), nil
+	return s.emojiPrompt(l), nil
 }
 
-func (s *service) applyEmoji(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft) (string, error) {
+func (s *service) applyEmoji(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft, l localizer) (string, error) {
 	value := strings.TrimSpace(msg.Text)
 	draft.Mode = s.draftMode(draft)
 	isEdit := draft.Mode == domain.ProfileDraftModeEdit
 	code, ok := s.normalizeEmojiCode(value)
 	if !ok {
-		text := "Emoji must be selected from the list."
 		if isEdit {
-			return s.editText(domain.ProfileDraftStepEmoji, text), nil
+			return s.editText(l, domain.ProfileDraftStepEmoji, l.message(msgEmojiInvalid)), nil
 		}
-		return s.stepText(domain.ProfileDraftStepEmoji, text+" Try again."), nil
+		return s.stepText(l, domain.ProfileDraftStepEmoji, l.message(msgEmojiInvalid)), nil
 	}
 
 	draft.EmojiCode = code
@@ -535,29 +518,29 @@ func (s *service) applyEmoji(ctx context.Context, msg domain.IncomingMessage, dr
 		if missingStep := s.nextRequiredStep(draft); missingStep != "" {
 			draft.Step = missingStep
 			if err := s.drafts.Save(ctx, draft); err != nil {
-				return "Failed to save profile edit. Please try again later.", err
+				return l.message(msgProfileEditSaveFailed), err
 			}
-			return s.editPrompt(missingStep), nil
+			return s.editPrompt(l, missingStep), nil
 		}
 
 		if err := s.drafts.Save(ctx, draft); err != nil {
-			return "Failed to save profile edit. Please try again later.", err
+			return l.message(msgProfileEditSaveFailed), err
 		}
 
-		return s.saveProfile(ctx, draft)
+		return s.saveProfile(ctx, draft, l)
 	}
 
 	draft.Step = domain.ProfileDraftStepPhotos
 	if err := s.drafts.Save(ctx, draft); err != nil {
-		return "Failed to save profile setup. Please try again later.", err
+		return l.message(msgProfileSetupSaveFailed), err
 	}
 
-	return s.photosPrompt(), nil
+	return s.photosPrompt(l), nil
 }
 
-func (s *service) saveProfile(ctx context.Context, draft domain.ProfileDraft) (string, error) {
+func (s *service) saveProfile(ctx context.Context, draft domain.ProfileDraft, l localizer) (string, error) {
 	if s.profiles == nil {
-		return "Profile service is not available right now.", errors.New("profile service is not configured")
+		return l.message(msgProfileServiceUnavailable), errors.New("profile service is not configured")
 	}
 
 	if err := s.profiles.CreateProfile(ctx, domain.Profile{
@@ -574,14 +557,14 @@ func (s *service) saveProfile(ctx context.Context, draft domain.ProfileDraft) (s
 		IsHidden:    draft.IsHidden,
 	}); err != nil {
 		if isBannedError(err) {
-			return s.userBannedText(), err
+			return s.userBannedText(l), err
 		}
-		return "Failed to save profile. Please try again later.", err
+		return l.message(msgProfileSaveFailed), err
 	}
 
-	success := s.profileCreated()
+	success := s.profileCreated(l)
 	if s.draftMode(draft) == domain.ProfileDraftModeEdit {
-		success = s.profileUpdated()
+		success = s.profileUpdated(l)
 	}
 
 	if s.draftMode(draft) == domain.ProfileDraftModeCreate {
@@ -589,13 +572,13 @@ func (s *service) saveProfile(ctx context.Context, draft domain.ProfileDraft) (s
 	}
 
 	if err := s.drafts.Delete(ctx, draft.UserID); err != nil {
-		return success + "\nNote: could not clear the profile draft.", err
+		return success + "\n" + l.message(msgProfileDeletedDraftWarningOnly), err
 	}
 
 	return success, nil
 }
 
-func (s *service) applyPhotos(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft) (string, error) {
+func (s *service) applyPhotos(ctx context.Context, msg domain.IncomingMessage, draft domain.ProfileDraft, l localizer) (string, error) {
 	draft.Mode = s.draftMode(draft)
 	isEdit := draft.Mode == domain.ProfileDraftModeEdit
 
@@ -604,59 +587,59 @@ func (s *service) applyPhotos(ctx context.Context, msg domain.IncomingMessage, d
 		draft.Photos, _ = s.mergePhotoIDs(draft.Photos, msg.PhotoIDs, maxPhotos)
 		draft.UpdatedAt = s.now(msg.ReceivedAt)
 		if err := s.drafts.Save(ctx, draft); err != nil {
-			return "Failed to save profile setup. Please try again later.", err
+			return l.message(msgProfileSetupSaveFailed), err
 		}
 		addedPhotos = true
 	}
 
 	if s.isAlbumDone(msg.Text) {
 		if len(draft.Photos) < minPhotos {
-			return s.photosPromptText(isEdit, fmt.Sprintf("Please send at least %d photo before finishing.", minPhotos)), nil
+			return s.photosPromptText(l, isEdit, l.message(msgPhotosNotEnough, minPhotos)), nil
 		}
 
 		if !addedPhotos {
 			draft.UpdatedAt = s.now(msg.ReceivedAt)
 			if err := s.drafts.Save(ctx, draft); err != nil {
-				return "Failed to save profile setup. Please try again later.", err
+				return l.message(msgProfileSetupSaveFailed), err
 			}
 		}
 
-		return s.saveProfile(ctx, draft)
+		return s.saveProfile(ctx, draft, l)
 	}
 
 	if !addedPhotos {
-		return s.photosPromptText(isEdit, "Send 1-4 photos for your album. Use the Done button when finished."), nil
+		return s.photosPromptText(l, isEdit, l.message(msgPhotosPromptRepeat)), nil
 	}
 
 	if len(draft.Photos) >= maxPhotos {
-		return s.photosPromptText(isEdit, fmt.Sprintf("You reached the limit of %d photos. Use the Done button to finish.", maxPhotos)), nil
+		return s.photosPromptText(l, isEdit, l.message(msgPhotosLimitReached, maxPhotos)), nil
 	}
 
-	return s.photosPromptText(isEdit, fmt.Sprintf("Photos in album: %d/%d. Send more or use the Done button.", len(draft.Photos), maxPhotos)), nil
+	return s.photosPromptText(l, isEdit, l.message(msgPhotosProgress, len(draft.Photos), maxPhotos)), nil
 }
 
-func (s *service) profileSetupPrompt(step domain.ProfileDraftStep, draft domain.ProfileDraft, user domain.User) string {
+func (s *service) profileSetupPrompt(l localizer, step domain.ProfileDraftStep, draft domain.ProfileDraft, user domain.User) string {
 	switch step {
 	case domain.ProfileDraftStepBotCheck:
-		return s.botCheckPrompt(draft.BotCheckQuestion)
+		return s.botCheckPrompt(l, draft.BotCheckQuestion)
 	case domain.ProfileDraftStepName:
-		return s.namePrompt(user)
+		return s.namePrompt(l, user)
 	case domain.ProfileDraftStepGender:
-		return s.genderPrompt()
+		return s.genderPrompt(l)
 	case domain.ProfileDraftStepBirthDate:
-		return s.birthDatePrompt()
+		return s.birthDatePrompt(l)
 	case domain.ProfileDraftStepCountry:
-		return s.countryPrompt()
+		return s.countryPrompt(l)
 	case domain.ProfileDraftStepCity:
-		return s.cityPrompt()
+		return s.cityPrompt(l)
 	case domain.ProfileDraftStepDescription:
-		return s.descriptionPrompt()
+		return s.descriptionPrompt(l)
 	case domain.ProfileDraftStepEmoji:
-		return s.emojiPrompt()
+		return s.emojiPrompt(l)
 	case domain.ProfileDraftStepPhotos:
-		return s.photosPrompt()
+		return s.photosPrompt(l)
 	default:
-		return s.stepText(step, "")
+		return s.stepText(l, step, "")
 	}
 }
 

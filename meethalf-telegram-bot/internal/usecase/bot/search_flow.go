@@ -15,15 +15,15 @@ type statusError interface {
 
 const historyPageSize = 5
 
-func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage) ([]domain.OutgoingMessage, error) {
+func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage, l localizer) ([]domain.OutgoingMessage, error) {
 	if s == nil || s.search == nil {
 		return []domain.OutgoingMessage{
-			{ChatID: msg.ChatID, Text: s.searchUnavailableText()},
+			{ChatID: msg.ChatID, Text: s.searchUnavailableText(l)},
 		}, errors.New("search service is not configured")
 	}
 	if msg.User.ID == 0 {
 		return []domain.OutgoingMessage{
-			{ChatID: msg.ChatID, Text: s.searchUnavailableText()},
+			{ChatID: msg.ChatID, Text: s.searchUnavailableText(l)},
 		}, errors.New("user id is missing")
 	}
 
@@ -32,24 +32,24 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage) 
 		hasProfile, err := s.viewerHasProfile(ctx, msg.User.ID)
 		if err != nil {
 			if isBannedError(err) {
-				return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.userBannedText()}}, err
+				return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.userBannedText(l)}}, err
 			}
-			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText()}}, err
+			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, err
 		}
 		if !hasProfile {
 			return []domain.OutgoingMessage{
 				{
 					ChatID:         msg.ChatID,
-					Text:           s.searchProfileMissingText(),
-					InlineKeyboard: s.profileCreateInlineKeyboard(),
+					Text:           s.searchProfileMissingText(l),
+					InlineKeyboard: s.profileCreateInlineKeyboard(l),
 				},
 			}, nil
 		}
 		return []domain.OutgoingMessage{
 			{
 				ChatID:         msg.ChatID,
-				Text:           s.searchGenderText(),
-				InlineKeyboard: s.searchGenderInlineKeyboard(),
+				Text:           s.searchGenderText(l),
+				InlineKeyboard: s.searchGenderInlineKeyboard(l),
 			},
 		}, nil
 	case domain.CommandSearchGender:
@@ -62,8 +62,8 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage) 
 			return []domain.OutgoingMessage{
 				{
 					ChatID:         msg.ChatID,
-					Text:           s.searchGenderText(),
-					InlineKeyboard: s.searchGenderInlineKeyboard(),
+					Text:           s.searchGenderText(l),
+					InlineKeyboard: s.searchGenderInlineKeyboard(l),
 				},
 			}, nil
 		}
@@ -71,8 +71,8 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage) 
 		return []domain.OutgoingMessage{
 			{
 				ChatID:         msg.ChatID,
-				Text:           s.searchAccuracyText(),
-				InlineKeyboard: s.searchAccuracyInlineKeyboard(gender),
+				Text:           s.searchAccuracyText(l),
+				InlineKeyboard: s.searchAccuracyInlineKeyboard(l, gender),
 			},
 		}, nil
 	case domain.CommandSearchAccuracy:
@@ -81,39 +81,39 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage) 
 			return []domain.OutgoingMessage{
 				{
 					ChatID:         msg.ChatID,
-					Text:           s.searchGenderText(),
-					InlineKeyboard: s.searchGenderInlineKeyboard(),
+					Text:           s.searchGenderText(l),
+					InlineKeyboard: s.searchGenderInlineKeyboard(l),
 				},
 			}, nil
 		}
 
 		candidate, found, err := s.search.StartSearch(ctx, msg.User.ID, gender, accuracy)
 		if err != nil {
-			return s.searchErrorResponse(msg.ChatID, err), err
+			return s.searchErrorResponse(l, msg.ChatID, err), err
 		}
 		if !found {
 			return []domain.OutgoingMessage{{
 				ChatID:         msg.ChatID,
-				Text:           s.searchNoCandidatesText(),
-				InlineKeyboard: s.searchNoCandidatesInlineKeyboard(),
+				Text:           s.searchNoCandidatesText(l),
+				InlineKeyboard: s.searchNoCandidatesInlineKeyboard(l),
 			}}, nil
 		}
 
-		return s.matchProfileMessages(msg.ChatID, candidate), nil
+		return s.matchProfileMessages(msg.ChatID, candidate, l), nil
 	case domain.CommandSearchRefresh:
-		return s.nextMatch(ctx, msg)
+		return s.nextMatch(ctx, msg, l)
 	case domain.CommandMatchLike:
 		targetID, ok := s.parseTargetID(msg.Arguments)
 		if !ok {
-			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText()}}, nil
+			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, nil
 		}
 		actionResult, err := s.search.RecordAction(ctx, msg.User.ID, targetID, domain.MatchActionLike)
 		if err != nil {
-			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText()}}, err
+			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, err
 		}
-		nextMessages, nextErr := s.nextMatch(ctx, msg)
+		nextMessages, nextErr := s.nextMatch(ctx, msg, l)
 		if actionResult.Matched {
-			currentMatchMessages, targetMatchMessages, matchErr := s.mutualMatchMessages(ctx, msg, targetID)
+			currentMatchMessages, targetMatchMessages, matchErr := s.mutualMatchMessages(ctx, msg, targetID, l)
 			messages := append(currentMatchMessages, nextMessages...)
 			if len(targetMatchMessages) > 0 {
 				messages = append(messages, targetMatchMessages...)
@@ -129,144 +129,150 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage) 
 	case domain.CommandMatchDislike:
 		targetID, ok := s.parseTargetID(msg.Arguments)
 		if !ok {
-			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText()}}, nil
+			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, nil
 		}
 		if _, err := s.search.RecordAction(ctx, msg.User.ID, targetID, domain.MatchActionDislike); err != nil {
-			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText()}}, err
+			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, err
 		}
-		return s.nextMatch(ctx, msg)
+		return s.nextMatch(ctx, msg, l)
 	case domain.CommandMatchReport:
 		targetID, ok := s.parseTargetID(msg.Arguments)
 		if !ok {
-			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText()}}, nil
+			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, nil
 		}
 		if _, err := s.search.RecordAction(ctx, msg.User.ID, targetID, domain.MatchActionReport); err != nil {
-			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText()}}, err
+			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, err
 		}
-		return s.nextMatch(ctx, msg)
+		return s.nextMatch(ctx, msg, l)
 	case domain.CommandMatchPrevious:
 		candidate, found, err := s.search.PreviousCandidate(ctx, msg.User.ID)
 		if err != nil {
-			return s.searchErrorResponse(msg.ChatID, err), err
+			return s.searchErrorResponse(l, msg.ChatID, err), err
 		}
 		if !found {
-			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchNoPreviousText()}}, nil
+			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchNoPreviousText(l)}}, nil
 		}
-		return s.matchProfileMessages(msg.ChatID, candidate), nil
+		return s.matchProfileMessages(msg.ChatID, candidate, l), nil
 	case domain.CommandMatchHistory:
-		return s.historyListMessages(ctx, msg)
+		return s.historyListMessages(ctx, msg, l)
 	case domain.CommandMatchHistoryView:
-		return s.historyViewMessages(ctx, msg)
+		return s.historyViewMessages(ctx, msg, l)
 	case domain.CommandMatchHistoryLike:
-		return s.historyActionMessages(ctx, msg, domain.MatchActionLike)
+		return s.historyActionMessages(ctx, msg, domain.MatchActionLike, l)
 	case domain.CommandMatchHistoryDislike:
-		return s.historyActionMessages(ctx, msg, domain.MatchActionDislike)
+		return s.historyActionMessages(ctx, msg, domain.MatchActionDislike, l)
 	case domain.CommandMatchHistoryReport:
-		return s.historyActionMessages(ctx, msg, domain.MatchActionReport)
+		return s.historyActionMessages(ctx, msg, domain.MatchActionReport, l)
+	case domain.CommandMatchViewLike:
+		return s.matchViewActionMessages(ctx, msg, domain.MatchActionLike, l)
+	case domain.CommandMatchViewDislike:
+		return s.matchViewActionMessages(ctx, msg, domain.MatchActionDislike, l)
+	case domain.CommandMatchViewReport:
+		return s.matchViewActionMessages(ctx, msg, domain.MatchActionReport, l)
 	case domain.CommandMatchViewProfile:
 		targetID, ok := s.parseTargetID(msg.Arguments)
 		if !ok {
-			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.matchProfileNotFoundText()}}, nil
+			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.matchProfileNotFoundText(l)}}, nil
 		}
 		hasProfile, err := s.viewerHasProfile(ctx, msg.User.ID)
 		if err != nil {
 			if isBannedError(err) {
-				return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.userBannedText()}}, err
+				return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.userBannedText(l)}}, err
 			}
-			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText()}}, err
+			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, err
 		}
 		if !hasProfile {
 			return []domain.OutgoingMessage{
 				{
 					ChatID:         msg.ChatID,
-					Text:           s.profileViewRequiresProfileText(),
-					InlineKeyboard: s.profileCreateInlineKeyboard(),
+					Text:           s.profileViewRequiresProfileText(l),
+					InlineKeyboard: s.profileCreateInlineKeyboard(l),
 				},
 			}, nil
 		}
 		profile, found, err := s.profiles.GetProfile(ctx, targetID)
 		if err != nil {
-			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.matchProfileNotFoundText()}}, err
+			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.matchProfileNotFoundText(l)}}, err
 		}
 		if !found {
-			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.matchProfileNotFoundText()}}, nil
+			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.matchProfileNotFoundText(l)}}, nil
 		}
-		return s.matchProfileViewMessages(msg.ChatID, profile), nil
+		return s.matchProfileViewMessages(msg.ChatID, profile, l), nil
 	default:
-		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchStartRequiredText()}}, nil
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchStartRequiredText(l)}}, nil
 	}
 }
 
-func (s *service) nextMatch(ctx context.Context, msg domain.IncomingMessage) ([]domain.OutgoingMessage, error) {
+func (s *service) nextMatch(ctx context.Context, msg domain.IncomingMessage, l localizer) ([]domain.OutgoingMessage, error) {
 	candidate, found, err := s.search.NextCandidate(ctx, msg.User.ID)
 	if err != nil {
-		return s.searchErrorResponse(msg.ChatID, err), err
+		return s.searchErrorResponse(l, msg.ChatID, err), err
 	}
 	if !found {
 		return []domain.OutgoingMessage{{
 			ChatID:         msg.ChatID,
-			Text:           s.searchNoCandidatesText(),
-			InlineKeyboard: s.searchNoCandidatesInlineKeyboard(),
+			Text:           s.searchNoCandidatesText(l),
+			InlineKeyboard: s.searchNoCandidatesInlineKeyboard(l),
 		}}, nil
 	}
-	return s.matchProfileMessages(msg.ChatID, candidate), nil
+	return s.matchProfileMessages(msg.ChatID, candidate, l), nil
 }
 
-func (s *service) searchErrorResponse(chatID int64, err error) []domain.OutgoingMessage {
+func (s *service) searchErrorResponse(l localizer, chatID int64, err error) []domain.OutgoingMessage {
 	if err == nil {
-		return []domain.OutgoingMessage{{ChatID: chatID, Text: s.searchActionFailedText()}}
+		return []domain.OutgoingMessage{{ChatID: chatID, Text: s.searchActionFailedText(l)}}
 	}
 
 	var status statusError
 	if errors.As(err, &status) {
 		switch status.StatusCode() {
 		case http.StatusForbidden:
-			return []domain.OutgoingMessage{{ChatID: chatID, Text: s.userBannedText()}}
+			return []domain.OutgoingMessage{{ChatID: chatID, Text: s.userBannedText(l)}}
 		case http.StatusNotFound:
 			return []domain.OutgoingMessage{
 				{
 					ChatID:         chatID,
-					Text:           s.searchProfileMissingText(),
-					InlineKeyboard: s.profileCreateInlineKeyboard(),
+					Text:           s.searchProfileMissingText(l),
+					InlineKeyboard: s.profileCreateInlineKeyboard(l),
 				},
 			}
 		case http.StatusConflict:
-			return []domain.OutgoingMessage{{ChatID: chatID, Text: s.searchStartRequiredText()}}
+			return []domain.OutgoingMessage{{ChatID: chatID, Text: s.searchStartRequiredText(l)}}
 		}
 	}
 
-	return []domain.OutgoingMessage{{ChatID: chatID, Text: s.searchActionFailedText()}}
+	return []domain.OutgoingMessage{{ChatID: chatID, Text: s.searchActionFailedText(l)}}
 }
 
-func (s *service) matchProfileMessages(chatID int64, candidate domain.MatchCandidate) []domain.OutgoingMessage {
+func (s *service) matchProfileMessages(chatID int64, candidate domain.MatchCandidate, l localizer) []domain.OutgoingMessage {
 	return s.profileAlbumMessagesWithText(
 		chatID,
 		candidate.Profile,
-		s.profilePreviewCard(candidate.Profile),
-		s.matchActionsText(),
-		s.matchActionsInlineKeyboard(candidate.Profile.UserID, candidate.HasPrevious),
+		s.profilePreviewCard(l, candidate.Profile),
+		s.matchActionsText(l),
+		s.matchActionsInlineKeyboard(l, candidate.Profile.UserID, candidate.HasPrevious),
 	)
 }
 
-func (s *service) matchProfileViewMessages(chatID int64, profile domain.Profile) []domain.OutgoingMessage {
+func (s *service) matchProfileViewMessages(chatID int64, profile domain.Profile, l localizer) []domain.OutgoingMessage {
 	return s.profileAlbumMessagesWithText(
 		chatID,
 		profile,
-		s.profilePreviewCard(profile),
-		"",
-		nil,
+		s.profilePreviewCard(l, profile),
+		s.matchActionsText(l),
+		s.matchViewActionsInlineKeyboard(l, profile.UserID),
 	)
 }
 
-func (s *service) historyListMessages(ctx context.Context, msg domain.IncomingMessage) ([]domain.OutgoingMessage, error) {
+func (s *service) historyListMessages(ctx context.Context, msg domain.IncomingMessage, l localizer) ([]domain.OutgoingMessage, error) {
 	offset := s.parseHistoryOffset(msg.Arguments)
 	list, err := s.search.History(ctx, msg.User.ID, historyPageSize, offset)
 	if err != nil {
-		return s.searchErrorResponse(msg.ChatID, err), err
+		return s.searchErrorResponse(l, msg.ChatID, err), err
 	}
 
-	text := s.searchHistoryText(list)
-	keyboard := s.historyInlineKeyboard(list)
+	text := s.searchHistoryText(l, list)
+	keyboard := s.historyInlineKeyboard(l, list)
 	return []domain.OutgoingMessage{
 		{
 			ChatID:         msg.ChatID,
@@ -276,43 +282,43 @@ func (s *service) historyListMessages(ctx context.Context, msg domain.IncomingMe
 	}, nil
 }
 
-func (s *service) historyViewMessages(ctx context.Context, msg domain.IncomingMessage) ([]domain.OutgoingMessage, error) {
+func (s *service) historyViewMessages(ctx context.Context, msg domain.IncomingMessage, l localizer) ([]domain.OutgoingMessage, error) {
 	targetID, offset, ok := s.parseHistoryTarget(msg.Arguments)
 	if !ok {
-		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.matchProfileNotFoundText()}}, nil
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.matchProfileNotFoundText(l)}}, nil
 	}
 
 	item, list, found, err := s.historyItem(ctx, msg.User.ID, targetID, offset)
 	if err != nil {
-		return s.searchErrorResponse(msg.ChatID, err), err
+		return s.searchErrorResponse(l, msg.ChatID, err), err
 	}
 	if !found {
-		text := s.searchHistoryText(list)
-		keyboard := s.historyInlineKeyboard(list)
+		text := s.searchHistoryText(l, list)
+		keyboard := s.historyInlineKeyboard(l, list)
 		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: text, InlineKeyboard: keyboard}}, nil
 	}
 
-	return s.historyProfileMessages(msg.ChatID, item, list.Offset), nil
+	return s.historyProfileMessages(msg.ChatID, item, list.Offset, l), nil
 }
 
-func (s *service) historyActionMessages(ctx context.Context, msg domain.IncomingMessage, action domain.MatchAction) ([]domain.OutgoingMessage, error) {
+func (s *service) historyActionMessages(ctx context.Context, msg domain.IncomingMessage, action domain.MatchAction, l localizer) ([]domain.OutgoingMessage, error) {
 	targetID, offset, ok := s.parseHistoryTarget(msg.Arguments)
 	if !ok {
-		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText()}}, nil
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, nil
 	}
 
 	actionResult, err := s.search.RecordAction(ctx, msg.User.ID, targetID, action)
 	if err != nil {
-		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText()}}, err
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, err
 	}
 
 	item, list, found, historyErr := s.historyItem(ctx, msg.User.ID, targetID, offset)
 	if !found || historyErr != nil {
 		if historyErr != nil {
-			return s.searchErrorResponse(msg.ChatID, historyErr), historyErr
+			return s.searchErrorResponse(l, msg.ChatID, historyErr), historyErr
 		}
-		text := s.searchHistoryText(list)
-		keyboard := s.historyInlineKeyboard(list)
+		text := s.searchHistoryText(l, list)
+		keyboard := s.historyInlineKeyboard(l, list)
 		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: text, InlineKeyboard: keyboard}}, nil
 	}
 
@@ -320,7 +326,7 @@ func (s *service) historyActionMessages(ctx context.Context, msg domain.Incoming
 		item.Action = action
 	}
 
-	historyMessages := s.historyProfileMessages(msg.ChatID, item, list.Offset)
+	historyMessages := s.historyProfileMessages(msg.ChatID, item, list.Offset, l)
 	if action != domain.MatchActionLike {
 		return historyMessages, historyErr
 	}
@@ -332,13 +338,45 @@ func (s *service) historyActionMessages(ctx context.Context, msg domain.Incoming
 		return historyMessages, errors.Join(historyErr, likeErr)
 	}
 
-	currentMatchMessages, targetMatchMessages, matchErr := s.mutualMatchMessages(ctx, msg, targetID)
-	messages := append(currentMatchMessages, historyMessages...)
-	if len(targetMatchMessages) > 0 {
-		messages = append(messages, targetMatchMessages...)
-	}
+		currentMatchMessages, targetMatchMessages, matchErr := s.mutualMatchMessages(ctx, msg, targetID, l)
+		messages := append(currentMatchMessages, historyMessages...)
+		if len(targetMatchMessages) > 0 {
+			messages = append(messages, targetMatchMessages...)
+		}
 
 	return messages, errors.Join(historyErr, matchErr)
+}
+
+func (s *service) matchViewActionMessages(ctx context.Context, msg domain.IncomingMessage, action domain.MatchAction, l localizer) ([]domain.OutgoingMessage, error) {
+	targetID, ok := s.parseTargetID(msg.Arguments)
+	if !ok {
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, nil
+	}
+
+	actionResult, err := s.search.RecordAction(ctx, msg.User.ID, targetID, action)
+	if err != nil {
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, err
+	}
+
+	if action == domain.MatchActionLike && actionResult.Matched {
+		currentMatchMessages, targetMatchMessages, matchErr := s.mutualMatchMessages(ctx, msg, targetID, l)
+		messages := append([]domain.OutgoingMessage{}, currentMatchMessages...)
+		if len(targetMatchMessages) > 0 {
+			messages = append(messages, targetMatchMessages...)
+		}
+		return messages, matchErr
+	}
+
+	messages := []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.matchActionSavedText(l)}}
+	if action != domain.MatchActionLike {
+		return messages, nil
+	}
+
+	likeNotifications, likeErr := s.notifyPendingLikesForUser(ctx, targetID)
+	if len(likeNotifications) > 0 {
+		messages = append(messages, likeNotifications...)
+	}
+	return messages, likeErr
 }
 
 func (s *service) historyItem(ctx context.Context, userID, targetID int64, offset int) (domain.MatchHistoryItem, domain.MatchHistoryList, bool, error) {
@@ -356,17 +394,17 @@ func (s *service) historyItem(ctx context.Context, userID, targetID int64, offse
 	return domain.MatchHistoryItem{}, list, false, nil
 }
 
-func (s *service) historyProfileMessages(chatID int64, item domain.MatchHistoryItem, offset int) []domain.OutgoingMessage {
+func (s *service) historyProfileMessages(chatID int64, item domain.MatchHistoryItem, offset int, l localizer) []domain.OutgoingMessage {
 	return s.profileAlbumMessagesWithText(
 		chatID,
 		item.Profile,
-		s.profilePreviewCard(item.Profile),
-		s.historyActionsText(item.Action),
-		s.historyActionsInlineKeyboard(item.Profile.UserID, offset),
+		s.profilePreviewCard(l, item.Profile),
+		s.historyActionsText(l, item.Action),
+		s.historyActionsInlineKeyboard(l, item.Profile.UserID, offset),
 	)
 }
 
-func (s *service) pendingLikesFollowUp(ctx context.Context, msg domain.IncomingMessage) ([]domain.OutgoingMessage, error) {
+func (s *service) pendingLikesFollowUp(ctx context.Context, msg domain.IncomingMessage, l localizer) ([]domain.OutgoingMessage, error) {
 	if msg.Command != domain.CommandStart && msg.Command != domain.CommandSearchStart {
 		return nil, nil
 	}
@@ -398,8 +436,8 @@ func (s *service) pendingLikesFollowUp(ctx context.Context, msg domain.IncomingM
 		messages = append(messages, domain.OutgoingMessage{
 			ChatID:         msg.ChatID,
 			Kind:           domain.OutgoingMessageKindLikeNotification,
-			Text:           s.likeNotificationText(like),
-			InlineKeyboard: s.matchViewInlineKeyboard(like.UserID),
+			Text:           s.likeNotificationText(l, like),
+			InlineKeyboard: s.matchViewInlineKeyboard(l, like.UserID),
 		})
 	}
 
@@ -430,20 +468,21 @@ func (s *service) notifyPendingLikesForUser(ctx context.Context, userID int64) (
 		return nil, nil
 	}
 
+	l := s.localizerForUser(ctx, userID, domain.DefaultLanguage)
 	messages := make([]domain.OutgoingMessage, 0, len(likes))
 	for _, like := range likes {
 		messages = append(messages, domain.OutgoingMessage{
 			ChatID:         session.ChatID,
 			Kind:           domain.OutgoingMessageKindLikeNotification,
-			Text:           s.likeNotificationText(like),
-			InlineKeyboard: s.matchViewInlineKeyboard(like.UserID),
+			Text:           s.likeNotificationText(l, like),
+			InlineKeyboard: s.matchViewInlineKeyboard(l, like.UserID),
 		})
 	}
 
 	return messages, nil
 }
 
-func (s *service) mutualMatchMessages(ctx context.Context, msg domain.IncomingMessage, targetID int64) ([]domain.OutgoingMessage, []domain.OutgoingMessage, error) {
+func (s *service) mutualMatchMessages(ctx context.Context, msg domain.IncomingMessage, targetID int64, l localizer) ([]domain.OutgoingMessage, []domain.OutgoingMessage, error) {
 	var errs []error
 
 	viewerProfile := domain.Profile{UserID: msg.User.ID}
@@ -477,22 +516,23 @@ func (s *service) mutualMatchMessages(ctx context.Context, msg domain.IncomingMe
 		}
 	}
 
-	currentNickname := s.nicknameFromSession(targetSession, targetProfile)
+	currentNickname := s.nicknameFromSession(l, targetSession, targetProfile)
 	currentMessages := []domain.OutgoingMessage{
 		{
 			ChatID: msg.ChatID,
 			Kind:   domain.OutgoingMessageKindMatchNotification,
-			Text:   s.matchSuccessText(targetProfile, currentNickname),
+			Text:   s.matchSuccessText(l, targetProfile, currentNickname),
 		},
 	}
 
 	targetMessages := []domain.OutgoingMessage{}
 	if targetSessionFound && targetSession.ChatID != 0 {
-		viewerNickname := s.nicknameFromUser(msg.User, viewerProfile)
+		targetLocalizer := s.localizerForUser(ctx, targetID, domain.DefaultLanguage)
+		viewerNickname := s.nicknameFromUser(targetLocalizer, msg.User, viewerProfile)
 		targetMessages = append(targetMessages, domain.OutgoingMessage{
 			ChatID: targetSession.ChatID,
 			Kind:   domain.OutgoingMessageKindMatchNotification,
-			Text:   s.matchSuccessText(viewerProfile, viewerNickname),
+			Text:   s.matchSuccessText(targetLocalizer, viewerProfile, viewerNickname),
 		})
 	}
 

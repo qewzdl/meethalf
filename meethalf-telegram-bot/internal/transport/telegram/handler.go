@@ -183,6 +183,9 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 	case strings.HasPrefix(text, domain.CommandProfileVisibility+":"):
 		command = domain.CommandProfileVisibility
 		arguments = strings.TrimPrefix(text, domain.CommandProfileVisibility+":")
+	case strings.HasPrefix(text, domain.CommandProfileLanguage+":"):
+		command = domain.CommandProfileLanguage
+		arguments = strings.TrimPrefix(text, domain.CommandProfileLanguage+":")
 	case strings.HasPrefix(text, domain.CommandSearchGender+":"):
 		command = domain.CommandSearchGender
 		arguments = strings.TrimPrefix(text, domain.CommandSearchGender+":")
@@ -198,6 +201,15 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 	case strings.HasPrefix(text, domain.CommandMatchReport+":"):
 		command = domain.CommandMatchReport
 		arguments = strings.TrimPrefix(text, domain.CommandMatchReport+":")
+	case strings.HasPrefix(text, domain.CommandMatchViewLike+":"):
+		command = domain.CommandMatchViewLike
+		arguments = strings.TrimPrefix(text, domain.CommandMatchViewLike+":")
+	case strings.HasPrefix(text, domain.CommandMatchViewDislike+":"):
+		command = domain.CommandMatchViewDislike
+		arguments = strings.TrimPrefix(text, domain.CommandMatchViewDislike+":")
+	case strings.HasPrefix(text, domain.CommandMatchViewReport+":"):
+		command = domain.CommandMatchViewReport
+		arguments = strings.TrimPrefix(text, domain.CommandMatchViewReport+":")
 	case strings.HasPrefix(text, domain.CommandMatchViewProfile+":"):
 		command = domain.CommandMatchViewProfile
 		arguments = strings.TrimPrefix(text, domain.CommandMatchViewProfile+":")
@@ -258,6 +270,8 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandProfileEditPhotos
 		case domain.CommandProfileSettings:
 			command = domain.CommandProfileSettings
+		case domain.CommandProfileLanguage:
+			command = domain.CommandProfileLanguage
 		case domain.CommandProfileDelete:
 			command = domain.CommandProfileDelete
 		case domain.CommandProfileDeleteConfirm:

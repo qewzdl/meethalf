@@ -3,7 +3,6 @@ package bot
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -12,13 +11,13 @@ import (
 
 const adminUsersPageSize = 20
 
-func (s *service) adminMenuMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
+func (s *service) adminMenuMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
 	role, roleErr := s.resolveAdminRole(ctx, msg.User)
 	if roleErr != nil && isBannedError(roleErr) {
-		return s.userBannedText(), nil, roleErr
+		return s.userBannedText(l), nil, roleErr
 	}
 	if !role.canAccessPanel() {
-		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg, l)
 		return text, keyboard, errors.Join(roleErr, err)
 	}
 
@@ -26,125 +25,123 @@ func (s *service) adminMenuMessage(ctx context.Context, msg domain.IncomingMessa
 		_ = s.adminActions.Delete(ctx, msg.User.ID)
 	}
 
-	return s.adminMenuTextForRole(role), s.adminMenuInlineKeyboard(role), roleErr
+	return s.adminMenuTextForRole(l, role), s.adminMenuInlineKeyboard(l, role), roleErr
 }
 
-func (s *service) adminUsersMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
+func (s *service) adminUsersMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
 	role, roleErr := s.resolveAdminRole(ctx, msg.User)
 	if roleErr != nil && isBannedError(roleErr) {
-		return s.userBannedText(), nil, roleErr
+		return s.userBannedText(l), nil, roleErr
 	}
 	if !role.canModerateUsers() {
-		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg, l)
 		return text, keyboard, errors.Join(roleErr, err)
 	}
 
 	if s == nil || s.admin == nil {
-		return s.adminUsersLoadFailedText(), s.adminMenuInlineKeyboard(role), errors.New("admin service is not configured")
+		return s.adminUsersLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), errors.New("admin service is not configured")
 	}
 
 	offset := s.parseAdminUsersOffset(msg.Arguments)
 	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, false)
 	if err != nil {
-		return s.adminUsersLoadFailedText(), s.adminMenuInlineKeyboard(role), err
+		return s.adminUsersLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), err
 	}
 
-	text := s.adminUsersText(list)
-	keyboard := s.adminUsersInlineKeyboard(list.Offset, list.Limit, list.Total)
+	text := s.adminUsersText(l, list)
+	keyboard := s.adminUsersInlineKeyboard(l, list.Offset, list.Limit, list.Total)
 	return text, keyboard, nil
 }
 
-func (s *service) adminBannedUsersMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
+func (s *service) adminBannedUsersMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
 	role, roleErr := s.resolveAdminRole(ctx, msg.User)
 	if roleErr != nil && isBannedError(roleErr) {
-		return s.userBannedText(), nil, roleErr
+		return s.userBannedText(l), nil, roleErr
 	}
 	if !role.canModerateUsers() {
-		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg, l)
 		return text, keyboard, errors.Join(roleErr, err)
 	}
 
 	if s == nil || s.admin == nil {
-		return s.adminBannedUsersLoadFailedText(), s.adminMenuInlineKeyboard(role), errors.New("admin service is not configured")
+		return s.adminBannedUsersLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), errors.New("admin service is not configured")
 	}
 
 	offset := s.parseAdminUsersOffset(msg.Arguments)
 	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, true, false)
 	if err != nil {
-		return s.adminBannedUsersLoadFailedText(), s.adminMenuInlineKeyboard(role), err
+		return s.adminBannedUsersLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), err
 	}
 
-	text := s.adminBannedUsersText(list)
-	keyboard := s.adminBannedUsersInlineKeyboard(list.Offset, list.Limit, list.Total)
+	text := s.adminBannedUsersText(l, list)
+	keyboard := s.adminBannedUsersInlineKeyboard(l, list.Offset, list.Limit, list.Total)
 	return text, keyboard, nil
 }
 
-func (s *service) adminModeratorsMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
+func (s *service) adminModeratorsMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
 	role, roleErr := s.resolveAdminRole(ctx, msg.User)
 	if roleErr != nil && isBannedError(roleErr) {
-		return s.userBannedText(), nil, roleErr
+		return s.userBannedText(l), nil, roleErr
 	}
 	if !role.canManageModerators() {
-		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg, l)
 		return text, keyboard, errors.Join(roleErr, err)
 	}
 
 	if s == nil || s.admin == nil {
-		return s.adminModeratorsLoadFailedText(), s.adminMenuInlineKeyboard(role), errors.New("admin service is not configured")
+		return s.adminModeratorsLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), errors.New("admin service is not configured")
 	}
 
 	offset := s.parseAdminUsersOffset(msg.Arguments)
 	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, true)
 	if err != nil {
-		return s.adminModeratorsLoadFailedText(), s.adminMenuInlineKeyboard(role), err
+		return s.adminModeratorsLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), err
 	}
 
-	text := s.adminModeratorsText(list)
-	keyboard := s.adminModeratorsInlineKeyboard(list.Offset, list.Limit, list.Total)
+	text := s.adminModeratorsText(l, list)
+	keyboard := s.adminModeratorsInlineKeyboard(l, list.Offset, list.Limit, list.Total)
 	return text, keyboard, nil
 }
 
-func (s *service) adminReportsMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
+func (s *service) adminReportsMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
 	role, roleErr := s.resolveAdminRole(ctx, msg.User)
 	if roleErr != nil && isBannedError(roleErr) {
-		return s.userBannedText(), nil, roleErr
+		return s.userBannedText(l), nil, roleErr
 	}
 	if !role.canModerateUsers() {
-		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg, l)
 		return text, keyboard, errors.Join(roleErr, err)
 	}
 
 	if s == nil || s.admin == nil {
-		return s.adminReportsLoadFailedText(), s.adminMenuInlineKeyboard(role), errors.New("admin service is not configured")
+		return s.adminReportsLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), errors.New("admin service is not configured")
 	}
 
 	offset := s.parseAdminUsersOffset(msg.Arguments)
 	list, err := s.admin.ListReportedUsers(ctx, adminUsersPageSize, offset)
 	if err != nil {
-		return s.adminReportsLoadFailedText(), s.adminMenuInlineKeyboard(role), err
+		return s.adminReportsLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), err
 	}
 
-	text := s.adminReportsText(list)
-	keyboard := s.adminReportsInlineKeyboard(list.Offset, list.Limit, list.Total)
+	text := s.adminReportsText(l, list)
+	keyboard := s.adminReportsInlineKeyboard(l, list.Offset, list.Limit, list.Total)
 	return text, keyboard, nil
 }
 
-func (s *service) adminAccessDeniedMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
-	text := s.adminAccessDeniedText()
+func (s *service) adminAccessDeniedMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
+	text := s.adminAccessDeniedText(l)
 	if s == nil {
 		return text, nil, errors.New("service is not configured")
 	}
 
 	profile, status, statusErr := s.resolveProfileStatus(ctx, msg.User.ID)
 	if isBannedError(statusErr) {
-		return s.userBannedText(), nil, statusErr
-	}
-	if s.helpText != "" {
-		text = text + "\n" + s.helpText
+		return s.userBannedText(l), nil, statusErr
 	}
 
 	role := s.adminRoleForProfile(msg.User, profile, status)
-	return text, s.startInlineKeyboardByStatus(status, role), statusErr
+	text = text + "\n" + s.helpTextFor(l, role)
+	return text, s.startInlineKeyboardByStatus(l, status, role), statusErr
 }
 
 func (s *service) parseAdminUsersOffset(value string) int {
@@ -166,28 +163,28 @@ func (s *service) parseAdminUsersOffset(value string) int {
 	return offset
 }
 
-func (s *service) adminUsersText(list domain.UserList) string {
-	return s.adminUsersTextWithTemplates(list, adminUsersPageTemplate, s.adminUsersEmptyText(), adminUsersEmptyPageTemplate)
+func (s *service) adminUsersText(l localizer, list domain.UserList) string {
+	return s.adminUsersTextWithTemplates(l, list, msgAdminUsersPage, msgAdminUsersEmpty, msgAdminUsersEmptyPage)
 }
 
-func (s *service) adminBannedUsersText(list domain.UserList) string {
-	return s.adminUsersTextWithTemplates(list, adminBannedUsersPageTemplate, s.adminBannedUsersEmptyText(), adminBannedUsersEmptyPageTemplate)
+func (s *service) adminBannedUsersText(l localizer, list domain.UserList) string {
+	return s.adminUsersTextWithTemplates(l, list, msgAdminBannedUsersPage, msgAdminBannedUsersEmpty, msgAdminBannedUsersEmptyPage)
 }
 
-func (s *service) adminModeratorsText(list domain.UserList) string {
-	return s.adminUsersTextWithTemplates(list, adminModeratorsPageTemplate, s.adminModeratorsEmptyText(), adminModeratorsEmptyPageTemplate)
+func (s *service) adminModeratorsText(l localizer, list domain.UserList) string {
+	return s.adminUsersTextWithTemplates(l, list, msgAdminModeratorsPage, msgAdminModeratorsEmpty, msgAdminModeratorsEmptyPage)
 }
 
-func (s *service) adminReportsText(list domain.ReportedUserList) string {
-	return s.adminReportedUsersTextWithTemplates(list, adminReportsPageTemplate, s.adminReportsEmptyText(), adminReportsEmptyPageTemplate)
+func (s *service) adminReportsText(l localizer, list domain.ReportedUserList) string {
+	return s.adminReportedUsersTextWithTemplates(l, list, msgAdminReportsPage, msgAdminReportsEmpty, msgAdminReportsEmptyPage)
 }
 
-func (s *service) adminUsersTextWithTemplates(list domain.UserList, pageTemplate, emptyText, emptyPageTemplate string) string {
+func (s *service) adminUsersTextWithTemplates(l localizer, list domain.UserList, pageKey, emptyKey, emptyPageKey messageKey) string {
 	if len(list.Users) == 0 {
 		if list.Total == 0 {
-			return emptyText
+			return l.message(emptyKey)
 		}
-		return fmt.Sprintf(emptyPageTemplate, list.Total)
+		return l.message(emptyPageKey, list.Total)
 	}
 
 	start := list.Offset + 1
@@ -197,43 +194,30 @@ func (s *service) adminUsersTextWithTemplates(list domain.UserList, pageTemplate
 	}
 
 	lines := make([]string, 0, len(list.Users)+1)
-	lines = append(lines, fmt.Sprintf(pageTemplate, list.Total, start, end))
+	lines = append(lines, l.message(pageKey, list.Total, start, end))
 
 	for i, user := range list.Users {
 		name := strings.TrimSpace(user.Name)
 		if name == "" {
-			name = "No name"
+			name = l.message(msgAdminUserListNoName)
 		}
-		usernameLabel := "n/a"
+		usernameLabel := l.message(msgAdminUserListNA)
 		if username := strings.TrimSpace(user.Username); username != "" {
 			usernameLabel = s.formatUsername(username)
 		}
-		statusParts := make([]string, 0, 3)
-		if user.IsBanned {
-			statusParts = append(statusParts, "banned")
-		}
-		if user.IsModerator {
-			statusParts = append(statusParts, "moderator")
-		}
-		if user.IsHidden {
-			statusParts = append(statusParts, "hidden")
-		}
-		status := "visible"
-		if len(statusParts) > 0 {
-			status = strings.Join(statusParts, ", ")
-		}
-		lines = append(lines, fmt.Sprintf("%d. %s (ID: %d, username: %s, %s)", list.Offset+i+1, name, user.UserID, usernameLabel, status))
+		status := l.adminStatusLabel(user.IsBanned, user.IsModerator, user.IsHidden)
+		lines = append(lines, l.message(msgAdminUserListLine, list.Offset+i+1, name, user.UserID, usernameLabel, status))
 	}
 
 	return strings.Join(lines, "\n")
 }
 
-func (s *service) adminReportedUsersTextWithTemplates(list domain.ReportedUserList, pageTemplate, emptyText, emptyPageTemplate string) string {
+func (s *service) adminReportedUsersTextWithTemplates(l localizer, list domain.ReportedUserList, pageKey, emptyKey, emptyPageKey messageKey) string {
 	if len(list.Users) == 0 {
 		if list.Total == 0 {
-			return emptyText
+			return l.message(emptyKey)
 		}
-		return fmt.Sprintf(emptyPageTemplate, list.Total)
+		return l.message(emptyPageKey, list.Total)
 	}
 
 	start := list.Offset + 1
@@ -243,32 +227,19 @@ func (s *service) adminReportedUsersTextWithTemplates(list domain.ReportedUserLi
 	}
 
 	lines := make([]string, 0, len(list.Users)+1)
-	lines = append(lines, fmt.Sprintf(pageTemplate, list.Total, start, end))
+	lines = append(lines, l.message(pageKey, list.Total, start, end))
 
 	for i, user := range list.Users {
 		name := strings.TrimSpace(user.Name)
 		if name == "" {
-			name = "No name"
+			name = l.message(msgAdminUserListNoName)
 		}
-		usernameLabel := "n/a"
+		usernameLabel := l.message(msgAdminUserListNA)
 		if username := strings.TrimSpace(user.Username); username != "" {
 			usernameLabel = s.formatUsername(username)
 		}
-		statusParts := make([]string, 0, 3)
-		if user.IsBanned {
-			statusParts = append(statusParts, "banned")
-		}
-		if user.IsModerator {
-			statusParts = append(statusParts, "moderator")
-		}
-		if user.IsHidden {
-			statusParts = append(statusParts, "hidden")
-		}
-		status := "visible"
-		if len(statusParts) > 0 {
-			status = strings.Join(statusParts, ", ")
-		}
-		lines = append(lines, fmt.Sprintf("%d. %s (ID: %d, username: %s, reports: %d, %s)", list.Offset+i+1, name, user.UserID, usernameLabel, user.ReportCount, status))
+		status := l.adminStatusLabel(user.IsBanned, user.IsModerator, user.IsHidden)
+		lines = append(lines, l.message(msgAdminReportedUserListLine, list.Offset+i+1, name, user.UserID, usernameLabel, user.ReportCount, status))
 	}
 
 	return strings.Join(lines, "\n")

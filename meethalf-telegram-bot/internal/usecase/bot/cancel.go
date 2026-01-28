@@ -7,24 +7,21 @@ import (
 	"meethalf-telegram-bot/internal/domain"
 )
 
-func (s *service) cancelMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
-	text, cancelErr := s.cancelAction(ctx, msg)
+func (s *service) cancelMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
+	text, cancelErr := s.cancelAction(ctx, msg, l)
 	if s == nil {
 		return text, nil, cancelErr
 	}
 
 	profile, status, statusErr := s.resolveProfileStatus(ctx, msg.User.ID)
-	if s.helpText != "" {
-		text = text + "\n" + s.helpText
-	}
-
 	role := s.adminRoleForProfile(msg.User, profile, status)
-	return text, s.startInlineKeyboardByStatus(status, role), errors.Join(cancelErr, statusErr)
+	text = text + "\n" + s.helpTextFor(l, role)
+	return text, s.startInlineKeyboardByStatus(l, status, role), errors.Join(cancelErr, statusErr)
 }
 
-func (s *service) cancelAction(ctx context.Context, msg domain.IncomingMessage) (string, error) {
+func (s *service) cancelAction(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, error) {
 	if msg.User.ID == 0 {
-		return s.actionCanceledText(), errors.New("user id is missing")
+		return s.actionCanceledText(l), errors.New("user id is missing")
 	}
 
 	var (
@@ -63,10 +60,10 @@ func (s *service) cancelAction(ctx context.Context, msg domain.IncomingMessage) 
 
 	if canceledDraft {
 		if draftMode == domain.ProfileDraftModeEdit {
-			return s.profileEditCanceledText(), cancelErr
+			return s.profileEditCanceledText(l), cancelErr
 		}
-		return s.profileSetupCanceledText(), cancelErr
+		return s.profileSetupCanceledText(l), cancelErr
 	}
 
-	return s.actionCanceledText(), cancelErr
+	return s.actionCanceledText(l), cancelErr
 }

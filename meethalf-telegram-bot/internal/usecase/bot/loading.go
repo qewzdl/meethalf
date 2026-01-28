@@ -16,117 +16,124 @@ func (s *service) LoadingMessage(ctx context.Context, msg domain.IncomingMessage
 		return domain.OutgoingMessage{}, false, nil
 	}
 
+	l := s.localizerForMessage(ctx, msg)
 	if msg.Command != "" {
-		loading, ok := s.loadingForCommand(msg)
+		loading, ok := s.loadingForCommand(l, msg)
 		return loading, ok, nil
 	}
 
-	loading, ok, err := s.loadingForAdminAction(ctx, msg)
+	loading, ok, err := s.loadingForAdminAction(ctx, msg, l)
 	if err != nil || ok {
 		return loading, ok, err
 	}
 
-	return s.loadingForDraft(ctx, msg)
+	return s.loadingForDraft(ctx, msg, l)
 }
 
-func (s *service) loadingForCommand(msg domain.IncomingMessage) (domain.OutgoingMessage, bool) {
+func (s *service) loadingForCommand(l localizer, msg domain.IncomingMessage) (domain.OutgoingMessage, bool) {
 	if s == nil || s.profiles == nil || msg.User.ID == 0 {
 		return domain.OutgoingMessage{}, false
 	}
 
 	switch msg.Command {
 	case domain.CommandStart:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingStartText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingStart)}, true
 	case domain.CommandProfileView:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingProfileViewText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingProfileView)}, true
 	case domain.CommandProfilePreview:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingProfilePreviewText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingProfilePreview)}, true
 	case domain.CommandProfileEditName:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingEditNameText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingEditName)}, true
 	case domain.CommandProfileEditGender:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingEditGenderText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingEditGender)}, true
 	case domain.CommandProfileEditBirthDate:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingEditBirthDateText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingEditBirthDate)}, true
 	case domain.CommandProfileEditCountry:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingEditCountryText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingEditCountry)}, true
 	case domain.CommandProfileEditCity:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingEditCityText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingEditCity)}, true
 	case domain.CommandProfileEditDesc:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingEditDescText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingEditDesc)}, true
 	case domain.CommandProfileEditEmoji:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingEditEmojiText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingEditEmoji)}, true
 	case domain.CommandProfileEditPhotos:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingEditPhotosText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingEditPhotos)}, true
 	case domain.CommandProfileVisibility:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingProfileVisibilityText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingProfileVisibility)}, true
 	case domain.CommandProfileDeleteConfirm:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: deletingProfileText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgDeletingProfile)}, true
 	case domain.CommandSearchAccuracy:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchStartText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchStart)}, true
 	case domain.CommandSearchRefresh:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchNextText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchNext)}, true
 	case domain.CommandMatchLike:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchNextText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchNext)}, true
 	case domain.CommandMatchDislike:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchNextText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchNext)}, true
 	case domain.CommandMatchReport:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchNextText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchNext)}, true
+	case domain.CommandMatchViewLike:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchHistoryAction)}, true
+	case domain.CommandMatchViewDislike:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchHistoryAction)}, true
+	case domain.CommandMatchViewReport:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchHistoryAction)}, true
 	case domain.CommandMatchPrevious:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchPrevText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchPrev)}, true
 	case domain.CommandMatchHistory:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchHistoryText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchHistory)}, true
 	case domain.CommandMatchHistoryView:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchHistoryProfileText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchHistoryProfile)}, true
 	case domain.CommandMatchHistoryLike:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchHistoryActionText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchHistoryAction)}, true
 	case domain.CommandMatchHistoryDislike:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchHistoryActionText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchHistoryAction)}, true
 	case domain.CommandMatchHistoryReport:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingSearchHistoryActionText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchHistoryAction)}, true
 	case domain.CommandAdminUsers:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminUsersText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminUsers)}, true
 	case domain.CommandAdminBannedUsers:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminBannedUsersText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminBannedUsers)}, true
 	case domain.CommandAdminModerators:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminModeratorsText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminModerators)}, true
 	case domain.CommandAdminReports:
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminReportsText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminReports)}, true
 	case domain.CommandAdminBan:
 		if strings.TrimSpace(msg.Arguments) == "" {
 			return domain.OutgoingMessage{}, false
 		}
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminBanText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminBan)}, true
 	case domain.CommandAdminUnban:
 		if strings.TrimSpace(msg.Arguments) == "" {
 			return domain.OutgoingMessage{}, false
 		}
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminUnbanText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminUnban)}, true
 	case domain.CommandAdminModerator:
 		if strings.TrimSpace(msg.Arguments) == "" {
 			return domain.OutgoingMessage{}, false
 		}
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminModeratorText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminModerator)}, true
 	case domain.CommandAdminUnmoderator:
 		if strings.TrimSpace(msg.Arguments) == "" {
 			return domain.OutgoingMessage{}, false
 		}
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminUnmoderatorText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminUnmoderator)}, true
 	case domain.CommandAdminResetChoices:
 		if strings.TrimSpace(msg.Arguments) == "" {
 			return domain.OutgoingMessage{}, false
 		}
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminResetChoicesText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminResetChoices)}, true
 	case domain.CommandAdminClearReports:
 		if strings.TrimSpace(msg.Arguments) == "" {
 			return domain.OutgoingMessage{}, false
 		}
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminClearReportsText}, true
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminClearReports)}, true
 	default:
 		return domain.OutgoingMessage{}, false
 	}
 }
 
-func (s *service) loadingForAdminAction(ctx context.Context, msg domain.IncomingMessage) (domain.OutgoingMessage, bool, error) {
+func (s *service) loadingForAdminAction(ctx context.Context, msg domain.IncomingMessage, l localizer) (domain.OutgoingMessage, bool, error) {
 	if s == nil || s.adminActions == nil || msg.User.ID == 0 {
 		return domain.OutgoingMessage{}, false, nil
 	}
@@ -160,23 +167,23 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 		return domain.OutgoingMessage{}, false, nil
 	}
 
-	loadingText := loadingAdminBanText
+	loadingText := l.message(msgLoadingAdminBan)
 	switch action.Action {
 	case domain.AdminActionUnban:
-		loadingText = loadingAdminUnbanText
+		loadingText = l.message(msgLoadingAdminUnban)
 	case domain.AdminActionModerator:
-		loadingText = loadingAdminModeratorText
+		loadingText = l.message(msgLoadingAdminModerator)
 	case domain.AdminActionUnmoderator:
-		loadingText = loadingAdminUnmoderatorText
+		loadingText = l.message(msgLoadingAdminUnmoderator)
 	case domain.AdminActionResetChoices:
-		loadingText = loadingAdminResetChoicesText
+		loadingText = l.message(msgLoadingAdminResetChoices)
 	case domain.AdminActionClearReports:
-		loadingText = loadingAdminClearReportsText
+		loadingText = l.message(msgLoadingAdminClearReports)
 	}
 	return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingText}, true, nil
 }
 
-func (s *service) loadingForDraft(ctx context.Context, msg domain.IncomingMessage) (domain.OutgoingMessage, bool, error) {
+func (s *service) loadingForDraft(ctx context.Context, msg domain.IncomingMessage, l localizer) (domain.OutgoingMessage, bool, error) {
 	if s == nil || s.drafts == nil || s.profiles == nil || msg.User.ID == 0 {
 		return domain.OutgoingMessage{}, false, nil
 	}
@@ -188,13 +195,13 @@ func (s *service) loadingForDraft(ctx context.Context, msg domain.IncomingMessag
 
 	if s.draftMode(draft) == domain.ProfileDraftModeEdit {
 		if s.editDraftWillSave(msg, draft) {
-			return domain.OutgoingMessage{ChatID: msg.ChatID, Text: updatingProfileText}, true, nil
+			return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgUpdatingProfile)}, true, nil
 		}
 		return domain.OutgoingMessage{}, false, nil
 	}
 
 	if draft.Step == domain.ProfileDraftStepPhotos && s.albumDoneWillSave(msg, draft) {
-		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: creatingProfileText}, true, nil
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgCreatingProfile)}, true, nil
 	}
 
 	return domain.OutgoingMessage{}, false, nil

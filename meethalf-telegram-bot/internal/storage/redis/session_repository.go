@@ -35,7 +35,7 @@ func (r *SessionRepository) Touch(ctx context.Context, session domain.Session) e
 
 	key := fmt.Sprintf("meethalf:sessions:%d", session.UserID)
 	lastSeen := session.LastSeen.UTC().Format(time.RFC3339Nano)
-	if err := r.client.HSet(ctx, key, "chat_id", session.ChatID, "last_seen", lastSeen, "username", session.Username).Err(); err != nil {
+	if err := r.client.HSet(ctx, key, "chat_id", session.ChatID, "last_seen", lastSeen, "username", session.Username, "language", string(session.Language)).Err(); err != nil {
 		return err
 	}
 
@@ -90,6 +90,7 @@ func (r *SessionRepository) Get(ctx context.Context, userID int64) (domain.Sessi
 		UserID:   userID,
 		ChatID:   chatID,
 		Username: values["username"],
+		Language: domain.Language(values["language"]),
 		LastSeen: lastSeen,
 	}, true, nil
 }

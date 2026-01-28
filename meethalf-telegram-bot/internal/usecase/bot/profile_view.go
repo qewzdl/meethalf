@@ -7,61 +7,61 @@ import (
 	"meethalf-telegram-bot/internal/domain"
 )
 
-func (s *service) showProfile(ctx context.Context, msg domain.IncomingMessage) (string, error) {
-	profile, found, message, err := s.fetchProfile(ctx, msg)
+func (s *service) showProfile(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, error) {
+	profile, found, message, err := s.fetchProfile(ctx, msg, l)
 	if err != nil || !found {
 		return message, err
 	}
 
-	return s.profileDetails(profile), nil
+	return s.profileDetails(l, profile), nil
 }
 
-func (s *service) showProfilePreview(ctx context.Context, msg domain.IncomingMessage) (string, error) {
-	profile, found, message, err := s.fetchProfile(ctx, msg)
+func (s *service) showProfilePreview(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, error) {
+	profile, found, message, err := s.fetchProfile(ctx, msg, l)
 	if err != nil || !found {
 		return message, err
 	}
 
-	return s.profilePreviewDetails(profile), nil
+	return s.profilePreviewDetails(l, profile), nil
 }
 
-func (s *service) profileEditMenu(ctx context.Context, msg domain.IncomingMessage) (string, error) {
+func (s *service) profileEditMenu(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, error) {
 	if s != nil && s.drafts != nil && msg.User.ID != 0 {
 		_ = s.drafts.Delete(ctx, msg.User.ID)
 	}
 
-	return s.profileEditMenuText(), nil
+	return s.profileEditMenuText(l), nil
 }
 
-func (s *service) fetchProfile(ctx context.Context, msg domain.IncomingMessage) (domain.Profile, bool, string, error) {
+func (s *service) fetchProfile(ctx context.Context, msg domain.IncomingMessage, l localizer) (domain.Profile, bool, string, error) {
 	if s == nil || s.profiles == nil {
-		return domain.Profile{}, false, "Profile service is not available right now.", errors.New("profile service is not configured")
+		return domain.Profile{}, false, l.message(msgProfileViewUnavailable), errors.New("profile service is not configured")
 	}
 
 	if msg.User.ID == 0 {
-		return domain.Profile{}, false, "Profile is not available for this chat.", errors.New("user id is missing")
+		return domain.Profile{}, false, l.message(msgProfileViewUnavailableChat), errors.New("user id is missing")
 	}
 
 	profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 	if err != nil {
 		if isBannedError(err) {
-			return domain.Profile{}, false, s.userBannedText(), err
+			return domain.Profile{}, false, s.userBannedText(l), err
 		}
-		return domain.Profile{}, false, "Unable to load profile. Please try again later.", err
+		return domain.Profile{}, false, l.message(msgProfileLoadFailed), err
 	}
 	if !found {
-		return domain.Profile{}, false, "Profile not found. Use the button below to create it.", nil
+		return domain.Profile{}, false, l.message(msgProfileNotFoundButtonBelow), nil
 	}
 
 	return profile, true, "", nil
 }
 
-func (s *service) profileAlbumMessages(chatID int64, profile domain.Profile, keyboard *domain.InlineKeyboard) []domain.OutgoingMessage {
-	return s.profileAlbumMessagesWithText(chatID, profile, s.profileDetails(profile), s.profileActionsText(), keyboard)
+func (s *service) profileAlbumMessages(chatID int64, profile domain.Profile, keyboard *domain.InlineKeyboard, l localizer) []domain.OutgoingMessage {
+	return s.profileAlbumMessagesWithText(chatID, profile, s.profileDetails(l, profile), s.profileActionsText(l), keyboard)
 }
 
-func (s *service) profilePreviewAlbumMessages(chatID int64, profile domain.Profile, keyboard *domain.InlineKeyboard) []domain.OutgoingMessage {
-	return s.profileAlbumMessagesWithText(chatID, profile, s.profilePreviewDetails(profile), s.profilePreviewActionsText(), keyboard)
+func (s *service) profilePreviewAlbumMessages(chatID int64, profile domain.Profile, keyboard *domain.InlineKeyboard, l localizer) []domain.OutgoingMessage {
+	return s.profileAlbumMessagesWithText(chatID, profile, s.profilePreviewDetails(l, profile), s.profilePreviewActionsText(l), keyboard)
 }
 
 func (s *service) profileAlbumMessagesWithText(chatID int64, profile domain.Profile, detailsText, actionsText string, keyboard *domain.InlineKeyboard) []domain.OutgoingMessage {

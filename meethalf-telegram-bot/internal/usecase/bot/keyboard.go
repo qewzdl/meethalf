@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -9,57 +8,38 @@ import (
 )
 
 const (
-	cancelButtonText               = "Back to menu"
-	profileSetupBackButtonText     = "Previous step"
-	profileDeleteCancelButtonText  = "Keep profile"
-	backToProfileButtonText        = "Back to profile"
-	editCancelButtonText           = "Cancel"
-	searchAccuracyCancelButtonText = "Cancel"
-	searchRefreshButtonText        = "Refresh feed"
-	searchHistoryButtonText        = "History"
-	searchHistoryPrevButtonText    = "Previous"
-	searchHistoryNextButtonText    = "Next"
-	searchHistoryBackButtonText    = "Back to history"
-	adminMenuButtonText            = "Admin panel"
-	moderatorMenuButtonText        = "Moderator panel"
-	adminUsersButtonText           = "User list"
-	adminBanButtonText             = "Ban user"
-	adminUnbanButtonText           = "Unban user"
-	adminModeratorButtonText       = "Make moderator"
-	adminUnmoderatorButtonText     = "Remove moderator"
-	adminResetChoicesButtonText    = "Reset choices"
-	adminBannedUsersButtonText     = "Banned users"
-	adminModeratorsButtonText      = "Moderators"
-	adminReportsButtonText         = "Reported users"
-	adminClearReportsButtonText    = "Clear reports"
-	adminUsersPrevButtonText       = "Previous"
-	adminUsersNextButtonText       = "Next"
-	adminBackToMenuButtonText      = "Back to admin"
-	historyLabelMaxRunes           = 20
+	historyLabelMaxRunes   = 20
+	matchDislikeButtonText = "\U0001F44E"
+	matchLikeButtonText    = "\u2764\ufe0f"
 )
 
-func (s *service) startInlineKeyboardByStatus(status profileStatus, role adminRole) *domain.InlineKeyboard {
+type localizedOption struct {
+	Label string
+	Value string
+}
+
+func (s *service) startInlineKeyboardByStatus(l localizer, status profileStatus, role adminRole) *domain.InlineKeyboard {
 	if status == profileStatusMissing {
-		return s.withAdminMenuInlineKeyboard(s.profileCreateInlineKeyboard(), role)
+		return s.withAdminMenuInlineKeyboard(l, s.profileCreateInlineKeyboard(l), role)
 	}
 
-	return s.withAdminMenuInlineKeyboard(s.profileInlineKeyboard(), role)
+	return s.withAdminMenuInlineKeyboard(l, s.profileInlineKeyboard(l), role)
 }
 
-func (s *service) profileInlineKeyboard() *domain.InlineKeyboard {
-	return s.profileStartInlineKeyboard("Profile", domain.CommandProfileView)
+func (s *service) profileInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return s.profileStartInlineKeyboard(l, l.button(btnProfile), domain.CommandProfileView)
 }
 
-func (s *service) profileCreateInlineKeyboard() *domain.InlineKeyboard {
-	return s.profileStartInlineKeyboard("Create Profile", domain.CommandProfile)
+func (s *service) profileCreateInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return s.profileStartInlineKeyboard(l, l.button(btnCreateProfile), domain.CommandProfile)
 }
 
-func (s *service) profileStartInlineKeyboard(text, callbackData string) *domain.InlineKeyboard {
+func (s *service) profileStartInlineKeyboard(l localizer, text, callbackData string) *domain.InlineKeyboard {
 	return &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         "Start search",
+					Text:         l.button(btnStartSearch),
 					CallbackData: domain.CommandSearchStart,
 				},
 			},
@@ -71,7 +51,7 @@ func (s *service) profileStartInlineKeyboard(text, callbackData string) *domain.
 			},
 			{
 				{
-					Text:         "Settings",
+					Text:         l.button(btnSettings),
 					CallbackData: domain.CommandProfileSettings,
 				},
 			},
@@ -79,17 +59,17 @@ func (s *service) profileStartInlineKeyboard(text, callbackData string) *domain.
 	}
 }
 
-func (s *service) adminMenuInlineKeyboard(role adminRole) *domain.InlineKeyboard {
+func (s *service) adminMenuInlineKeyboard(l localizer, role adminRole) *domain.InlineKeyboard {
 	rows := [][]domain.InlineButton{
 		{
 			{
-				Text:         adminUsersButtonText,
+				Text:         l.button(btnAdminUsers),
 				CallbackData: domain.CommandAdminUsers,
 			},
 		},
 		{
 			{
-				Text:         adminBannedUsersButtonText,
+				Text:         l.button(btnAdminBannedUsers),
 				CallbackData: domain.CommandAdminBannedUsers,
 			},
 		},
@@ -98,7 +78,7 @@ func (s *service) adminMenuInlineKeyboard(role adminRole) *domain.InlineKeyboard
 	if role.canManageModerators() {
 		rows = append(rows, []domain.InlineButton{
 			{
-				Text:         adminModeratorsButtonText,
+				Text:         l.button(btnAdminModerators),
 				CallbackData: domain.CommandAdminModerators,
 			},
 		})
@@ -107,25 +87,25 @@ func (s *service) adminMenuInlineKeyboard(role adminRole) *domain.InlineKeyboard
 	rows = append(rows,
 		[]domain.InlineButton{
 			{
-				Text:         adminReportsButtonText,
+				Text:         l.button(btnAdminReports),
 				CallbackData: domain.CommandAdminReports,
 			},
 		},
 		[]domain.InlineButton{
 			{
-				Text:         adminClearReportsButtonText,
+				Text:         l.button(btnAdminClearReports),
 				CallbackData: domain.CommandAdminClearReports,
 			},
 		},
 		[]domain.InlineButton{
 			{
-				Text:         adminBanButtonText,
+				Text:         l.button(btnAdminBan),
 				CallbackData: domain.CommandAdminBan,
 			},
 		},
 		[]domain.InlineButton{
 			{
-				Text:         adminUnbanButtonText,
+				Text:         l.button(btnAdminUnban),
 				CallbackData: domain.CommandAdminUnban,
 			},
 		},
@@ -133,7 +113,7 @@ func (s *service) adminMenuInlineKeyboard(role adminRole) *domain.InlineKeyboard
 
 	rows = append(rows, []domain.InlineButton{
 		{
-			Text:         adminResetChoicesButtonText,
+			Text:         l.button(btnAdminResetChoices),
 			CallbackData: domain.CommandAdminResetChoices,
 		},
 	})
@@ -142,30 +122,30 @@ func (s *service) adminMenuInlineKeyboard(role adminRole) *domain.InlineKeyboard
 		rows = append(rows,
 			[]domain.InlineButton{
 				{
-					Text:         adminModeratorButtonText,
+					Text:         l.button(btnAdminModerator),
 					CallbackData: domain.CommandAdminModerator,
 				},
 			},
 			[]domain.InlineButton{
 				{
-					Text:         adminUnmoderatorButtonText,
+					Text:         l.button(btnAdminUnmoderator),
 					CallbackData: domain.CommandAdminUnmoderator,
 				},
 			},
 		)
 	}
 
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: rows,
 	})
 }
 
-func (s *service) adminBanInlineKeyboard() *domain.InlineKeyboard {
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+func (s *service) adminBanInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         adminBackToMenuButtonText,
+					Text:         l.button(btnAdminBackToMenu),
 					CallbackData: domain.CommandAdminMenu,
 				},
 			},
@@ -173,19 +153,19 @@ func (s *service) adminBanInlineKeyboard() *domain.InlineKeyboard {
 	})
 }
 
-func (s *service) adminModeratorInlineKeyboard() *domain.InlineKeyboard {
-	return s.adminBanInlineKeyboard()
+func (s *service) adminModeratorInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return s.adminBanInlineKeyboard(l)
 }
 
-func (s *service) adminResetChoicesInlineKeyboard() *domain.InlineKeyboard {
-	return s.adminBanInlineKeyboard()
+func (s *service) adminResetChoicesInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return s.adminBanInlineKeyboard(l)
 }
 
-func (s *service) adminClearReportsInlineKeyboard() *domain.InlineKeyboard {
-	return s.adminBanInlineKeyboard()
+func (s *service) adminClearReportsInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return s.adminBanInlineKeyboard(l)
 }
 
-func (s *service) adminUsersInlineKeyboard(offset, limit, total int) *domain.InlineKeyboard {
+func (s *service) adminUsersInlineKeyboard(l localizer, offset, limit, total int) *domain.InlineKeyboard {
 	rows := [][]domain.InlineButton{}
 
 	hasPrev := offset > 0
@@ -198,14 +178,14 @@ func (s *service) adminUsersInlineKeyboard(offset, limit, total int) *domain.Inl
 				prevOffset = 0
 			}
 			row = append(row, domain.InlineButton{
-				Text:         adminUsersPrevButtonText,
+				Text:         l.button(btnAdminUsersPrev),
 				CallbackData: domain.CommandAdminUsers + ":" + strconv.Itoa(prevOffset),
 			})
 		}
 		if hasNext {
 			nextOffset := offset + limit
 			row = append(row, domain.InlineButton{
-				Text:         adminUsersNextButtonText,
+				Text:         l.button(btnAdminUsersNext),
 				CallbackData: domain.CommandAdminUsers + ":" + strconv.Itoa(nextOffset),
 			})
 		}
@@ -216,15 +196,15 @@ func (s *service) adminUsersInlineKeyboard(offset, limit, total int) *domain.Inl
 
 	rows = append(rows, []domain.InlineButton{
 		{
-			Text:         adminBackToMenuButtonText,
+			Text:         l.button(btnAdminBackToMenu),
 			CallbackData: domain.CommandAdminMenu,
 		},
 	})
 
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: rows})
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: rows})
 }
 
-func (s *service) adminBannedUsersInlineKeyboard(offset, limit, total int) *domain.InlineKeyboard {
+func (s *service) adminBannedUsersInlineKeyboard(l localizer, offset, limit, total int) *domain.InlineKeyboard {
 	rows := [][]domain.InlineButton{}
 
 	hasPrev := offset > 0
@@ -237,14 +217,14 @@ func (s *service) adminBannedUsersInlineKeyboard(offset, limit, total int) *doma
 				prevOffset = 0
 			}
 			row = append(row, domain.InlineButton{
-				Text:         adminUsersPrevButtonText,
+				Text:         l.button(btnAdminUsersPrev),
 				CallbackData: domain.CommandAdminBannedUsers + ":" + strconv.Itoa(prevOffset),
 			})
 		}
 		if hasNext {
 			nextOffset := offset + limit
 			row = append(row, domain.InlineButton{
-				Text:         adminUsersNextButtonText,
+				Text:         l.button(btnAdminUsersNext),
 				CallbackData: domain.CommandAdminBannedUsers + ":" + strconv.Itoa(nextOffset),
 			})
 		}
@@ -255,15 +235,15 @@ func (s *service) adminBannedUsersInlineKeyboard(offset, limit, total int) *doma
 
 	rows = append(rows, []domain.InlineButton{
 		{
-			Text:         adminBackToMenuButtonText,
+			Text:         l.button(btnAdminBackToMenu),
 			CallbackData: domain.CommandAdminMenu,
 		},
 	})
 
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: rows})
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: rows})
 }
 
-func (s *service) adminModeratorsInlineKeyboard(offset, limit, total int) *domain.InlineKeyboard {
+func (s *service) adminModeratorsInlineKeyboard(l localizer, offset, limit, total int) *domain.InlineKeyboard {
 	rows := [][]domain.InlineButton{}
 
 	hasPrev := offset > 0
@@ -276,14 +256,14 @@ func (s *service) adminModeratorsInlineKeyboard(offset, limit, total int) *domai
 				prevOffset = 0
 			}
 			row = append(row, domain.InlineButton{
-				Text:         adminUsersPrevButtonText,
+				Text:         l.button(btnAdminUsersPrev),
 				CallbackData: domain.CommandAdminModerators + ":" + strconv.Itoa(prevOffset),
 			})
 		}
 		if hasNext {
 			nextOffset := offset + limit
 			row = append(row, domain.InlineButton{
-				Text:         adminUsersNextButtonText,
+				Text:         l.button(btnAdminUsersNext),
 				CallbackData: domain.CommandAdminModerators + ":" + strconv.Itoa(nextOffset),
 			})
 		}
@@ -294,15 +274,15 @@ func (s *service) adminModeratorsInlineKeyboard(offset, limit, total int) *domai
 
 	rows = append(rows, []domain.InlineButton{
 		{
-			Text:         adminBackToMenuButtonText,
+			Text:         l.button(btnAdminBackToMenu),
 			CallbackData: domain.CommandAdminMenu,
 		},
 	})
 
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: rows})
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: rows})
 }
 
-func (s *service) adminReportsInlineKeyboard(offset, limit, total int) *domain.InlineKeyboard {
+func (s *service) adminReportsInlineKeyboard(l localizer, offset, limit, total int) *domain.InlineKeyboard {
 	rows := [][]domain.InlineButton{}
 
 	hasPrev := offset > 0
@@ -315,14 +295,14 @@ func (s *service) adminReportsInlineKeyboard(offset, limit, total int) *domain.I
 				prevOffset = 0
 			}
 			row = append(row, domain.InlineButton{
-				Text:         adminUsersPrevButtonText,
+				Text:         l.button(btnAdminUsersPrev),
 				CallbackData: domain.CommandAdminReports + ":" + strconv.Itoa(prevOffset),
 			})
 		}
 		if hasNext {
 			nextOffset := offset + limit
 			row = append(row, domain.InlineButton{
-				Text:         adminUsersNextButtonText,
+				Text:         l.button(btnAdminUsersNext),
 				CallbackData: domain.CommandAdminReports + ":" + strconv.Itoa(nextOffset),
 			})
 		}
@@ -333,23 +313,23 @@ func (s *service) adminReportsInlineKeyboard(offset, limit, total int) *domain.I
 
 	rows = append(rows, []domain.InlineButton{
 		{
-			Text:         adminBackToMenuButtonText,
+			Text:         l.button(btnAdminBackToMenu),
 			CallbackData: domain.CommandAdminMenu,
 		},
 	})
 
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: rows})
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: rows})
 }
 
-func (s *service) adminUnbanInlineKeyboard() *domain.InlineKeyboard {
-	return s.adminBanInlineKeyboard()
+func (s *service) adminUnbanInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return s.adminBanInlineKeyboard(l)
 }
 
-func (s *service) adminUnmoderatorInlineKeyboard() *domain.InlineKeyboard {
-	return s.adminBanInlineKeyboard()
+func (s *service) adminUnmoderatorInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return s.adminBanInlineKeyboard(l)
 }
 
-func (s *service) withAdminMenuInlineKeyboard(keyboard *domain.InlineKeyboard, role adminRole) *domain.InlineKeyboard {
+func (s *service) withAdminMenuInlineKeyboard(l localizer, keyboard *domain.InlineKeyboard, role adminRole) *domain.InlineKeyboard {
 	if s == nil || !role.canAccessPanel() {
 		return keyboard
 	}
@@ -357,14 +337,14 @@ func (s *service) withAdminMenuInlineKeyboard(keyboard *domain.InlineKeyboard, r
 		keyboard = &domain.InlineKeyboard{}
 	}
 	if inlineKeyboardHasCallback(keyboard, domain.CommandAdminMenu) ||
-		inlineKeyboardHasText(keyboard, adminMenuButtonText) ||
-		inlineKeyboardHasText(keyboard, moderatorMenuButtonText) {
+		inlineKeyboardHasText(keyboard, l.button(btnAdminMenu)) ||
+		inlineKeyboardHasText(keyboard, l.button(btnModeratorMenu)) {
 		return keyboard
 	}
 
 	keyboard.Buttons = append(keyboard.Buttons, []domain.InlineButton{
 		{
-			Text:         adminMenuButtonTextForRole(role),
+			Text:         adminMenuButtonTextForRole(l, role),
 			CallbackData: domain.CommandAdminMenu,
 		},
 	})
@@ -372,25 +352,25 @@ func (s *service) withAdminMenuInlineKeyboard(keyboard *domain.InlineKeyboard, r
 	return keyboard
 }
 
-func adminMenuButtonTextForRole(role adminRole) string {
+func adminMenuButtonTextForRole(l localizer, role adminRole) string {
 	if role == adminRoleModerator {
-		return moderatorMenuButtonText
+		return l.button(btnModeratorMenu)
 	}
-	return adminMenuButtonText
+	return l.button(btnAdminMenu)
 }
 
-func (s *service) profileViewInlineKeyboard() *domain.InlineKeyboard {
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+func (s *service) profileViewInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         "Preview profile",
+					Text:         l.button(btnPreviewProfile),
 					CallbackData: domain.CommandProfilePreview,
 				},
 			},
 			{
 				{
-					Text:         "Edit profile",
+					Text:         l.button(btnEditProfile),
 					CallbackData: domain.CommandProfileEdit,
 				},
 			},
@@ -398,18 +378,18 @@ func (s *service) profileViewInlineKeyboard() *domain.InlineKeyboard {
 	})
 }
 
-func (s *service) profilePreviewInlineKeyboard() *domain.InlineKeyboard {
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+func (s *service) profilePreviewInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         backToProfileButtonText,
+					Text:         l.button(btnBackToProfile),
 					CallbackData: domain.CommandProfileView,
 				},
 			},
 			{
 				{
-					Text:         "Edit profile",
+					Text:         l.button(btnEditProfile),
 					CallbackData: domain.CommandProfileEdit,
 				},
 			},
@@ -417,15 +397,15 @@ func (s *service) profilePreviewInlineKeyboard() *domain.InlineKeyboard {
 	})
 }
 
-func (s *service) profileSettingsInlineKeyboard(isHidden bool) *domain.InlineKeyboard {
-	visibilityText := "Hide from search"
+func (s *service) profileSettingsInlineKeyboard(l localizer, isHidden bool) *domain.InlineKeyboard {
+	visibilityText := l.button(btnHideFromSearch)
 	visibilityAction := profileVisibilityHideAction
 	if isHidden {
-		visibilityText = "Show in search"
+		visibilityText = l.button(btnShowInSearch)
 		visibilityAction = profileVisibilityShowAction
 	}
 
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
@@ -435,7 +415,13 @@ func (s *service) profileSettingsInlineKeyboard(isHidden bool) *domain.InlineKey
 			},
 			{
 				{
-					Text:         "Delete profile",
+					Text:         l.button(btnLanguage),
+					CallbackData: domain.CommandProfileLanguage,
+				},
+			},
+			{
+				{
+					Text:         l.button(btnDeleteProfile),
 					CallbackData: domain.CommandProfileDelete,
 				},
 			},
@@ -443,18 +429,41 @@ func (s *service) profileSettingsInlineKeyboard(isHidden bool) *domain.InlineKey
 	})
 }
 
-func (s *service) profileDeleteConfirmInlineKeyboard() *domain.InlineKeyboard {
+func (s *service) languageInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
+		Buttons: [][]domain.InlineButton{
+			{
+				{
+					Text:         l.button(btnLanguageEnglish),
+					CallbackData: domain.CommandProfileLanguage + ":" + string(domain.LanguageEnglish),
+				},
+				{
+					Text:         l.button(btnLanguageRussian),
+					CallbackData: domain.CommandProfileLanguage + ":" + string(domain.LanguageRussian),
+				},
+			},
+			{
+				{
+					Text:         l.button(btnBackToSettings),
+					CallbackData: domain.CommandProfileSettings,
+				},
+			},
+		},
+	})
+}
+
+func (s *service) profileDeleteConfirmInlineKeyboard(l localizer) *domain.InlineKeyboard {
 	return &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         "Yes, delete",
+					Text:         l.button(btnDeleteConfirm),
 					CallbackData: domain.CommandProfileDeleteConfirm,
 				},
 			},
 			{
 				{
-					Text:         profileDeleteCancelButtonText,
+					Text:         l.button(btnProfileDeleteCancel),
 					CallbackData: domain.CommandProfileDeleteCancel,
 				},
 			},
@@ -462,46 +471,46 @@ func (s *service) profileDeleteConfirmInlineKeyboard() *domain.InlineKeyboard {
 	}
 }
 
-func (s *service) profileEditMenuKeyboard() *domain.InlineKeyboard {
-	return withBackToProfileInlineKeyboard(&domain.InlineKeyboard{
+func (s *service) profileEditMenuKeyboard(l localizer) *domain.InlineKeyboard {
+	return withBackToProfileInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         "Name",
+					Text:         l.button(btnProfileEditName),
 					CallbackData: domain.CommandProfileEditName,
 				},
 				{
-					Text:         "Gender",
+					Text:         l.button(btnProfileEditGender),
 					CallbackData: domain.CommandProfileEditGender,
 				},
 			},
 			{
 				{
-					Text:         "Birth date",
+					Text:         l.button(btnProfileEditBirthDate),
 					CallbackData: domain.CommandProfileEditBirthDate,
 				},
 				{
-					Text:         "Country",
+					Text:         l.button(btnProfileEditCountry),
 					CallbackData: domain.CommandProfileEditCountry,
 				},
 			},
 			{
 				{
-					Text:         "City",
+					Text:         l.button(btnProfileEditCity),
 					CallbackData: domain.CommandProfileEditCity,
 				},
 				{
-					Text:         "Description",
+					Text:         l.button(btnProfileEditDescription),
 					CallbackData: domain.CommandProfileEditDesc,
 				},
 			},
 			{
 				{
-					Text:         "Emoji",
+					Text:         l.button(btnProfileEditEmoji),
 					CallbackData: domain.CommandProfileEditEmoji,
 				},
 				{
-					Text:         "Photos",
+					Text:         l.button(btnProfileEditPhotos),
 					CallbackData: domain.CommandProfileEditPhotos,
 				},
 			},
@@ -509,12 +518,12 @@ func (s *service) profileEditMenuKeyboard() *domain.InlineKeyboard {
 	})
 }
 
-func (s *service) telegramNameInlineKeyboard() *domain.InlineKeyboard {
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+func (s *service) telegramNameInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         telegramNameButtonText,
+					Text:         l.button(btnTelegramName),
 					CallbackData: telegramNameCallbackData,
 				},
 			},
@@ -522,12 +531,12 @@ func (s *service) telegramNameInlineKeyboard() *domain.InlineKeyboard {
 	})
 }
 
-func (s *service) photosDoneInlineKeyboard() *domain.InlineKeyboard {
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+func (s *service) photosDoneInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         albumDoneButtonText,
+					Text:         l.button(btnAlbumDone),
 					CallbackData: albumDoneCallbackData,
 				},
 			},
@@ -535,7 +544,7 @@ func (s *service) photosDoneInlineKeyboard() *domain.InlineKeyboard {
 	})
 }
 
-func (s *service) botCheckInlineKeyboard(answer int) *domain.InlineKeyboard {
+func (s *service) botCheckInlineKeyboard(l localizer, answer int) *domain.InlineKeyboard {
 	options := s.botCheckOptions(answer)
 	if len(options) == 0 {
 		return nil
@@ -554,23 +563,23 @@ func (s *service) botCheckInlineKeyboard(answer int) *domain.InlineKeyboard {
 		})
 	}
 
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: rows})
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: rows})
 }
 
-func (s *service) genderInlineKeyboard() *domain.InlineKeyboard {
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+func (s *service) genderInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         "Male",
+					Text:         l.button(btnGenderMale),
 					CallbackData: string(domain.GenderMale),
 				},
 				{
-					Text:         "Female",
+					Text:         l.button(btnGenderFemale),
 					CallbackData: string(domain.GenderFemale),
 				},
 				{
-					Text:         "Other",
+					Text:         l.button(btnGenderOther),
 					CallbackData: string(domain.GenderOther),
 				},
 			},
@@ -578,20 +587,20 @@ func (s *service) genderInlineKeyboard() *domain.InlineKeyboard {
 	})
 }
 
-func (s *service) countryInlineKeyboard() *domain.InlineKeyboard {
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+func (s *service) countryInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         "Russia",
+					Text:         l.button(btnCountryRussia),
 					CallbackData: string(domain.CountryRussia),
 				},
 				{
-					Text:         "Kazakhstan",
+					Text:         l.button(btnCountryKazakhstan),
 					CallbackData: string(domain.CountryKazakhstan),
 				},
 				{
-					Text:         "Belarus",
+					Text:         l.button(btnCountryBelarus),
 					CallbackData: string(domain.CountryBelarus),
 				},
 			},
@@ -599,13 +608,13 @@ func (s *service) countryInlineKeyboard() *domain.InlineKeyboard {
 	})
 }
 
-func (s *service) cityInlineKeyboard(country domain.Country) *domain.InlineKeyboard {
-	options := s.cityOptions(country)
+func (s *service) cityInlineKeyboard(l localizer, country domain.Country) *domain.InlineKeyboard {
+	options := s.cityOptionsLocalized(l, country)
 	if len(options) == 0 {
 		return nil
 	}
 
-	return withCancelInlineKeyboard(listInlineKeyboard(options, cityKeyboardColumns))
+	return withCancelInlineKeyboard(l, listInlineKeyboardWithValues(options, cityKeyboardColumns))
 }
 
 func listInlineKeyboard(options []string, columns int) *domain.InlineKeyboard {
@@ -631,26 +640,26 @@ func listInlineKeyboard(options []string, columns int) *domain.InlineKeyboard {
 	return &domain.InlineKeyboard{Buttons: rows}
 }
 
-func (s *service) searchGenderInlineKeyboard() *domain.InlineKeyboard {
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+func (s *service) searchGenderInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         "Men",
+					Text:         l.button(btnSearchMen),
 					CallbackData: domain.CommandSearchGender + ":" + string(domain.GenderMale),
 				},
 				{
-					Text:         "Women",
+					Text:         l.button(btnSearchWomen),
 					CallbackData: domain.CommandSearchGender + ":" + string(domain.GenderFemale),
 				},
 			},
 			{
 				{
-					Text:         "Other",
+					Text:         l.button(btnSearchOther),
 					CallbackData: domain.CommandSearchGender + ":" + string(domain.GenderOther),
 				},
 				{
-					Text:         "Any",
+					Text:         l.button(btnSearchAny),
 					CallbackData: domain.CommandSearchGender + ":" + string(domain.GenderUnspecified),
 				},
 			},
@@ -658,11 +667,38 @@ func (s *service) searchGenderInlineKeyboard() *domain.InlineKeyboard {
 	})
 }
 
-func (s *service) searchAccuracyInlineKeyboard(gender domain.Gender) *domain.InlineKeyboard {
+func listInlineKeyboardWithValues(options []localizedOption, columns int) *domain.InlineKeyboard {
+	if len(options) == 0 {
+		return nil
+	}
+	if columns <= 0 {
+		columns = 1
+	}
+
+	rows := make([][]domain.InlineButton, 0, (len(options)+columns-1)/columns)
+	for i, option := range options {
+		if i%columns == 0 {
+			rows = append(rows, []domain.InlineButton{})
+		}
+		rowIndex := len(rows) - 1
+		label := strings.TrimSpace(option.Label)
+		if label == "" {
+			label = option.Value
+		}
+		rows[rowIndex] = append(rows[rowIndex], domain.InlineButton{
+			Text:         label,
+			CallbackData: option.Value,
+		})
+	}
+
+	return &domain.InlineKeyboard{Buttons: rows}
+}
+
+func (s *service) searchAccuracyInlineKeyboard(l localizer, gender domain.Gender) *domain.InlineKeyboard {
 	prefix := domain.CommandSearchAccuracy + ":" + string(gender) + ":"
 	total := searchAccuracyMax - searchAccuracyMin + 1
 	if total <= 0 {
-		return withSearchGenderCancelInlineKeyboard(nil)
+		return withSearchGenderCancelInlineKeyboard(l, nil)
 	}
 
 	columns := searchAccuracyColumns
@@ -684,15 +720,15 @@ func (s *service) searchAccuracyInlineKeyboard(gender domain.Gender) *domain.Inl
 		})
 	}
 
-	return withSearchGenderCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: rows})
+	return withSearchGenderCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: rows})
 }
 
-func (s *service) searchNoCandidatesInlineKeyboard() *domain.InlineKeyboard {
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+func (s *service) searchNoCandidatesInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         searchRefreshButtonText,
+					Text:         l.button(btnSearchRefresh),
 					CallbackData: domain.CommandSearchRefresh,
 				},
 			},
@@ -700,49 +736,73 @@ func (s *service) searchNoCandidatesInlineKeyboard() *domain.InlineKeyboard {
 	})
 }
 
-func (s *service) matchActionsInlineKeyboard(targetID int64, hasPrevious bool) *domain.InlineKeyboard {
+func (s *service) matchActionsInlineKeyboard(l localizer, targetID int64, hasPrevious bool) *domain.InlineKeyboard {
 	target := strconv.FormatInt(targetID, 10)
 	buttons := [][]domain.InlineButton{
 		{
 			{
-				Text:         "👎",
+				Text:         matchDislikeButtonText,
 				CallbackData: domain.CommandMatchDislike + ":" + target,
 			},
 			{
-				Text:         "❤️",
+				Text:         matchLikeButtonText,
 				CallbackData: domain.CommandMatchLike + ":" + target,
 			},
 		},
 	}
 	buttons = append(buttons, []domain.InlineButton{
 		{
-			Text:         "Report",
+			Text:         l.button(btnReport),
 			CallbackData: domain.CommandMatchReport + ":" + target,
 		},
 		{
-			Text:         searchHistoryButtonText,
+			Text:         l.button(btnSearchHistory),
 			CallbackData: domain.CommandMatchHistory,
 		},
 	})
 	if hasPrevious {
 		buttons = append(buttons, []domain.InlineButton{
 			{
-				Text:         "Back to previous profile",
+				Text:         l.button(btnBackToPreviousProfile),
 				CallbackData: domain.CommandMatchPrevious,
 			},
 		})
 	}
 
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: buttons})
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: buttons})
 }
 
-func (s *service) matchViewInlineKeyboard(targetID int64) *domain.InlineKeyboard {
+func (s *service) matchViewActionsInlineKeyboard(l localizer, targetID int64) *domain.InlineKeyboard {
 	target := strconv.FormatInt(targetID, 10)
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+	buttons := [][]domain.InlineButton{
+		{
+			{
+				Text:         matchDislikeButtonText,
+				CallbackData: domain.CommandMatchViewDislike + ":" + target,
+			},
+			{
+				Text:         matchLikeButtonText,
+				CallbackData: domain.CommandMatchViewLike + ":" + target,
+			},
+		},
+		{
+			{
+				Text:         l.button(btnReport),
+				CallbackData: domain.CommandMatchViewReport + ":" + target,
+			},
+		},
+	}
+
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: buttons})
+}
+
+func (s *service) matchViewInlineKeyboard(l localizer, targetID int64) *domain.InlineKeyboard {
+	target := strconv.FormatInt(targetID, 10)
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         "View profile",
+					Text:         l.button(btnViewProfile),
 					CallbackData: domain.CommandMatchViewProfile + ":" + target,
 				},
 			},
@@ -750,7 +810,7 @@ func (s *service) matchViewInlineKeyboard(targetID int64) *domain.InlineKeyboard
 	})
 }
 
-func (s *service) historyInlineKeyboard(list domain.MatchHistoryList) *domain.InlineKeyboard {
+func (s *service) historyInlineKeyboard(l localizer, list domain.MatchHistoryList) *domain.InlineKeyboard {
 	rows := make([][]domain.InlineButton, 0, len(list.Items)+2)
 	for i, item := range list.Items {
 		index := list.Offset + i + 1
@@ -758,7 +818,7 @@ func (s *service) historyInlineKeyboard(list domain.MatchHistoryList) *domain.In
 		args := target + ":" + strconv.Itoa(list.Offset)
 		rows = append(rows, []domain.InlineButton{
 			{
-				Text:         s.historyItemButtonLabel(item.Profile, index),
+				Text:         s.historyItemButtonLabel(l, item.Profile, index),
 				CallbackData: domain.CommandMatchHistoryView + ":" + args,
 			},
 		})
@@ -774,14 +834,14 @@ func (s *service) historyInlineKeyboard(list domain.MatchHistoryList) *domain.In
 				prevOffset = 0
 			}
 			row = append(row, domain.InlineButton{
-				Text:         searchHistoryPrevButtonText,
+				Text:         l.button(btnSearchHistoryPrev),
 				CallbackData: domain.CommandMatchHistory + ":" + strconv.Itoa(prevOffset),
 			})
 		}
 		if hasNext {
 			nextOffset := list.Offset + list.Limit
 			row = append(row, domain.InlineButton{
-				Text:         searchHistoryNextButtonText,
+				Text:         l.button(btnSearchHistoryNext),
 				CallbackData: domain.CommandMatchHistory + ":" + strconv.Itoa(nextOffset),
 			})
 		}
@@ -790,36 +850,36 @@ func (s *service) historyInlineKeyboard(list domain.MatchHistoryList) *domain.In
 
 	rows = append(rows, []domain.InlineButton{
 		{
-			Text:         searchRefreshButtonText,
+			Text:         l.button(btnSearchRefresh),
 			CallbackData: domain.CommandSearchRefresh,
 		},
 	})
 
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{Buttons: rows})
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: rows})
 }
 
-func (s *service) historyActionsInlineKeyboard(targetID int64, offset int) *domain.InlineKeyboard {
+func (s *service) historyActionsInlineKeyboard(l localizer, targetID int64, offset int) *domain.InlineKeyboard {
 	target := strconv.FormatInt(targetID, 10)
 	offsetValue := strconv.Itoa(offset)
-	return withCancelInlineKeyboard(&domain.InlineKeyboard{
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         "👎",
+					Text:         matchDislikeButtonText,
 					CallbackData: domain.CommandMatchHistoryDislike + ":" + target + ":" + offsetValue,
 				},
 				{
-					Text:         "❤️",
+					Text:         matchLikeButtonText,
 					CallbackData: domain.CommandMatchHistoryLike + ":" + target + ":" + offsetValue,
 				},
 			},
 			{
 				{
-					Text:         "Report",
+					Text:         l.button(btnReport),
 					CallbackData: domain.CommandMatchHistoryReport + ":" + target + ":" + offsetValue,
 				},
 				{
-					Text:         searchHistoryBackButtonText,
+					Text:         l.button(btnSearchHistoryBack),
 					CallbackData: domain.CommandMatchHistory + ":" + offsetValue,
 				},
 			},
@@ -827,31 +887,31 @@ func (s *service) historyActionsInlineKeyboard(targetID int64, offset int) *doma
 	})
 }
 
-func withDraftCancelInlineKeyboard(keyboard *domain.InlineKeyboard, mode domain.ProfileDraftMode) *domain.InlineKeyboard {
+func withDraftCancelInlineKeyboard(l localizer, keyboard *domain.InlineKeyboard, mode domain.ProfileDraftMode) *domain.InlineKeyboard {
 	if mode == domain.ProfileDraftModeEdit {
-		return withEditCancelInlineKeyboard(withoutCancelInlineKeyboard(keyboard))
+		return withEditCancelInlineKeyboard(l, withoutCancelInlineKeyboard(l, keyboard))
 	}
-	return withCancelInlineKeyboard(keyboard)
+	return withCancelInlineKeyboard(l, keyboard)
 }
 
-func withProfileSetupBackInlineKeyboard(keyboard *domain.InlineKeyboard) *domain.InlineKeyboard {
+func withProfileSetupBackInlineKeyboard(l localizer, keyboard *domain.InlineKeyboard) *domain.InlineKeyboard {
 	if keyboard == nil {
-		return profileSetupBackInlineKeyboard()
+		return profileSetupBackInlineKeyboard(l)
 	}
-	if inlineKeyboardHasCallback(keyboard, domain.CommandProfileSetupBack) || inlineKeyboardHasText(keyboard, profileSetupBackButtonText) {
+	if inlineKeyboardHasCallback(keyboard, domain.CommandProfileSetupBack) || inlineKeyboardHasText(keyboard, l.button(btnProfileSetupBack)) {
 		return keyboard
 	}
 
 	backRow := []domain.InlineButton{
 		{
-			Text:         profileSetupBackButtonText,
+			Text:         l.button(btnProfileSetupBack),
 			CallbackData: domain.CommandProfileSetupBack,
 		},
 	}
 
 	insertAt := len(keyboard.Buttons)
 	for i, row := range keyboard.Buttons {
-		if inlineKeyboardRowHasCancel(row) {
+		if inlineKeyboardRowHasCancel(l, row) {
 			insertAt = i
 			break
 		}
@@ -861,18 +921,18 @@ func withProfileSetupBackInlineKeyboard(keyboard *domain.InlineKeyboard) *domain
 	return keyboard
 }
 
-func withSearchGenderCancelInlineKeyboard(keyboard *domain.InlineKeyboard) *domain.InlineKeyboard {
-	keyboard = withoutCancelInlineKeyboard(keyboard)
+func withSearchGenderCancelInlineKeyboard(l localizer, keyboard *domain.InlineKeyboard) *domain.InlineKeyboard {
+	keyboard = withoutCancelInlineKeyboard(l, keyboard)
 	if keyboard == nil {
-		return searchGenderCancelInlineKeyboard()
+		return searchGenderCancelInlineKeyboard(l)
 	}
-	if inlineKeyboardHasCallback(keyboard, domain.CommandSearchGender) || inlineKeyboardHasText(keyboard, searchAccuracyCancelButtonText) {
+	if inlineKeyboardHasCallback(keyboard, domain.CommandSearchGender) || inlineKeyboardHasText(keyboard, l.button(btnSearchAccuracyCancel)) {
 		return keyboard
 	}
 
 	keyboard.Buttons = append(keyboard.Buttons, []domain.InlineButton{
 		{
-			Text:         searchAccuracyCancelButtonText,
+			Text:         l.button(btnSearchAccuracyCancel),
 			CallbackData: domain.CommandSearchGender,
 		},
 	})
@@ -880,17 +940,17 @@ func withSearchGenderCancelInlineKeyboard(keyboard *domain.InlineKeyboard) *doma
 	return keyboard
 }
 
-func withCancelInlineKeyboard(keyboard *domain.InlineKeyboard) *domain.InlineKeyboard {
+func withCancelInlineKeyboard(l localizer, keyboard *domain.InlineKeyboard) *domain.InlineKeyboard {
 	if keyboard == nil {
-		return cancelInlineKeyboard()
+		return cancelInlineKeyboard(l)
 	}
-	if inlineKeyboardHasCallback(keyboard, domain.CommandCancel) || inlineKeyboardHasText(keyboard, cancelButtonText) {
+	if inlineKeyboardHasCallback(keyboard, domain.CommandCancel) || inlineKeyboardHasText(keyboard, l.button(btnCancel)) {
 		return keyboard
 	}
 
 	keyboard.Buttons = append(keyboard.Buttons, []domain.InlineButton{
 		{
-			Text:         cancelButtonText,
+			Text:         l.button(btnCancel),
 			CallbackData: domain.CommandCancel,
 		},
 	})
@@ -898,17 +958,17 @@ func withCancelInlineKeyboard(keyboard *domain.InlineKeyboard) *domain.InlineKey
 	return keyboard
 }
 
-func withEditCancelInlineKeyboard(keyboard *domain.InlineKeyboard) *domain.InlineKeyboard {
+func withEditCancelInlineKeyboard(l localizer, keyboard *domain.InlineKeyboard) *domain.InlineKeyboard {
 	if keyboard == nil {
-		return editCancelInlineKeyboard()
+		return editCancelInlineKeyboard(l)
 	}
-	if inlineKeyboardHasCallback(keyboard, domain.CommandProfileEdit) || inlineKeyboardHasText(keyboard, editCancelButtonText) {
+	if inlineKeyboardHasCallback(keyboard, domain.CommandProfileEdit) || inlineKeyboardHasText(keyboard, l.button(btnEditCancel)) {
 		return keyboard
 	}
 
 	keyboard.Buttons = append(keyboard.Buttons, []domain.InlineButton{
 		{
-			Text:         editCancelButtonText,
+			Text:         l.button(btnEditCancel),
 			CallbackData: domain.CommandProfileEdit,
 		},
 	})
@@ -916,17 +976,17 @@ func withEditCancelInlineKeyboard(keyboard *domain.InlineKeyboard) *domain.Inlin
 	return keyboard
 }
 
-func withBackToProfileInlineKeyboard(keyboard *domain.InlineKeyboard) *domain.InlineKeyboard {
+func withBackToProfileInlineKeyboard(l localizer, keyboard *domain.InlineKeyboard) *domain.InlineKeyboard {
 	if keyboard == nil {
-		return backToProfileInlineKeyboard()
+		return backToProfileInlineKeyboard(l)
 	}
-	if inlineKeyboardHasCallback(keyboard, domain.CommandProfileView) || inlineKeyboardHasText(keyboard, backToProfileButtonText) {
+	if inlineKeyboardHasCallback(keyboard, domain.CommandProfileView) || inlineKeyboardHasText(keyboard, l.button(btnBackToProfile)) {
 		return keyboard
 	}
 
 	keyboard.Buttons = append(keyboard.Buttons, []domain.InlineButton{
 		{
-			Text:         backToProfileButtonText,
+			Text:         l.button(btnBackToProfile),
 			CallbackData: domain.CommandProfileView,
 		},
 	})
@@ -934,12 +994,12 @@ func withBackToProfileInlineKeyboard(keyboard *domain.InlineKeyboard) *domain.In
 	return keyboard
 }
 
-func cancelInlineKeyboard() *domain.InlineKeyboard {
+func cancelInlineKeyboard(l localizer) *domain.InlineKeyboard {
 	return &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         cancelButtonText,
+					Text:         l.button(btnCancel),
 					CallbackData: domain.CommandCancel,
 				},
 			},
@@ -947,12 +1007,12 @@ func cancelInlineKeyboard() *domain.InlineKeyboard {
 	}
 }
 
-func editCancelInlineKeyboard() *domain.InlineKeyboard {
+func editCancelInlineKeyboard(l localizer) *domain.InlineKeyboard {
 	return &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         editCancelButtonText,
+					Text:         l.button(btnEditCancel),
 					CallbackData: domain.CommandProfileEdit,
 				},
 			},
@@ -960,12 +1020,12 @@ func editCancelInlineKeyboard() *domain.InlineKeyboard {
 	}
 }
 
-func searchGenderCancelInlineKeyboard() *domain.InlineKeyboard {
+func searchGenderCancelInlineKeyboard(l localizer) *domain.InlineKeyboard {
 	return &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         searchAccuracyCancelButtonText,
+					Text:         l.button(btnSearchAccuracyCancel),
 					CallbackData: domain.CommandSearchGender,
 				},
 			},
@@ -973,12 +1033,12 @@ func searchGenderCancelInlineKeyboard() *domain.InlineKeyboard {
 	}
 }
 
-func backToProfileInlineKeyboard() *domain.InlineKeyboard {
+func backToProfileInlineKeyboard(l localizer) *domain.InlineKeyboard {
 	return &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         backToProfileButtonText,
+					Text:         l.button(btnBackToProfile),
 					CallbackData: domain.CommandProfileView,
 				},
 			},
@@ -986,12 +1046,12 @@ func backToProfileInlineKeyboard() *domain.InlineKeyboard {
 	}
 }
 
-func profileSetupBackInlineKeyboard() *domain.InlineKeyboard {
+func profileSetupBackInlineKeyboard(l localizer) *domain.InlineKeyboard {
 	return &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
 				{
-					Text:         profileSetupBackButtonText,
+					Text:         l.button(btnProfileSetupBack),
 					CallbackData: domain.CommandProfileSetupBack,
 				},
 			},
@@ -999,7 +1059,7 @@ func profileSetupBackInlineKeyboard() *domain.InlineKeyboard {
 	}
 }
 
-func withoutCancelInlineKeyboard(keyboard *domain.InlineKeyboard) *domain.InlineKeyboard {
+func withoutCancelInlineKeyboard(l localizer, keyboard *domain.InlineKeyboard) *domain.InlineKeyboard {
 	if keyboard == nil {
 		return nil
 	}
@@ -1008,7 +1068,7 @@ func withoutCancelInlineKeyboard(keyboard *domain.InlineKeyboard) *domain.Inline
 	for _, row := range keyboard.Buttons {
 		filtered := make([]domain.InlineButton, 0, len(row))
 		for _, button := range row {
-			if button.CallbackData == domain.CommandCancel || button.Text == cancelButtonText {
+			if button.CallbackData == domain.CommandCancel || button.Text == l.button(btnCancel) {
 				continue
 			}
 			filtered = append(filtered, button)
@@ -1022,10 +1082,10 @@ func withoutCancelInlineKeyboard(keyboard *domain.InlineKeyboard) *domain.Inline
 	return keyboard
 }
 
-func (s *service) historyItemButtonLabel(profile domain.Profile, index int) string {
+func (s *service) historyItemButtonLabel(l localizer, profile domain.Profile, index int) string {
 	name := strings.TrimSpace(profile.Name)
 	if name == "" {
-		name = fmt.Sprintf("User %d", profile.UserID)
+		name = l.message(msgSearchHistoryUserFallback, profile.UserID)
 	}
 	if historyLabelMaxRunes > 0 {
 		name = truncateRunes(name, historyLabelMaxRunes)
@@ -1033,7 +1093,7 @@ func (s *service) historyItemButtonLabel(profile domain.Profile, index int) stri
 	if index <= 0 {
 		return name
 	}
-	return fmt.Sprintf("%d. %s", index, name)
+	return l.message(msgSearchHistoryLineShort, index, name)
 }
 
 func truncateRunes(value string, limit int) string {
@@ -1079,9 +1139,9 @@ func inlineKeyboardHasText(keyboard *domain.InlineKeyboard, text string) bool {
 	return false
 }
 
-func inlineKeyboardRowHasCancel(row []domain.InlineButton) bool {
+func inlineKeyboardRowHasCancel(l localizer, row []domain.InlineButton) bool {
 	for _, button := range row {
-		if button.CallbackData == domain.CommandCancel || button.Text == cancelButtonText {
+		if button.CallbackData == domain.CommandCancel || button.Text == l.button(btnCancel) {
 			return true
 		}
 	}

@@ -19,6 +19,7 @@ const (
 	CommandProfileEditEmoji     = "profile_edit_emoji"
 	CommandProfileEditPhotos    = "profile_edit_photos"
 	CommandProfileSettings      = "profile_settings"
+	CommandProfileLanguage      = "profile_language"
 	CommandProfileVisibility    = "profile_visibility"
 	CommandProfileDelete        = "profile_delete"
 	CommandProfileDeleteConfirm = "profile_delete_confirm"
@@ -32,6 +33,9 @@ const (
 	CommandMatchReport          = "match_report"
 	CommandMatchPrevious        = "match_previous"
 	CommandMatchViewProfile     = "match_view_profile"
+	CommandMatchViewLike        = "match_view_like"
+	CommandMatchViewDislike     = "match_view_dislike"
+	CommandMatchViewReport      = "match_view_report"
 	CommandMatchHistory         = "match_history"
 	CommandMatchHistoryView     = "match_history_view"
 	CommandMatchHistoryLike     = "match_history_like"
@@ -61,6 +65,7 @@ type IncomingMessage struct {
 	ChatID     int64
 	MessageID  int
 	User       User
+	Language   Language
 	Text       string
 	Command    string
 	Arguments  string

@@ -7,30 +7,30 @@ import (
 	"meethalf-telegram-bot/internal/domain"
 )
 
-func (s *service) updateProfileVisibility(ctx context.Context, msg domain.IncomingMessage) (string, error) {
+func (s *service) updateProfileVisibility(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, error) {
 	if s == nil || s.profiles == nil {
-		return s.profileVisibilityUpdateFailedText(), errors.New("profile service is not configured")
+		return s.profileVisibilityUpdateFailedText(l), errors.New("profile service is not configured")
 	}
 
 	if msg.User.ID == 0 {
-		return s.profileVisibilityUpdateFailedText(), errors.New("user id is missing")
+		return s.profileVisibilityUpdateFailedText(l), errors.New("user id is missing")
 	}
 
 	isHidden, ok := s.parseProfileVisibilityAction(msg.Arguments)
 	if !ok {
-		return s.profileVisibilityUpdateFailedText(), nil
+		return s.profileVisibilityUpdateFailedText(l), nil
 	}
 
 	updated, err := s.profiles.SetProfileVisibility(ctx, msg.User.ID, isHidden)
 	if err != nil {
 		if isBannedError(err) {
-			return s.userBannedText(), err
+			return s.userBannedText(l), err
 		}
-		return s.profileVisibilityUpdateFailedText(), err
+		return s.profileVisibilityUpdateFailedText(l), err
 	}
 	if !updated {
-		return "Profile not found. Use the Create Profile button to create it.", nil
+		return l.message(msgProfileNotFoundCreateButton), nil
 	}
 
-	return s.profileVisibilityUpdated(isHidden), nil
+	return s.profileVisibilityUpdated(l, isHidden), nil
 }

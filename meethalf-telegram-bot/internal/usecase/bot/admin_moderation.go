@@ -8,7 +8,7 @@ import (
 	"meethalf-telegram-bot/internal/domain"
 )
 
-func (s *service) ensureModeratorCanModerateUser(ctx context.Context, role adminRole, userID int64, username, failText, usageText string) (string, error) {
+func (s *service) ensureModeratorCanModerateUser(ctx context.Context, role adminRole, userID int64, username, failText, usageText string, l localizer) (string, error) {
 	if role != adminRoleModerator {
 		return "", nil
 	}
@@ -34,14 +34,14 @@ func (s *service) ensureModeratorCanModerateUser(ctx context.Context, role admin
 			case http.StatusBadRequest:
 				text = usageText
 			case http.StatusNotFound:
-				text = s.adminUserNotFoundText()
+				text = s.adminUserNotFoundText(l)
 			}
 		}
 		return text, err
 	}
 
 	if user.IsModerator || s.isAdminUsername(user.Username) {
-		return s.adminModerationRestrictedText(), nil
+		return s.adminModerationRestrictedText(l), nil
 	}
 
 	return "", nil

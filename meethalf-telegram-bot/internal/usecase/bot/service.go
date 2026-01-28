@@ -78,7 +78,6 @@ type service struct {
 	profiles            ProfileService
 	search              SearchService
 	admin               AdminService
-	helpText            string
 	adminUsernames      map[string]struct{}
 	setupCleanupMu      sync.Mutex
 	setupCleanup        map[int64]setupCleanupInfo
@@ -98,19 +97,38 @@ func New(sessions SessionRepository, drafts ProfileDraftRepository, deleteConfir
 		profiles:            profiles,
 		search:              search,
 		admin:               admin,
-		helpText:            defaultHelpText,
 		adminUsernames:      normalizeAdminUsernames(adminUsernames),
 		setupCleanup:        make(map[int64]setupCleanupInfo),
 	}
 }
 
+func (s *service) localizerForMessage(ctx context.Context, msg domain.IncomingMessage) localizer {
+	lang := msg.Language
+	if lang == "" {
+		lang = s.resolveLanguage(ctx, msg)
+	}
+	return newLocalizer(lang)
+}
+
+func (s *service) localizerForUser(ctx context.Context, userID int64, fallback domain.Language) localizer {
+	return newLocalizer(s.resolveLanguageForUser(ctx, userID, fallback))
+}
+
 func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]domain.OutgoingMessage, error) {
+	if msg.Language == "" {
+		msg.Language = s.resolveLanguage(ctx, msg)
+	} else {
+		msg.Language = normalizeLanguageValue(msg.Language)
+	}
+	l := newLocalizer(msg.Language)
+
 	var touchErr error
 	if s != nil && s.sessions != nil {
 		touchErr = s.sessions.Touch(ctx, domain.Session{
 			UserID:   msg.User.ID,
 			ChatID:   msg.ChatID,
 			Username: msg.User.Username,
+			Language: msg.Language,
 			LastSeen: s.now(msg.ReceivedAt),
 		})
 	}
@@ -126,7 +144,7 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 	}
 
 	if msg.Command == "" {
-		updatedMsg, response, handled, err := s.applyAdminAction(ctx, msg)
+		updatedMsg, response, handled, err := s.applyAdminAction(ctx, msg, l)
 		if handled {
 			if response == nil {
 				return nil, errors.Join(touchErr, err)
@@ -134,11 +152,15 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 			return []domain.OutgoingMessage{*response}, errors.Join(touchErr, err)
 		}
 		msg = updatedMsg
+		if msg.Language == "" {
+			msg.Language = l.lang
+		}
+		l = newLocalizer(msg.Language)
 	}
 
 	if s.isSearchCommand(msg.Command) {
-		messages, replyErr := s.handleSearch(ctx, msg)
-		likesFollowUps, likesErr := s.pendingLikesFollowUp(ctx, msg)
+		messages, replyErr := s.handleSearch(ctx, msg, l)
+		likesFollowUps, likesErr := s.pendingLikesFollowUp(ctx, msg, l)
 		if len(likesFollowUps) > 0 {
 			messages = append(messages, likesFollowUps...)
 		}
@@ -149,58 +171,60 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 	var replyErr error
 	switch msg.Command {
 	case domain.CommandStart:
-		response.Text, response.InlineKeyboard, replyErr = s.startMessage(ctx, msg)
+		response.Text, response.InlineKeyboard, replyErr = s.startMessage(ctx, msg, l)
 	case domain.CommandCancel:
-		response.Text, response.InlineKeyboard, replyErr = s.cancelMessage(ctx, msg)
+		response.Text, response.InlineKeyboard, replyErr = s.cancelMessage(ctx, msg, l)
 	case domain.CommandAdminMenu:
-		response.Text, response.InlineKeyboard, replyErr = s.adminMenuMessage(ctx, msg)
+		response.Text, response.InlineKeyboard, replyErr = s.adminMenuMessage(ctx, msg, l)
 	case domain.CommandAdminUsers:
-		response.Text, response.InlineKeyboard, replyErr = s.adminUsersMessage(ctx, msg)
+		response.Text, response.InlineKeyboard, replyErr = s.adminUsersMessage(ctx, msg, l)
 	case domain.CommandAdminBannedUsers:
-		response.Text, response.InlineKeyboard, replyErr = s.adminBannedUsersMessage(ctx, msg)
+		response.Text, response.InlineKeyboard, replyErr = s.adminBannedUsersMessage(ctx, msg, l)
 	case domain.CommandAdminModerators:
-		response.Text, response.InlineKeyboard, replyErr = s.adminModeratorsMessage(ctx, msg)
+		response.Text, response.InlineKeyboard, replyErr = s.adminModeratorsMessage(ctx, msg, l)
 	case domain.CommandAdminReports:
-		response.Text, response.InlineKeyboard, replyErr = s.adminReportsMessage(ctx, msg)
+		response.Text, response.InlineKeyboard, replyErr = s.adminReportsMessage(ctx, msg, l)
 	case domain.CommandAdminBan:
-		response.Text, response.InlineKeyboard, replyErr = s.adminBanMessage(ctx, msg)
+		response.Text, response.InlineKeyboard, replyErr = s.adminBanMessage(ctx, msg, l)
 	case domain.CommandAdminUnban:
-		response.Text, response.InlineKeyboard, replyErr = s.adminUnbanMessage(ctx, msg)
+		response.Text, response.InlineKeyboard, replyErr = s.adminUnbanMessage(ctx, msg, l)
 	case domain.CommandAdminModerator:
-		response.Text, response.InlineKeyboard, replyErr = s.adminModeratorMessage(ctx, msg)
+		response.Text, response.InlineKeyboard, replyErr = s.adminModeratorMessage(ctx, msg, l)
 	case domain.CommandAdminUnmoderator:
-		response.Text, response.InlineKeyboard, replyErr = s.adminUnmoderatorMessage(ctx, msg)
+		response.Text, response.InlineKeyboard, replyErr = s.adminUnmoderatorMessage(ctx, msg, l)
 	case domain.CommandAdminResetChoices:
-		response.Text, response.InlineKeyboard, replyErr = s.adminResetChoicesMessage(ctx, msg)
+		response.Text, response.InlineKeyboard, replyErr = s.adminResetChoicesMessage(ctx, msg, l)
 	case domain.CommandAdminClearReports:
-		response.Text, response.InlineKeyboard, replyErr = s.adminClearReportsMessage(ctx, msg)
+		response.Text, response.InlineKeyboard, replyErr = s.adminClearReportsMessage(ctx, msg, l)
+	case domain.CommandProfileLanguage:
+		response.Text, response.InlineKeyboard, replyErr = s.profileLanguageMessage(ctx, msg, l)
 	default:
-		response.Text, replyErr = s.reply(ctx, msg)
+		response.Text, replyErr = s.reply(ctx, msg, l)
 		if msg.Command == domain.CommandProfileEdit && replyErr == nil {
-			response.InlineKeyboard = s.profileEditMenuKeyboard()
+			response.InlineKeyboard = s.profileEditMenuKeyboard(l)
 		}
 		if msg.Command == domain.CommandProfileDelete && replyErr == nil {
-			response.InlineKeyboard = s.profileDeleteConfirmInlineKeyboard()
+			response.InlineKeyboard = s.profileDeleteConfirmInlineKeyboard(l)
 		}
 		if msg.Command == domain.CommandProfileDeleteConfirm && replyErr == nil {
-			if response.Text != profileDeleteExpiredText {
-				response.InlineKeyboard = s.profileCreateInlineKeyboard()
+			if response.Text != s.profileDeleteExpiredText(l) {
+				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
 			}
 		}
 	}
 
 	if replyErr == nil {
-		s.attachBotCheckKeyboard(ctx, msg, &response)
-		s.attachTelegramNameKeyboard(ctx, msg, &response)
-		s.attachGenderKeyboard(ctx, msg, &response)
-		s.attachCountryKeyboard(ctx, msg, &response)
-		s.attachCityKeyboard(ctx, msg, &response)
-		s.attachEmojiKeyboard(ctx, msg, &response)
-		s.attachPhotosDoneKeyboard(ctx, msg, &response)
-		s.attachCancelKeyboard(ctx, msg, &response)
+		s.attachBotCheckKeyboard(ctx, msg, l, &response)
+		s.attachTelegramNameKeyboard(ctx, msg, l, &response)
+		s.attachGenderKeyboard(ctx, msg, l, &response)
+		s.attachCountryKeyboard(ctx, msg, l, &response)
+		s.attachCityKeyboard(ctx, msg, l, &response)
+		s.attachEmojiKeyboard(ctx, msg, l, &response)
+		s.attachPhotosDoneKeyboard(ctx, msg, l, &response)
+		s.attachCancelKeyboard(ctx, msg, l, &response)
 	}
 
-	if replyErr == nil && response.Text == profileCreatedText {
+	if replyErr == nil && response.Text == s.profileCreated(l) {
 		response.CleanupFromMessageID = s.takeProfileSetupCleanupStart(msg.User.ID, msg.ChatID)
 	}
 
@@ -211,7 +235,7 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 			if err != nil {
 				if isBannedError(err) {
-					response.Text = s.userBannedText()
+					response.Text = s.userBannedText(l)
 					response.InlineKeyboard = nil
 					messages[0] = response
 				}
@@ -219,21 +243,21 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 				break
 			}
 			if found {
-				response.InlineKeyboard = s.profileViewInlineKeyboard()
+				response.InlineKeyboard = s.profileViewInlineKeyboard(l)
 				if len(profile.Photos) > 0 {
-					messages = s.profileAlbumMessages(msg.ChatID, profile, s.profileViewInlineKeyboard())
+					messages = s.profileAlbumMessages(msg.ChatID, profile, s.profileViewInlineKeyboard(l), l)
 				} else {
 					messages[0] = response
 				}
 			} else {
-				response.InlineKeyboard = s.profileCreateInlineKeyboard()
+				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
 				messages[0] = response
 			}
 		case domain.CommandProfilePreview:
 			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 			if err != nil {
 				if isBannedError(err) {
-					response.Text = s.userBannedText()
+					response.Text = s.userBannedText(l)
 					response.InlineKeyboard = nil
 					messages[0] = response
 				}
@@ -241,21 +265,21 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 				break
 			}
 			if found {
-				response.InlineKeyboard = s.profilePreviewInlineKeyboard()
+				response.InlineKeyboard = s.profilePreviewInlineKeyboard(l)
 				if len(profile.Photos) > 0 {
-					messages = s.profilePreviewAlbumMessages(msg.ChatID, profile, s.profilePreviewInlineKeyboard())
+					messages = s.profilePreviewAlbumMessages(msg.ChatID, profile, s.profilePreviewInlineKeyboard(l), l)
 				} else {
 					messages[0] = response
 				}
 			} else {
-				response.InlineKeyboard = s.profileCreateInlineKeyboard()
+				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
 				messages[0] = response
 			}
 		case domain.CommandProfileSettings:
 			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 			if err != nil {
 				if isBannedError(err) {
-					response.Text = s.userBannedText()
+					response.Text = s.userBannedText(l)
 					response.InlineKeyboard = nil
 					messages[0] = response
 				}
@@ -263,18 +287,18 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 				break
 			}
 			if found {
-				response.Text = s.profileSettingsTextWithVisibility(profile.IsHidden)
-				response.InlineKeyboard = s.profileSettingsInlineKeyboard(profile.IsHidden)
+				response.Text = s.profileSettingsTextWithVisibility(l, profile.IsHidden)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden)
 			} else {
-				response.Text = "Profile not found. Use the Create Profile button to create it."
-				response.InlineKeyboard = s.profileCreateInlineKeyboard()
+				response.Text = l.message(msgProfileNotFoundCreateButton)
+				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
 			}
 			messages[0] = response
 		case domain.CommandProfileVisibility:
 			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 			if err != nil {
 				if isBannedError(err) {
-					response.Text = s.userBannedText()
+					response.Text = s.userBannedText(l)
 					response.InlineKeyboard = nil
 					messages[0] = response
 				}
@@ -282,17 +306,17 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 				break
 			}
 			if found {
-				response.InlineKeyboard = s.profileSettingsInlineKeyboard(profile.IsHidden)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden)
 			} else {
-				response.Text = "Profile not found. Use the Create Profile button to create it."
-				response.InlineKeyboard = s.profileCreateInlineKeyboard()
+				response.Text = l.message(msgProfileNotFoundCreateButton)
+				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
 			}
 			messages[0] = response
 		case domain.CommandProfileDeleteCancel:
 			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 			if err != nil {
 				if isBannedError(err) {
-					response.Text = s.userBannedText()
+					response.Text = s.userBannedText(l)
 					response.InlineKeyboard = nil
 					messages[0] = response
 				}
@@ -300,20 +324,20 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 				break
 			}
 			if found {
-				response.InlineKeyboard = s.profileSettingsInlineKeyboard(profile.IsHidden)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden)
 			} else {
-				response.Text = "Profile not found. Use the Create Profile button to create it."
-				response.InlineKeyboard = s.profileCreateInlineKeyboard()
+				response.Text = l.message(msgProfileNotFoundCreateButton)
+				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
 			}
 			messages[0] = response
 		case domain.CommandProfileDeleteConfirm:
-			if response.Text != profileDeleteExpiredText {
+			if response.Text != s.profileDeleteExpiredText(l) {
 				break
 			}
 			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
 			if err != nil {
 				if isBannedError(err) {
-					response.Text = s.userBannedText()
+					response.Text = s.userBannedText(l)
 					response.InlineKeyboard = nil
 					messages[0] = response
 				}
@@ -321,21 +345,21 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 				break
 			}
 			if found {
-				response.InlineKeyboard = s.profileSettingsInlineKeyboard(profile.IsHidden)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden)
 			} else {
-				response.Text = "Profile not found. Use the Create Profile button to create it."
-				response.InlineKeyboard = s.profileCreateInlineKeyboard()
+				response.Text = l.message(msgProfileNotFoundCreateButton)
+				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
 			}
 			messages[0] = response
 		}
 	}
 
-	followUps, followUpErr := s.profileDetailsFollowUp(ctx, msg, response.Text, replyErr)
+	followUps, followUpErr := s.profileDetailsFollowUp(ctx, msg, l, response.Text, replyErr)
 	if len(followUps) > 0 {
 		messages = append(messages, followUps...)
 	}
 
-	likesFollowUps, likesErr := s.pendingLikesFollowUp(ctx, msg)
+	likesFollowUps, likesErr := s.pendingLikesFollowUp(ctx, msg, l)
 	if len(likesFollowUps) > 0 {
 		messages = append(messages, likesFollowUps...)
 	}
@@ -343,7 +367,7 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 	return messages, errors.Join(touchErr, replyErr, followUpErr, likesErr)
 }
 
-func (s *service) attachBotCheckKeyboard(ctx context.Context, msg domain.IncomingMessage, response *domain.OutgoingMessage) {
+func (s *service) attachBotCheckKeyboard(ctx context.Context, msg domain.IncomingMessage, l localizer, response *domain.OutgoingMessage) {
 	if response == nil || response.InlineKeyboard != nil || s == nil || s.drafts == nil || msg.User.ID == 0 {
 		return
 	}
@@ -365,7 +389,7 @@ func (s *service) attachBotCheckKeyboard(ctx context.Context, msg domain.Incomin
 		return
 	}
 
-	keyboard := s.botCheckInlineKeyboard(draft.BotCheckAnswer)
+	keyboard := s.botCheckInlineKeyboard(l, draft.BotCheckAnswer)
 	if keyboard == nil {
 		return
 	}
@@ -373,7 +397,7 @@ func (s *service) attachBotCheckKeyboard(ctx context.Context, msg domain.Incomin
 	response.InlineKeyboard = keyboard
 }
 
-func (s *service) attachGenderKeyboard(ctx context.Context, msg domain.IncomingMessage, response *domain.OutgoingMessage) {
+func (s *service) attachGenderKeyboard(ctx context.Context, msg domain.IncomingMessage, l localizer, response *domain.OutgoingMessage) {
 	if response == nil || response.InlineKeyboard != nil || s == nil || s.drafts == nil || msg.User.ID == 0 {
 		return
 	}
@@ -395,10 +419,10 @@ func (s *service) attachGenderKeyboard(ctx context.Context, msg domain.IncomingM
 		return
 	}
 
-	response.InlineKeyboard = s.genderInlineKeyboard()
+	response.InlineKeyboard = s.genderInlineKeyboard(l)
 }
 
-func (s *service) attachTelegramNameKeyboard(ctx context.Context, msg domain.IncomingMessage, response *domain.OutgoingMessage) {
+func (s *service) attachTelegramNameKeyboard(ctx context.Context, msg domain.IncomingMessage, l localizer, response *domain.OutgoingMessage) {
 	if response == nil || response.InlineKeyboard != nil || s == nil || s.drafts == nil || msg.User.ID == 0 {
 		return
 	}
@@ -420,10 +444,10 @@ func (s *service) attachTelegramNameKeyboard(ctx context.Context, msg domain.Inc
 		return
 	}
 
-	response.InlineKeyboard = s.telegramNameInlineKeyboard()
+	response.InlineKeyboard = s.telegramNameInlineKeyboard(l)
 }
 
-func (s *service) attachCountryKeyboard(ctx context.Context, msg domain.IncomingMessage, response *domain.OutgoingMessage) {
+func (s *service) attachCountryKeyboard(ctx context.Context, msg domain.IncomingMessage, l localizer, response *domain.OutgoingMessage) {
 	if response == nil || response.InlineKeyboard != nil || s == nil || s.drafts == nil || msg.User.ID == 0 {
 		return
 	}
@@ -445,10 +469,10 @@ func (s *service) attachCountryKeyboard(ctx context.Context, msg domain.Incoming
 		return
 	}
 
-	response.InlineKeyboard = s.countryInlineKeyboard()
+	response.InlineKeyboard = s.countryInlineKeyboard(l)
 }
 
-func (s *service) attachCityKeyboard(ctx context.Context, msg domain.IncomingMessage, response *domain.OutgoingMessage) {
+func (s *service) attachCityKeyboard(ctx context.Context, msg domain.IncomingMessage, l localizer, response *domain.OutgoingMessage) {
 	if response == nil || response.InlineKeyboard != nil || s == nil || s.drafts == nil || msg.User.ID == 0 {
 		return
 	}
@@ -470,7 +494,7 @@ func (s *service) attachCityKeyboard(ctx context.Context, msg domain.IncomingMes
 		return
 	}
 
-	keyboard := s.cityInlineKeyboard(draft.Country)
+	keyboard := s.cityInlineKeyboard(l, draft.Country)
 	if keyboard == nil {
 		return
 	}
@@ -478,7 +502,7 @@ func (s *service) attachCityKeyboard(ctx context.Context, msg domain.IncomingMes
 	response.InlineKeyboard = keyboard
 }
 
-func (s *service) attachEmojiKeyboard(ctx context.Context, msg domain.IncomingMessage, response *domain.OutgoingMessage) {
+func (s *service) attachEmojiKeyboard(ctx context.Context, msg domain.IncomingMessage, l localizer, response *domain.OutgoingMessage) {
 	if response == nil || response.InlineKeyboard != nil || s == nil || s.drafts == nil || msg.User.ID == 0 {
 		return
 	}
@@ -500,10 +524,10 @@ func (s *service) attachEmojiKeyboard(ctx context.Context, msg domain.IncomingMe
 		return
 	}
 
-	response.InlineKeyboard = s.emojiInlineKeyboard()
+	response.InlineKeyboard = s.emojiInlineKeyboard(l)
 }
 
-func (s *service) attachPhotosDoneKeyboard(ctx context.Context, msg domain.IncomingMessage, response *domain.OutgoingMessage) {
+func (s *service) attachPhotosDoneKeyboard(ctx context.Context, msg domain.IncomingMessage, l localizer, response *domain.OutgoingMessage) {
 	if response == nil || response.InlineKeyboard != nil || s == nil || s.drafts == nil || msg.User.ID == 0 {
 		return
 	}
@@ -529,10 +553,10 @@ func (s *service) attachPhotosDoneKeyboard(ctx context.Context, msg domain.Incom
 		return
 	}
 
-	response.InlineKeyboard = s.photosDoneInlineKeyboard()
+	response.InlineKeyboard = s.photosDoneInlineKeyboard(l)
 }
 
-func (s *service) attachCancelKeyboard(ctx context.Context, msg domain.IncomingMessage, response *domain.OutgoingMessage) {
+func (s *service) attachCancelKeyboard(ctx context.Context, msg domain.IncomingMessage, l localizer, response *domain.OutgoingMessage) {
 	if response == nil || s == nil || s.drafts == nil || msg.User.ID == 0 {
 		return
 	}
@@ -547,10 +571,10 @@ func (s *service) attachCancelKeyboard(ctx context.Context, msg domain.IncomingM
 	}
 
 	if s.draftMode(draft) == domain.ProfileDraftModeCreate && s.previousProfileSetupStep(draft.Step) != "" {
-		response.InlineKeyboard = withProfileSetupBackInlineKeyboard(response.InlineKeyboard)
+		response.InlineKeyboard = withProfileSetupBackInlineKeyboard(l, response.InlineKeyboard)
 	}
 
-	response.InlineKeyboard = withDraftCancelInlineKeyboard(response.InlineKeyboard, s.draftMode(draft))
+	response.InlineKeyboard = withDraftCancelInlineKeyboard(l, response.InlineKeyboard, s.draftMode(draft))
 }
 
 func (s *service) registerProfileSetupCleanup(draft domain.ProfileDraft) {

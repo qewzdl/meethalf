@@ -9,46 +9,46 @@ import (
 	"meethalf-telegram-bot/internal/domain"
 )
 
-func (s *service) adminResetChoicesMessage(ctx context.Context, msg domain.IncomingMessage) (string, *domain.InlineKeyboard, error) {
+func (s *service) adminResetChoicesMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
 	role, roleErr := s.resolveAdminRole(ctx, msg.User)
 	if roleErr != nil && isBannedError(roleErr) {
-		return s.userBannedText(), nil, roleErr
+		return s.userBannedText(l), nil, roleErr
 	}
 	if !role.canModerateUsers() {
-		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg)
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg, l)
 		return text, keyboard, errors.Join(roleErr, err)
 	}
 
 	if s == nil || s.admin == nil {
-		return s.adminResetChoicesFailedText(), s.adminMenuInlineKeyboard(role), errors.New("admin service is not configured")
+		return s.adminResetChoicesFailedText(l), s.adminMenuInlineKeyboard(l, role), errors.New("admin service is not configured")
 	}
 
 	if strings.TrimSpace(msg.Arguments) == "" {
-		return s.startAdminResetChoices(ctx, msg, role)
+		return s.startAdminResetChoices(ctx, msg, role, l)
 	}
 
 	userID, username, ok := s.parseAdminUserIdentifier(msg.Arguments)
 	if !ok {
-		return s.adminResetChoicesUsageText(), s.adminResetChoicesInlineKeyboard(), nil
+		return s.adminResetChoicesUsageText(l), s.adminResetChoicesInlineKeyboard(l), nil
 	}
 
-	restrictionText, restrictionErr := s.ensureModeratorCanModerateUser(ctx, role, userID, username, s.adminResetChoicesFailedText(), s.adminResetChoicesUsageText())
+	restrictionText, restrictionErr := s.ensureModeratorCanModerateUser(ctx, role, userID, username, s.adminResetChoicesFailedText(l), s.adminResetChoicesUsageText(l), l)
 	if restrictionText != "" {
-		return restrictionText, s.adminMenuInlineKeyboard(role), restrictionErr
+		return restrictionText, s.adminMenuInlineKeyboard(l, role), restrictionErr
 	}
 
 	shouldClear := s.hasPendingAdminResetChoices(ctx, msg.User.ID)
-	text, err := s.performAdminResetChoices(ctx, userID, username)
+	text, err := s.performAdminResetChoices(ctx, userID, username, l)
 	if err == nil && shouldClear {
 		_ = s.clearAdminAction(ctx, msg.User.ID)
 	}
 
-	return text, s.adminMenuInlineKeyboard(role), err
+	return text, s.adminMenuInlineKeyboard(l, role), err
 }
 
-func (s *service) startAdminResetChoices(ctx context.Context, msg domain.IncomingMessage, role adminRole) (string, *domain.InlineKeyboard, error) {
+func (s *service) startAdminResetChoices(ctx context.Context, msg domain.IncomingMessage, role adminRole, l localizer) (string, *domain.InlineKeyboard, error) {
 	if s == nil || s.adminActions == nil {
-		return s.adminResetChoicesUsageText(), s.adminMenuInlineKeyboard(role), errors.New("admin action repository is not configured")
+		return s.adminResetChoicesUsageText(l), s.adminMenuInlineKeyboard(l, role), errors.New("admin action repository is not configured")
 	}
 
 	action := domain.AdminActionState{
@@ -58,15 +58,15 @@ func (s *service) startAdminResetChoices(ctx context.Context, msg domain.Incomin
 		RequestedAt: s.now(msg.ReceivedAt),
 	}
 	if err := s.adminActions.Save(ctx, action); err != nil {
-		return s.adminResetChoicesFailedText(), s.adminMenuInlineKeyboard(role), err
+		return s.adminResetChoicesFailedText(l), s.adminMenuInlineKeyboard(l, role), err
 	}
 
-	return s.adminResetChoicesUsageText(), s.adminResetChoicesInlineKeyboard(), nil
+	return s.adminResetChoicesUsageText(l), s.adminResetChoicesInlineKeyboard(l), nil
 }
 
-func (s *service) performAdminResetChoices(ctx context.Context, userID int64, username string) (string, error) {
+func (s *service) performAdminResetChoices(ctx context.Context, userID int64, username string, l localizer) (string, error) {
 	if s == nil || s.admin == nil {
-		return s.adminResetChoicesFailedText(), errors.New("admin service is not configured")
+		return s.adminResetChoicesFailedText(l), errors.New("admin service is not configured")
 	}
 
 	var err error
@@ -76,20 +76,20 @@ func (s *service) performAdminResetChoices(ctx context.Context, userID int64, us
 		err = s.admin.ResetUserChoices(ctx, userID)
 	}
 	if err != nil {
-		text := s.adminResetChoicesFailedText()
+		text := s.adminResetChoicesFailedText(l)
 		var status statusError
 		if errors.As(err, &status) {
 			switch status.StatusCode() {
 			case http.StatusBadRequest:
-				text = s.adminResetChoicesUsageText()
+				text = s.adminResetChoicesUsageText(l)
 			case http.StatusNotFound:
-				text = s.adminUserNotFoundText()
+				text = s.adminUserNotFoundText(l)
 			}
 		}
 		return text, err
 	}
 
-	return s.adminResetChoicesSuccessText(s.adminUserIdentifierLabel(userID, username)), nil
+	return s.adminResetChoicesSuccessText(l, s.adminUserIdentifierLabel(userID, username)), nil
 }
 
 func (s *service) hasPendingAdminResetChoices(ctx context.Context, userID int64) bool {

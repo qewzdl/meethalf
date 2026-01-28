@@ -10,9 +10,7 @@ import (
 )
 
 const (
-	albumDoneButtonText      = "Done"
 	albumDoneCallbackData    = "done"
-	telegramNameButtonText   = "Use Telegram name"
 	telegramNameCallbackData = "yes"
 )
 
@@ -35,7 +33,7 @@ func (s *service) userFullName(user domain.User) string {
 
 func (s *service) isAffirmative(value string) bool {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case telegramNameCallbackData, "y", "ok":
+	case telegramNameCallbackData, "y", "ok", "да", "ага", "ок":
 		return true
 	default:
 		return false
@@ -45,67 +43,41 @@ func (s *service) isAffirmative(value string) bool {
 func (s *service) normalizeGender(value string) (domain.Gender, bool) {
 	normalized := strings.ToLower(strings.TrimSpace(value))
 	switch normalized {
-	case "male", "m":
+	case "male", "m", "м", "муж", "мужской", "мужчина":
 		return domain.GenderMale, true
-	case "female", "f":
+	case "female", "f", "ж", "жен", "женский", "женщина":
 		return domain.GenderFemale, true
-	case "other", "o":
+	case "other", "o", "другое", "другой":
 		return domain.GenderOther, true
-	case "unspecified", "unknown", "not set":
+	case "unspecified", "unknown", "not set", "не указано", "неизвестно":
 		return domain.GenderUnspecified, true
 	default:
 		return "", false
 	}
 }
 
-func (s *service) genderLabel(gender domain.Gender) string {
-	switch gender {
-	case domain.GenderMale:
-		return "Male"
-	case domain.GenderFemale:
-		return "Female"
-	case domain.GenderOther:
-		return "Other"
-	default:
-		return "Not set"
-	}
-}
-
 func (s *service) normalizeCountry(value string) (domain.Country, bool) {
 	normalized := strings.ToLower(strings.TrimSpace(value))
 	switch normalized {
-	case "russia":
+	case "russia", "россия", "рф":
 		return domain.CountryRussia, true
-	case "kazakhstan":
+	case "kazakhstan", "казахстан":
 		return domain.CountryKazakhstan, true
-	case "belarus":
+	case "belarus", "беларусь", "белоруссия":
 		return domain.CountryBelarus, true
 	default:
 		return "", false
 	}
 }
 
-func (s *service) countryLabel(country domain.Country) string {
-	switch country {
-	case domain.CountryRussia:
-		return "Russia"
-	case domain.CountryKazakhstan:
-		return "Kazakhstan"
-	case domain.CountryBelarus:
-		return "Belarus"
-	default:
-		return "Not set"
-	}
-}
-
 func (s *service) isProfileShortcut(text string) bool {
 	normalized := strings.ToLower(strings.TrimSpace(text))
-	return normalized == "profile" || normalized == "/profile"
+	return normalized == "profile" || normalized == "/profile" || normalized == "профиль" || normalized == "/профиль"
 }
 
 func (s *service) isAlbumDone(text string) bool {
 	switch strings.ToLower(strings.TrimSpace(text)) {
-	case albumDoneCallbackData, "finish", "save":
+	case albumDoneCallbackData, "finish", "save", "готово", "сохранить":
 		return true
 	default:
 		return false
@@ -257,6 +229,9 @@ func (s *service) isSearchCommand(command string) bool {
 		domain.CommandMatchReport,
 		domain.CommandMatchPrevious,
 		domain.CommandMatchViewProfile,
+		domain.CommandMatchViewLike,
+		domain.CommandMatchViewDislike,
+		domain.CommandMatchViewReport,
 		domain.CommandMatchHistory,
 		domain.CommandMatchHistoryView,
 		domain.CommandMatchHistoryLike,
@@ -271,7 +246,7 @@ func (s *service) isSearchCommand(command string) bool {
 func (s *service) normalizeSearchGender(value string) (domain.Gender, bool) {
 	normalized := strings.ToLower(strings.TrimSpace(value))
 	switch normalized {
-	case "any", "all":
+	case "any", "all", "любой", "все":
 		return domain.GenderUnspecified, true
 	default:
 		return s.normalizeGender(value)
@@ -413,7 +388,7 @@ func (s *service) adminUserIdentifierLabel(userID int64, username string) string
 	return strconv.FormatInt(userID, 10)
 }
 
-func (s *service) nicknameFromUser(user domain.User, profile domain.Profile) string {
+func (s *service) nicknameFromUser(l localizer, user domain.User, profile domain.Profile) string {
 	if nickname := s.formatUsername(user.Username); nickname != "" {
 		return nickname
 	}
@@ -423,15 +398,15 @@ func (s *service) nicknameFromUser(user domain.User, profile domain.Profile) str
 	if fullName := s.userFullName(user); fullName != "" {
 		return fullName
 	}
-	return "Unknown"
+	return l.label(labelUnknown)
 }
 
-func (s *service) nicknameFromSession(session domain.Session, profile domain.Profile) string {
+func (s *service) nicknameFromSession(l localizer, session domain.Session, profile domain.Profile) string {
 	if nickname := s.formatUsername(session.Username); nickname != "" {
 		return nickname
 	}
 	if name := strings.TrimSpace(profile.Name); name != "" {
 		return name
 	}
-	return "Unknown"
+	return l.label(labelUnknown)
 }
