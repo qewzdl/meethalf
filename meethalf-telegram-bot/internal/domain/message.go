@@ -20,6 +20,7 @@ const (
 	CommandProfileEditPhotos    = "profile_edit_photos"
 	CommandProfileSettings      = "profile_settings"
 	CommandProfileLanguage      = "profile_language"
+	CommandLanguage             = "language"
 	CommandProfileVisibility    = "profile_visibility"
 	CommandProfileDelete        = "profile_delete"
 	CommandProfileDeleteConfirm = "profile_delete_confirm"

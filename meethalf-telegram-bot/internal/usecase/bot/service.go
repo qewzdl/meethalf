@@ -196,7 +196,7 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		response.Text, response.InlineKeyboard, replyErr = s.adminResetChoicesMessage(ctx, msg, l)
 	case domain.CommandAdminClearReports:
 		response.Text, response.InlineKeyboard, replyErr = s.adminClearReportsMessage(ctx, msg, l)
-	case domain.CommandProfileLanguage:
+	case domain.CommandProfileLanguage, domain.CommandLanguage:
 		response.Text, response.InlineKeyboard, replyErr = s.profileLanguageMessage(ctx, msg, l)
 	default:
 		response.Text, replyErr = s.reply(ctx, msg, l)

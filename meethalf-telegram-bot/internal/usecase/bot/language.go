@@ -85,9 +85,13 @@ func languageFromTelegramCode(code string) domain.Language {
 func (s *service) profileLanguageMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
 	value := strings.TrimSpace(msg.Arguments)
 	if value == "" {
-		value = strings.TrimSpace(msg.Text)
+		if msg.Command == domain.CommandLanguage {
+			value = ""
+		} else {
+			value = strings.TrimSpace(msg.Text)
+		}
 	}
-	if value == "" || value == domain.CommandProfileLanguage {
+	if value == "" || value == domain.CommandProfileLanguage || value == domain.CommandLanguage {
 		return l.message(msgLanguagePrompt), s.languageInlineKeyboard(l), nil
 	}
 

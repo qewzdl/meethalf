@@ -20,6 +20,7 @@ go run ./cmd/bot
 
 - /start - greet user by profile name when available, otherwise Telegram name; show inline Start Search, Profile (or Create Profile when missing), and Settings buttons
 - /cancel - cancel the current action and return to the main menu
+- /language - open language selection (optional args: `en` or `ru`)
 
 ## Admin
 
@@ -111,14 +112,15 @@ Confirming removes the profile via the Meethalf API, and cancel keeps the profil
 ## Language
 
 The bot supports English and Russian. The initial language is picked from the Telegram `language_code` when available,
-otherwise English. You can change it anytime in Settings → Language; the selection is stored in the session store and
+otherwise English. You can change it anytime in Settings > Language or by sending `/language` (optionally `/language en` or `/language ru`); the selection is stored in the session store and
 applies to all future bot responses.
 
 ## Search flow
 
 Use the `Start search` button from `/start` to start browsing. If you press it without a profile, the bot asks you to
-create one first. The bot asks for the gender to search, then the accuracy level (0-4, where 0 is wider/random and 4 is
-stricter) using a single-row 0-4 button layout. If no profiles match the selected accuracy, the search widens
+create one first. The bot asks for the gender to search, then the match accuracy level (0-4). The prompt explains the
+scale (0 is wider/random, 4 is strict/precise) and the keyboard shows a single-row 0-4 button layout. If no profiles
+match the selected accuracy, the search widens
 automatically until it finds candidates. After
 that it shows profile cards with action buttons:
 
@@ -196,4 +198,6 @@ bot greeting; comma-separated values are accepted.
 - internal/transport/api - HTTP client for Meethalf API
 - internal/transport/telegram - Telegram transport (poller, handler, sender)
 - internal/logger - logging
+
+
 
