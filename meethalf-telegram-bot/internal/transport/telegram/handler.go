@@ -296,6 +296,8 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandAdminUnmoderator
 		case domain.CommandAdminResetChoices:
 			command = domain.CommandAdminResetChoices
+		case domain.CommandAdminClearReports:
+			command = domain.CommandAdminClearReports
 		}
 	}
 

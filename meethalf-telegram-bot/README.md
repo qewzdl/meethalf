@@ -29,10 +29,11 @@ lists (reported users include report counts) that return users (including their 
 with pagination, plus `Ban user` / `Unban user` buttons that prompt for the profile id or `@username` (you can also use
 `/ban <user_id|@username>` and `/unban <user_id|@username>`). It also supports `Make moderator` / `Remove moderator` actions
 (`/moderator <user_id|@username>` and `/unmoderator <user_id|@username>`), and `Reset choices` to clear match history and
-decisions (`/reset_choices <user_id|@username>`).
+decisions (`/reset_choices <user_id|@username>`). `Clear reports` removes a user from the reported list
+(`/clear_reports <user_id|@username>`).
 Moderators (profiles with `is_moderator=true` in the Meethalf API) see a `Moderator access enabled.` badge and a
 `Moderator panel` button, but only with `User list`, `Banned users`, and `Reported users` lists plus `Ban user` / `Unban user`
-(regular users only).
+(regular users only) and `Clear reports`.
 Moderator management and the moderators list remain admin-only.
 
 ## Profile setup

@@ -66,6 +66,8 @@ type AdminService interface {
 	RemoveModeratorByUsername(ctx context.Context, username string) error
 	ResetUserChoices(ctx context.Context, userID int64) error
 	ResetUserChoicesByUsername(ctx context.Context, username string) error
+	ClearUserReports(ctx context.Context, userID int64) error
+	ClearUserReportsByUsername(ctx context.Context, username string) error
 }
 
 type service struct {
@@ -118,7 +120,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		msg.Command != domain.CommandAdminUnban &&
 		msg.Command != domain.CommandAdminModerator &&
 		msg.Command != domain.CommandAdminUnmoderator &&
-		msg.Command != domain.CommandAdminResetChoices {
+		msg.Command != domain.CommandAdminResetChoices &&
+		msg.Command != domain.CommandAdminClearReports {
 		_ = s.clearAdminAction(ctx, msg.User.ID)
 	}
 
@@ -169,6 +172,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		response.Text, response.InlineKeyboard, replyErr = s.adminUnmoderatorMessage(ctx, msg)
 	case domain.CommandAdminResetChoices:
 		response.Text, response.InlineKeyboard, replyErr = s.adminResetChoicesMessage(ctx, msg)
+	case domain.CommandAdminClearReports:
+		response.Text, response.InlineKeyboard, replyErr = s.adminClearReportsMessage(ctx, msg)
 	default:
 		response.Text, replyErr = s.reply(ctx, msg)
 		if msg.Command == domain.CommandProfileEdit && replyErr == nil {

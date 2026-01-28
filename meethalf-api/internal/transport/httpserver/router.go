@@ -43,6 +43,7 @@ func NewRouter(handlers *Handlers, limiter ratelimit.Limiter) *gin.Engine {
 	adminGroup.POST("/users/:user_ref/unban", handlers.Admin.UnbanUser)
 	adminGroup.POST("/users/:user_ref/moderator", handlers.Admin.MakeModerator)
 	adminGroup.POST("/users/:user_ref/unmoderator", handlers.Admin.RemoveModerator)
+	adminGroup.POST("/users/:user_ref/reports/clear", handlers.Admin.ClearUserReports)
 	adminGroup.POST("/users/:user_ref/choices/reset", handlers.Admin.ResetChoices)
 
 	return router

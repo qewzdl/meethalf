@@ -31,6 +31,7 @@ const (
 	adminBannedUsersButtonText     = "Banned users"
 	adminModeratorsButtonText      = "Moderators"
 	adminReportsButtonText         = "Reported users"
+	adminClearReportsButtonText    = "Clear reports"
 	adminUsersPrevButtonText       = "Previous"
 	adminUsersNextButtonText       = "Next"
 	adminBackToMenuButtonText      = "Back to admin"
@@ -112,6 +113,12 @@ func (s *service) adminMenuInlineKeyboard(role adminRole) *domain.InlineKeyboard
 		},
 		[]domain.InlineButton{
 			{
+				Text:         adminClearReportsButtonText,
+				CallbackData: domain.CommandAdminClearReports,
+			},
+		},
+		[]domain.InlineButton{
+			{
 				Text:         adminBanButtonText,
 				CallbackData: domain.CommandAdminBan,
 			},
@@ -171,6 +178,10 @@ func (s *service) adminModeratorInlineKeyboard() *domain.InlineKeyboard {
 }
 
 func (s *service) adminResetChoicesInlineKeyboard() *domain.InlineKeyboard {
+	return s.adminBanInlineKeyboard()
+}
+
+func (s *service) adminClearReportsInlineKeyboard() *domain.InlineKeyboard {
 	return s.adminBanInlineKeyboard()
 }
 

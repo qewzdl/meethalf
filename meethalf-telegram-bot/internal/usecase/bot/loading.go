@@ -116,6 +116,11 @@ func (s *service) loadingForCommand(msg domain.IncomingMessage) (domain.Outgoing
 			return domain.OutgoingMessage{}, false
 		}
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminResetChoicesText}, true
+	case domain.CommandAdminClearReports:
+		if strings.TrimSpace(msg.Arguments) == "" {
+			return domain.OutgoingMessage{}, false
+		}
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingAdminClearReportsText}, true
 	default:
 		return domain.OutgoingMessage{}, false
 	}
@@ -140,6 +145,7 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 	case domain.AdminActionModerator:
 	case domain.AdminActionUnmoderator:
 	case domain.AdminActionResetChoices:
+	case domain.AdminActionClearReports:
 	default:
 		return domain.OutgoingMessage{}, false, nil
 	}
@@ -164,6 +170,8 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 		loadingText = loadingAdminUnmoderatorText
 	case domain.AdminActionResetChoices:
 		loadingText = loadingAdminResetChoicesText
+	case domain.AdminActionClearReports:
+		loadingText = loadingAdminClearReportsText
 	}
 	return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingText}, true, nil
 }

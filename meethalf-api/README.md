@@ -46,6 +46,7 @@ curl -X POST http://localhost:8080/api/v1/admin/users/1/ban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/moderator
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unmoderator
+curl -X POST http://localhost:8080/api/v1/admin/users/1/reports/clear
 curl -X POST http://localhost:8080/api/v1/admin/users/1/choices/reset
 ```
 
@@ -69,6 +70,7 @@ their report counts.
 `POST /api/v1/admin/users/{user_ref}/ban` bans the user by id or username (with or without `@`), and
 `POST /api/v1/admin/users/{user_ref}/unban` removes the ban. `POST /api/v1/admin/users/{user_ref}/moderator` assigns the
 moderator role, and `POST /api/v1/admin/users/{user_ref}/unmoderator` removes it.
+`POST /api/v1/admin/users/{user_ref}/reports/clear` removes the user from the reported list by clearing report actions.
 `POST /api/v1/admin/users/{user_ref}/choices/reset` clears all match choices and history for the selected user.
 Banned users cannot use profile or search endpoints.
 
@@ -142,6 +144,7 @@ curl -X POST http://localhost:8080/api/v1/admin/users/1/ban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/moderator
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unmoderator
+curl -X POST http://localhost:8080/api/v1/admin/users/1/reports/clear
 curl -X POST http://localhost:8080/api/v1/admin/users/1/choices/reset
 ```
 

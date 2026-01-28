@@ -47,6 +47,7 @@ const (
 	CommandAdminModerator       = "moderator"
 	CommandAdminUnmoderator     = "unmoderator"
 	CommandAdminResetChoices    = "reset_choices"
+	CommandAdminClearReports    = "clear_reports"
 )
 
 type OutgoingMessageKind string

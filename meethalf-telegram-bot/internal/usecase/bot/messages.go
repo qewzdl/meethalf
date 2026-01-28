@@ -49,6 +49,9 @@ const (
 	adminResetChoicesUsageText        = "Send the user ID or @username to reset match choices."
 	adminResetChoicesFailedText       = "Unable to reset match choices. Please try again later."
 	adminResetChoicesSuccessTemplate  = "Match choices were reset for %s."
+	adminClearReportsUsageText        = "Send the user ID or @username to clear reports."
+	adminClearReportsFailedText       = "Unable to clear reports. Please try again later."
+	adminClearReportsSuccessTemplate  = "Reports were cleared for %s."
 	userBannedText                    = "Your account is banned. Contact support."
 	profileCreatedText                = "Profile created."
 	profileUpdatedText                = "Profile updated."
@@ -76,6 +79,7 @@ const (
 	loadingAdminModeratorText         = "Assigning moderator role..."
 	loadingAdminUnmoderatorText       = "Removing moderator role..."
 	loadingAdminResetChoicesText      = "Resetting match choices..."
+	loadingAdminClearReportsText      = "Clearing reports..."
 	loadingAdminBannedUsersText       = "Loading banned users..."
 	loadingAdminModeratorsText        = "Loading moderators..."
 	loadingAdminReportsText           = "Loading reported users..."
@@ -281,6 +285,18 @@ func (s *service) adminResetChoicesFailedText() string {
 
 func (s *service) adminResetChoicesSuccessText(userRef string) string {
 	return fmt.Sprintf(adminResetChoicesSuccessTemplate, userRef)
+}
+
+func (s *service) adminClearReportsUsageText() string {
+	return adminClearReportsUsageText
+}
+
+func (s *service) adminClearReportsFailedText() string {
+	return adminClearReportsFailedText
+}
+
+func (s *service) adminClearReportsSuccessText(userRef string) string {
+	return fmt.Sprintf(adminClearReportsSuccessTemplate, userRef)
 }
 
 func (s *service) userBannedText() string {

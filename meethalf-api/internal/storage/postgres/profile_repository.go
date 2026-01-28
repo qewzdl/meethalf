@@ -496,6 +496,25 @@ func (r *ProfileRepository) ListReportedUsers(ctx context.Context, limit, offset
 	return users, total, nil
 }
 
+func (r *ProfileRepository) ClearUserReports(ctx context.Context, userID int64) error {
+	if r == nil || r.db == nil {
+		return errors.New("postgres profile repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	query := fmt.Sprintf(
+		`DELETE FROM %s
+		 WHERE target_id = $1 AND action = $2`,
+		matchInteractionsTable(r.schema),
+	)
+
+	_, err := r.db.ExecContext(ctx, query, userID, domain.MatchActionReport)
+	return err
+}
+
 func (r *ProfileRepository) ensureTable(ctx context.Context) error {
 	query := fmt.Sprintf(
 		`CREATE TABLE IF NOT EXISTS %s (
