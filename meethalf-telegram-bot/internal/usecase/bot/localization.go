@@ -520,7 +520,7 @@ const (
 
 var messageCatalog = map[domain.Language]map[messageKey]string{
 	domain.LanguageEnglish: {
-		msgDefaultHelp:                    "Ready to meet someone? Tap below to start matching, open your profile, or tweak preferences.",
+		msgDefaultHelp:                    "Tap below to start matching, open your profile, or tweak preferences.",
 		msgUnknownCommand:                 "I didn't recognize that command. Try the buttons below.",
 		msgAdminBadge:                     "Admin access enabled. You're in control.",
 		msgModeratorBadge:                 "Moderator access enabled. Thanks for keeping it safe.",
@@ -735,7 +735,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgProfileSettingsLanguageHint:    "Profile settings. Use the buttons below to manage visibility, advanced search, language, or delete your profile.",
 	},
 	domain.LanguageRussian: {
-		msgDefaultHelp:                    "Готовы знакомиться? Нажмите кнопку ниже, чтобы начать поиск, открыть/создать профиль или зайти в параметры.",
+		msgDefaultHelp:                    "Нажмите кнопку ниже, чтобы начать поиск, открыть/создать профиль или зайти в параметры.",
 		msgUnknownCommand:                 "Не понимаю эту команду. Воспользуйтесь кнопками ниже.",
 		msgAdminBadge:                     "Режим администратора включён. Всё под контролем.",
 		msgModeratorBadge:                 "Режим модератора включён. Спасибо, что следите за порядком.",

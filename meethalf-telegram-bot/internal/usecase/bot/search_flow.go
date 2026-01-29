@@ -41,7 +41,7 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage, 
 				{
 					ChatID:         msg.ChatID,
 					Text:           s.searchProfileMissingText(l),
-					InlineKeyboard: s.profileCreateInlineKeyboard(l),
+					InlineKeyboard: s.profileCreateInlineKeyboardWithAdmin(ctx, msg, l),
 				},
 			}, nil
 		}
@@ -143,7 +143,7 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage, 
 	case domain.CommandMatchPrevious:
 		candidate, found, err := s.search.PreviousCandidate(ctx, msg.User.ID)
 		if err != nil {
-			return s.searchErrorResponse(l, msg.ChatID, err), err
+			return s.searchErrorResponse(ctx, msg, l, err), err
 		}
 		if !found {
 			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchNoPreviousText(l)}}, nil
@@ -182,7 +182,7 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage, 
 				{
 					ChatID:         msg.ChatID,
 					Text:           s.profileViewRequiresProfileText(l),
-					InlineKeyboard: s.profileCreateInlineKeyboard(l),
+					InlineKeyboard: s.profileCreateInlineKeyboardWithAdmin(ctx, msg, l),
 				},
 			}, nil
 		}
@@ -202,7 +202,7 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage, 
 func (s *service) startSearch(ctx context.Context, msg domain.IncomingMessage, l localizer, gender domain.Gender, accuracy int) ([]domain.OutgoingMessage, error) {
 	candidate, found, err := s.search.StartSearch(ctx, msg.User.ID, gender, accuracy)
 	if err != nil {
-		return s.searchErrorResponse(l, msg.ChatID, err), err
+		return s.searchErrorResponse(ctx, msg, l, err), err
 	}
 	if !found {
 		return []domain.OutgoingMessage{{
@@ -218,7 +218,7 @@ func (s *service) startSearch(ctx context.Context, msg domain.IncomingMessage, l
 func (s *service) nextMatch(ctx context.Context, msg domain.IncomingMessage, l localizer) ([]domain.OutgoingMessage, error) {
 	candidate, found, err := s.search.NextCandidate(ctx, msg.User.ID)
 	if err != nil {
-		return s.searchErrorResponse(l, msg.ChatID, err), err
+		return s.searchErrorResponse(ctx, msg, l, err), err
 	}
 	if !found {
 		return []domain.OutgoingMessage{{
@@ -230,7 +230,8 @@ func (s *service) nextMatch(ctx context.Context, msg domain.IncomingMessage, l l
 	return s.matchProfileMessages(msg.ChatID, candidate, l), nil
 }
 
-func (s *service) searchErrorResponse(l localizer, chatID int64, err error) []domain.OutgoingMessage {
+func (s *service) searchErrorResponse(ctx context.Context, msg domain.IncomingMessage, l localizer, err error) []domain.OutgoingMessage {
+	chatID := msg.ChatID
 	if err == nil {
 		return []domain.OutgoingMessage{{ChatID: chatID, Text: s.searchActionFailedText(l)}}
 	}
@@ -245,7 +246,7 @@ func (s *service) searchErrorResponse(l localizer, chatID int64, err error) []do
 				{
 					ChatID:         chatID,
 					Text:           s.searchProfileMissingText(l),
-					InlineKeyboard: s.profileCreateInlineKeyboard(l),
+					InlineKeyboard: s.profileCreateInlineKeyboardWithAdmin(ctx, msg, l),
 				},
 			}
 		case http.StatusConflict:
@@ -254,6 +255,11 @@ func (s *service) searchErrorResponse(l localizer, chatID int64, err error) []do
 	}
 
 	return []domain.OutgoingMessage{{ChatID: chatID, Text: s.searchActionFailedText(l)}}
+}
+
+func (s *service) profileCreateInlineKeyboardWithAdmin(ctx context.Context, msg domain.IncomingMessage, l localizer) *domain.InlineKeyboard {
+	role, _ := s.resolveAdminRole(ctx, msg.User)
+	return s.withAdminMenuInlineKeyboard(l, s.profileCreateInlineKeyboard(l), role)
 }
 
 func (s *service) matchProfileMessages(chatID int64, candidate domain.MatchCandidate, l localizer) []domain.OutgoingMessage {
@@ -280,7 +286,7 @@ func (s *service) historyListMessages(ctx context.Context, msg domain.IncomingMe
 	offset := s.parseHistoryOffset(msg.Arguments)
 	list, err := s.search.History(ctx, msg.User.ID, historyPageSize, offset)
 	if err != nil {
-		return s.searchErrorResponse(l, msg.ChatID, err), err
+		return s.searchErrorResponse(ctx, msg, l, err), err
 	}
 
 	text := s.searchHistoryText(l, list)
@@ -302,7 +308,7 @@ func (s *service) historyViewMessages(ctx context.Context, msg domain.IncomingMe
 
 	item, list, found, err := s.historyItem(ctx, msg.User.ID, targetID, offset)
 	if err != nil {
-		return s.searchErrorResponse(l, msg.ChatID, err), err
+		return s.searchErrorResponse(ctx, msg, l, err), err
 	}
 	if !found {
 		text := s.searchHistoryText(l, list)
@@ -327,7 +333,7 @@ func (s *service) historyActionMessages(ctx context.Context, msg domain.Incoming
 	item, list, found, historyErr := s.historyItem(ctx, msg.User.ID, targetID, offset)
 	if !found || historyErr != nil {
 		if historyErr != nil {
-			return s.searchErrorResponse(l, msg.ChatID, historyErr), historyErr
+			return s.searchErrorResponse(ctx, msg, l, historyErr), historyErr
 		}
 		text := s.searchHistoryText(l, list)
 		keyboard := s.historyInlineKeyboard(l, list)
