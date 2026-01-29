@@ -353,6 +353,8 @@ func (r *MatchingRepository) FindCandidate(ctx context.Context, params matching.
 				SELECT 1 FROM %s h
 				WHERE h.viewer_id = $1 AND h.session_version = $3 AND h.candidate_id = p.user_id
 		   )
+		   AND ($10::int IS NULL OR p.age >= $10::int)
+		   AND ($11::int IS NULL OR p.age <= $11::int)
 		   AND %s >= $4
 		 ORDER BY %s DESC, p.updated_at DESC, p.user_id DESC
 		 LIMIT 1`,
@@ -375,6 +377,8 @@ func (r *MatchingRepository) FindCandidate(ctx context.Context, params matching.
 		params.ViewerAge,
 		params.ViewerEmoji,
 		params.AgeWindow,
+		params.MinAge,
+		params.MaxAge,
 	)
 
 	candidate, err := r.scanProfile(row.Scan)

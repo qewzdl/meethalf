@@ -154,9 +154,9 @@ func (s *service) parseBirthDate(value string) (time.Time, bool) {
 
 	layouts := []string{
 		birthDateLayout,
-		"2006-1-2",
-		"02.01.2006",
 		"2.1.2006",
+		legacyBirthDateLayout,
+		"2006-1-2",
 		"02/01/2006",
 		"2/1/2006",
 	}

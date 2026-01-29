@@ -19,7 +19,10 @@ type ProfileClient struct {
 	client  *http.Client
 }
 
-const birthDateLayout = "2006-01-02"
+const (
+	birthDateLayout       = "02.01.2006"
+	legacyBirthDateLayout = "2006-01-02"
+)
 
 func NewProfileClient(baseURL string, timeout time.Duration) *ProfileClient {
 	if timeout <= 0 {
@@ -317,7 +320,15 @@ func parseBirthDate(value string) (time.Time, error) {
 		return time.Time{}, nil
 	}
 
-	parsed, err := time.Parse(birthDateLayout, value)
+	layouts := []string{birthDateLayout, legacyBirthDateLayout}
+	var parsed time.Time
+	var err error
+	for _, layout := range layouts {
+		parsed, err = time.Parse(layout, value)
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
 		return time.Time{}, fmt.Errorf("invalid birth date format: %w", err)
 	}

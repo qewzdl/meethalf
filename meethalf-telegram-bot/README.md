@@ -41,7 +41,7 @@ Moderator management and the moderators list remain admin-only.
 ## Profile setup
 
 The bot guides users through a nine-step profile setup: a short anti-bot verification check (choose the correct answer
-from four buttons), name (use the Telegram name button or type a custom one), gender, birth date (YYYY-MM-DD), country
+from four buttons), name (use the Telegram name button or type a custom one), gender, birth date (DD.MM.YYYY), country
 (Russia, Kazakhstan, or Belarus), city (selected from the supported list), description, emoji selection, and a photo
 album (1-4 photos). The verification step plus gender, country, city, and emoji are selected via inline buttons. After
 sending at least one photo, use the Done button to finish the setup. Drafts are
@@ -123,7 +123,8 @@ Use the `Start search` button from `/start` to start browsing. If you press it w
 create one first. The bot asks for the gender to search, then the match accuracy level (0-4). The prompt explains the
 scale (0 is wider/random, 4 is strict/precise) and the keyboard shows a single-row 0-4 button layout. If no profiles
 match the selected accuracy, the search widens
-automatically until it finds candidates. After
+automatically until it finds candidates. The Meethalf API enforces age eligibility: users aged 16-17 see only 16-17
+profiles, and users aged 18+ never see profiles under 18. After
 that it shows profile cards with action buttons:
 
 - 👎 - skip and show the next profile

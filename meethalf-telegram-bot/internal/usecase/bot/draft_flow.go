@@ -338,9 +338,9 @@ func (s *service) applyBirthDate(ctx context.Context, msg domain.IncomingMessage
 	birthDate, ok := s.parseBirthDate(value)
 	if !ok {
 		if isEdit {
-			return s.editText(l, domain.ProfileDraftStepBirthDate, l.message(msgBirthDateInvalid, birthDateLayout)), nil
+			return s.editText(l, domain.ProfileDraftStepBirthDate, l.message(msgBirthDateInvalid, birthDateLayout, birthDateExample)), nil
 		}
-		return s.stepText(l, domain.ProfileDraftStepBirthDate, l.message(msgBirthDateInvalid, birthDateLayout)), nil
+		return s.stepText(l, domain.ProfileDraftStepBirthDate, l.message(msgBirthDateInvalid, birthDateLayout, birthDateExample)), nil
 	}
 
 	age := s.ageFromBirthDate(birthDate, s.now(msg.ReceivedAt))

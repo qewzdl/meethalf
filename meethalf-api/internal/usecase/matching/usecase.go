@@ -16,6 +16,9 @@ const (
 	defaultAgeWindow    = 3
 	defaultHistoryLimit = 20
 	maxHistoryLimit     = 100
+	teenMinAge          = 16
+	teenMaxAge          = 17
+	adultMinAge         = 18
 )
 
 var (
@@ -67,6 +70,8 @@ type CandidateParams struct {
 	ViewerAge      int
 	ViewerEmoji    domain.ProfileEmojiCode
 	AgeWindow      int
+	MinAge         *int
+	MaxAge         *int
 }
 
 type HistoryList struct {
@@ -412,6 +417,7 @@ func (s *service) findCandidate(ctx context.Context, viewer domain.Profile, sess
 		ViewerAge:      viewer.Age,
 		ViewerEmoji:    viewer.EmojiCode,
 	}
+	params.MinAge, params.MaxAge = candidateAgeBounds(viewer.Age)
 
 	for _, attempt := range attempts {
 		params.Accuracy = attempt.Accuracy
@@ -426,6 +432,17 @@ func (s *service) findCandidate(ctx context.Context, viewer domain.Profile, sess
 	}
 
 	return domain.Profile{}, false, nil
+}
+
+func candidateAgeBounds(viewerAge int) (*int, *int) {
+	if viewerAge >= adultMinAge {
+		minAge := adultMinAge
+		return &minAge, nil
+	}
+
+	minAge := teenMinAge
+	maxAge := teenMaxAge
+	return &minAge, &maxAge
 }
 
 func normalizeGenderFilter(gender domain.Gender) (domain.Gender, error) {

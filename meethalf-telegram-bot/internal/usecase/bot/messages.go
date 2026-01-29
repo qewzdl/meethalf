@@ -31,7 +31,7 @@ func (s *service) botCheckRetryPrompt(l localizer, reason, question string) stri
 }
 
 func (s *service) birthDatePrompt(l localizer) string {
-	return s.stepText(l, domain.ProfileDraftStepBirthDate, l.message(msgBirthDatePrompt, birthDateLayout))
+	return s.stepText(l, domain.ProfileDraftStepBirthDate, l.message(msgBirthDatePrompt, birthDateLayout, birthDateExample))
 }
 
 func (s *service) genderPrompt(l localizer) string {
@@ -238,7 +238,7 @@ func (s *service) editPrompt(l localizer, step domain.ProfileDraftStep) string {
 	case domain.ProfileDraftStepName:
 		return s.editText(l, step, l.message(msgEditNamePrompt))
 	case domain.ProfileDraftStepBirthDate:
-		return s.editText(l, step, l.message(msgEditBirthDatePrompt, birthDateExample))
+		return s.editText(l, step, l.message(msgEditBirthDatePrompt, birthDateLayout, birthDateExample))
 	case domain.ProfileDraftStepGender:
 		return s.editText(l, step, l.message(msgEditGenderPrompt))
 	case domain.ProfileDraftStepCountry:

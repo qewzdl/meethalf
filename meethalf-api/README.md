@@ -16,7 +16,7 @@ curl http://localhost:8080/api/v1/health/readiness
 curl http://localhost:8080/api/v1/health
 curl -X POST http://localhost:8080/api/v1/profiles \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1,"username":"janedoe","name":"Jane Doe","gender":"female","birth_date":"1996-04-23","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"],"is_hidden":false}'
+  -d '{"user_id":1,"username":"janedoe","name":"Jane Doe","gender":"female","birth_date":"24.12.2006","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"],"is_hidden":false}'
 curl http://localhost:8080/api/v1/profiles/1
 curl -X PATCH http://localhost:8080/api/v1/profiles/1/visibility \
   -H "Content-Type: application/json" \
@@ -50,14 +50,15 @@ curl -X POST http://localhost:8080/api/v1/admin/users/1/reports/clear
 curl -X POST http://localhost:8080/api/v1/admin/users/1/choices/reset
 ```
 
-`birth_date` uses the `YYYY-MM-DD` format; age is derived automatically and must be between 16 and 120. `country` must be one of `russia`, `kazakhstan`,
+`birth_date` uses the `DD.MM.YYYY` format (for example, `24.12.2006`); age is derived automatically and must be between 16 and 120. `country` must be one of `russia`, `kazakhstan`,
 or `belarus`; `city` must be in the supported list for the selected country. `emoji_code` must be one of the supported
 profile emoji codes listed below. Set `is_hidden=true` to hide a profile from search results.
 Profile responses include `is_moderator` to indicate moderation role; it is managed through the admin endpoints.
 Search and likes endpoints require an existing profile. `gender` can be `male`, `female`, `other`, or `unspecified` (any),
 and `accuracy` is a 0-4 scale where 0 is wider/random and 4 is stricter. If no candidates match the selected accuracy,
 search relaxes the accuracy step-by-step down to 0 while keeping the gender filter. Lower accuracy levels also use wider
-age windows when scoring candidates.
+age windows when scoring candidates. Search enforces age eligibility: users aged 16-17 see only 16-17 profiles, and
+users aged 18+ never see profiles under 18.
 `/api/v1/search/action` responds with `matched=true` when the like action forms a mutual match.
 `GET /api/v1/search/history/{user_id}` returns the cumulative search history across sessions (latest view per profile,
 latest first) with actions, position, and pagination via `limit`/`offset` query parameters.
@@ -114,7 +115,7 @@ curl http://localhost:8080/api/v1/health/readiness
 curl http://localhost:8080/api/v1/health
 curl -X POST http://localhost:8080/api/v1/profiles \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1,"username":"janedoe","name":"Jane Doe","gender":"female","birth_date":"1996-04-23","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"],"is_hidden":false}'
+  -d '{"user_id":1,"username":"janedoe","name":"Jane Doe","gender":"female","birth_date":"24.12.2006","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"],"is_hidden":false}'
 curl http://localhost:8080/api/v1/profiles/1
 curl -X PATCH http://localhost:8080/api/v1/profiles/1/visibility \
   -H "Content-Type: application/json" \

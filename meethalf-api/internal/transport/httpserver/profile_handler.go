@@ -13,7 +13,10 @@ import (
 	"meethalf-api/internal/usecase/profile"
 )
 
-const birthDateLayout = "2006-01-02"
+const (
+	birthDateLayout       = "02.01.2006"
+	legacyBirthDateLayout = "2006-01-02"
+)
 
 type ProfileHandler struct {
 	uc profile.Usecase
@@ -232,7 +235,15 @@ func parseBirthDate(value string) (time.Time, error) {
 		return time.Time{}, profile.ErrInvalidBirthDate
 	}
 
-	parsed, err := time.Parse(birthDateLayout, value)
+	layouts := []string{birthDateLayout, legacyBirthDateLayout}
+	var parsed time.Time
+	var err error
+	for _, layout := range layouts {
+		parsed, err = time.Parse(layout, value)
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
 		return time.Time{}, profile.ErrInvalidBirthDate
 	}

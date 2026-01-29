@@ -16,8 +16,9 @@ const (
 	botCheckOptionsMinValue     = 1
 	botCheckOptionsColumns      = 2
 	profileStepsTotal           = 9
-	birthDateLayout             = "2006-01-02"
-	birthDateExample            = "24.06.2006"
+	birthDateLayout             = "02.01.2006"
+	birthDateExample            = "24.12.2006"
+	legacyBirthDateLayout       = "2006-01-02"
 	profileVisibilityHideAction = "hide"
 	profileVisibilityShowAction = "show"
 )
