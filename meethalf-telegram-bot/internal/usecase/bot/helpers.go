@@ -354,6 +354,19 @@ func (s *service) parseHistoryTarget(value string) (int64, int, bool) {
 	return targetID, offset, true
 }
 
+func normalizeUsername(value string) string {
+	normalized := strings.TrimSpace(value)
+	if normalized == "" {
+		return ""
+	}
+	normalized = strings.TrimPrefix(normalized, "@")
+	normalized = strings.TrimSpace(normalized)
+	if normalized == "" {
+		return ""
+	}
+	return strings.ToLower(normalized)
+}
+
 func (s *service) formatUsername(username string) string {
 	normalized := strings.TrimSpace(username)
 	if normalized == "" {

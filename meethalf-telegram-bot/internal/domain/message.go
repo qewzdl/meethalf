@@ -4,6 +4,8 @@ import "time"
 
 const (
 	CommandStart                = "start"
+	CommandAgeConfirmYes        = "age_confirm_yes"
+	CommandAgeConfirmNo         = "age_confirm_no"
 	CommandCancel               = "cancel"
 	CommandProfile              = "profile"
 	CommandProfileSetupBack     = "profile_setup_back"
@@ -52,6 +54,7 @@ const (
 	CommandAdminModerator       = "moderator"
 	CommandAdminUnmoderator     = "unmoderator"
 	CommandAdminResetChoices    = "reset_choices"
+	CommandAdminResetStart      = "reset_start"
 	CommandAdminClearReports    = "clear_reports"
 )
 

@@ -35,6 +35,13 @@ type AdminActionRepository interface {
 	Delete(ctx context.Context, userID int64) error
 }
 
+type AgeConfirmationRepository interface {
+	Get(ctx context.Context, userID int64) (domain.AgeConfirmation, bool, error)
+	Save(ctx context.Context, confirmation domain.AgeConfirmation) error
+	Delete(ctx context.Context, userID int64) error
+	FindUserIDByUsername(ctx context.Context, username string) (int64, bool, error)
+}
+
 type ProfileService interface {
 	CreateProfile(ctx context.Context, profile domain.Profile) error
 	GetProfile(ctx context.Context, userID int64) (domain.Profile, bool, error)
@@ -75,6 +82,7 @@ type service struct {
 	drafts              ProfileDraftRepository
 	deleteConfirmations ProfileDeletionConfirmationRepository
 	adminActions        AdminActionRepository
+	ageConfirmations    AgeConfirmationRepository
 	profiles            ProfileService
 	search              SearchService
 	admin               AdminService
@@ -88,12 +96,13 @@ type setupCleanupInfo struct {
 	startMessageID int
 }
 
-func New(sessions SessionRepository, drafts ProfileDraftRepository, deleteConfirmations ProfileDeletionConfirmationRepository, adminActions AdminActionRepository, profiles ProfileService, search SearchService, admin AdminService, adminUsernames []string) Usecase {
+func New(sessions SessionRepository, drafts ProfileDraftRepository, deleteConfirmations ProfileDeletionConfirmationRepository, adminActions AdminActionRepository, ageConfirmations AgeConfirmationRepository, profiles ProfileService, search SearchService, admin AdminService, adminUsernames []string) Usecase {
 	return &service{
 		sessions:            sessions,
 		drafts:              drafts,
 		deleteConfirmations: deleteConfirmations,
 		adminActions:        adminActions,
+		ageConfirmations:    ageConfirmations,
 		profiles:            profiles,
 		search:              search,
 		admin:               admin,
@@ -139,8 +148,13 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		msg.Command != domain.CommandAdminModerator &&
 		msg.Command != domain.CommandAdminUnmoderator &&
 		msg.Command != domain.CommandAdminResetChoices &&
+		msg.Command != domain.CommandAdminResetStart &&
 		msg.Command != domain.CommandAdminClearReports {
 		_ = s.clearAdminAction(ctx, msg.User.ID)
+	}
+
+	if accessResponse, handled, accessErr := s.enforceAgeAccess(ctx, msg, l); handled {
+		return []domain.OutgoingMessage{*accessResponse}, errors.Join(touchErr, accessErr)
 	}
 
 	if msg.Command == "" {
@@ -194,6 +208,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		response.Text, response.InlineKeyboard, replyErr = s.adminUnmoderatorMessage(ctx, msg, l)
 	case domain.CommandAdminResetChoices:
 		response.Text, response.InlineKeyboard, replyErr = s.adminResetChoicesMessage(ctx, msg, l)
+	case domain.CommandAdminResetStart:
+		response.Text, response.InlineKeyboard, replyErr = s.adminResetStartMessage(ctx, msg, l)
 	case domain.CommandAdminClearReports:
 		response.Text, response.InlineKeyboard, replyErr = s.adminClearReportsMessage(ctx, msg, l)
 	case domain.CommandProfileLanguage, domain.CommandLanguage:

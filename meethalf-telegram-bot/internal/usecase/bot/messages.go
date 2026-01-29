@@ -181,6 +181,18 @@ func (s *service) adminResetChoicesSuccessText(l localizer, userRef string) stri
 	return l.message(msgAdminResetChoicesSuccess, userRef)
 }
 
+func (s *service) adminResetStartUsageText(l localizer) string {
+	return l.message(msgAdminResetStartUsage)
+}
+
+func (s *service) adminResetStartFailedText(l localizer) string {
+	return l.message(msgAdminResetStartFailed)
+}
+
+func (s *service) adminResetStartSuccessText(l localizer, userRef string) string {
+	return l.message(msgAdminResetStartSuccess, userRef)
+}
+
 func (s *service) adminClearReportsUsageText(l localizer) string {
 	return l.message(msgAdminClearReportsUsage)
 }
@@ -195,6 +207,18 @@ func (s *service) adminClearReportsSuccessText(l localizer, userRef string) stri
 
 func (s *service) userBannedText(l localizer) string {
 	return l.message(msgUserBanned)
+}
+
+func (s *service) ageConfirmationPromptText(l localizer) string {
+	return l.message(msgAgeConfirmPrompt, minAge)
+}
+
+func (s *service) ageConfirmationDeclinedText(l localizer) string {
+	return l.message(msgAgeConfirmDeclined, minAge)
+}
+
+func (s *service) ageConfirmationFailedText(l localizer) string {
+	return l.message(msgAgeConfirmSaveFailed)
 }
 
 func (s *service) profileSettingsText(l localizer) string {
@@ -214,7 +238,7 @@ func (s *service) editPrompt(l localizer, step domain.ProfileDraftStep) string {
 	case domain.ProfileDraftStepName:
 		return s.editText(l, step, l.message(msgEditNamePrompt))
 	case domain.ProfileDraftStepBirthDate:
-		return s.editText(l, step, l.message(msgEditBirthDatePrompt, birthDateLayout))
+		return s.editText(l, step, l.message(msgEditBirthDatePrompt, birthDateExample))
 	case domain.ProfileDraftStepGender:
 		return s.editText(l, step, l.message(msgEditGenderPrompt))
 	case domain.ProfileDraftStepCountry:

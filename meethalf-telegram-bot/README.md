@@ -18,7 +18,7 @@ go run ./cmd/bot
 
 ## Commands
 
-- /start - greet user by profile name when available, otherwise Telegram name; show inline Start Search, Profile (or Create Profile when missing), and Settings buttons
+- /start - greet user by profile name when available, otherwise Telegram name; show inline Start Search, Profile (or Create Profile when missing), and Settings buttons. On the first /start, the bot asks to confirm you are 16+ before opening the main menu.
 - /cancel - cancel the current action and return to the main menu
 - /language - open language selection (optional args: `en` or `ru`)
 
@@ -30,7 +30,8 @@ lists (reported users include report counts) that return users (including their 
 with pagination, plus `Ban user` / `Unban user` buttons that prompt for the profile id or `@username` (you can also use
 `/ban <user_id|@username>` and `/unban <user_id|@username>`). It also supports `Make moderator` / `Remove moderator` actions
 (`/moderator <user_id|@username>` and `/unmoderator <user_id|@username>`), and `Reset choices` to clear match history and
-decisions (`/reset_choices <user_id|@username>`). `Clear reports` removes a user from the reported list
+decisions (`/reset_choices <user_id|@username>`). `Reset 16+ confirmation` clears the first-start age confirmation
+(`/reset_start <user_id|@username>`). `Clear reports` removes a user from the reported list
 (`/clear_reports <user_id|@username>`).
 Moderators (profiles with `is_moderator=true` in the Meethalf API) see a `Moderator access enabled.` badge and a
 `Moderator panel` button, but only with `User list`, `Banned users`, and `Reported users` lists plus `Ban user` / `Unban user`
@@ -46,6 +47,7 @@ album (1-4 photos). The verification step plus gender, country, city, and emoji 
 sending at least one photo, use the Done button to finish the setup. Drafts are
 stored in the same session store so they can survive restarts when Redis is enabled. The setup header includes an estimated
 total completion time (shown in minutes) calculated from per-step durations.
+Birth date validation requires users to be at least 16 years old; younger users cannot access the bot.
 Each setup prompt includes a Back to menu button to discard the draft and return to the main menu. Starting from the
 Gender step, a Previous step button lets you return to the prior question. Profile edit steps use a Cancel button that
 returns to the Profile Edit menu.

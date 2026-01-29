@@ -1,7 +1,7 @@
 package bot
 
 const (
-	minAge                      = 1
+	minAge                      = 16
 	maxAge                      = 120
 	maxNameLength               = 64
 	maxCityLength               = 64
@@ -17,6 +17,7 @@ const (
 	botCheckOptionsColumns      = 2
 	profileStepsTotal           = 9
 	birthDateLayout             = "2006-01-02"
+	birthDateExample            = "24.06.2006"
 	profileVisibilityHideAction = "hide"
 	profileVisibilityShowAction = "show"
 )

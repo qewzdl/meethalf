@@ -344,11 +344,17 @@ func (s *service) applyBirthDate(ctx context.Context, msg domain.IncomingMessage
 	}
 
 	age := s.ageFromBirthDate(birthDate, s.now(msg.ReceivedAt))
-	if age < minAge || age > maxAge {
+	if age < minAge {
 		if isEdit {
-			return s.editText(l, domain.ProfileDraftStepBirthDate, l.message(msgAgeInvalid, minAge, maxAge)), nil
+			return s.editText(l, domain.ProfileDraftStepBirthDate, l.message(msgAgeTooYoung, minAge)), nil
 		}
-		return s.stepText(l, domain.ProfileDraftStepBirthDate, l.message(msgAgeInvalid, minAge, maxAge)), nil
+		return s.stepText(l, domain.ProfileDraftStepBirthDate, l.message(msgAgeTooYoung, minAge)), nil
+	}
+	if age > maxAge {
+		if isEdit {
+			return s.editText(l, domain.ProfileDraftStepBirthDate, l.message(msgAgeTooOld, maxAge)), nil
+		}
+		return s.stepText(l, domain.ProfileDraftStepBirthDate, l.message(msgAgeTooOld, maxAge)), nil
 	}
 
 	draft.BirthDate = birthDate

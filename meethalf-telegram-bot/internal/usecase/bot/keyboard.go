@@ -26,6 +26,23 @@ func (s *service) startInlineKeyboardByStatus(l localizer, status profileStatus,
 	return s.withAdminMenuInlineKeyboard(l, s.profileInlineKeyboard(l), role)
 }
 
+func (s *service) ageConfirmationInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return &domain.InlineKeyboard{
+		Buttons: [][]domain.InlineButton{
+			{
+				{
+					Text:         l.button(btnAgeConfirmYes),
+					CallbackData: domain.CommandAgeConfirmYes,
+				},
+				{
+					Text:         l.button(btnAgeConfirmNo),
+					CallbackData: domain.CommandAgeConfirmNo,
+				},
+			},
+		},
+	}
+}
+
 func (s *service) profileInlineKeyboard(l localizer) *domain.InlineKeyboard {
 	return s.profileStartInlineKeyboard(l, l.button(btnProfile), domain.CommandProfileView)
 }
@@ -117,6 +134,12 @@ func (s *service) adminMenuInlineKeyboard(l localizer, role adminRole) *domain.I
 			CallbackData: domain.CommandAdminResetChoices,
 		},
 	})
+	rows = append(rows, []domain.InlineButton{
+		{
+			Text:         l.button(btnAdminResetStart),
+			CallbackData: domain.CommandAdminResetStart,
+		},
+	})
 
 	if role.canManageModerators() {
 		rows = append(rows,
@@ -158,6 +181,10 @@ func (s *service) adminModeratorInlineKeyboard(l localizer) *domain.InlineKeyboa
 }
 
 func (s *service) adminResetChoicesInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return s.adminBanInlineKeyboard(l)
+}
+
+func (s *service) adminResetStartInlineKeyboard(l localizer) *domain.InlineKeyboard {
 	return s.adminBanInlineKeyboard(l)
 }
 

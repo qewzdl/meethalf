@@ -47,6 +47,7 @@ const (
 	AdminActionModerator    AdminActionType = "moderator"
 	AdminActionUnmoderator  AdminActionType = "unmoderator"
 	AdminActionResetChoices AdminActionType = "reset_choices"
+	AdminActionResetStart   AdminActionType = "reset_start"
 	AdminActionClearReports AdminActionType = "clear_reports"
 )
 

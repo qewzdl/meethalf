@@ -8,16 +8,7 @@ import (
 )
 
 func normalizeAdminUsername(username string) string {
-	normalized := strings.TrimSpace(username)
-	if normalized == "" {
-		return ""
-	}
-	normalized = strings.TrimPrefix(normalized, "@")
-	normalized = strings.TrimSpace(normalized)
-	if normalized == "" {
-		return ""
-	}
-	return strings.ToLower(normalized)
+	return normalizeUsername(username)
 }
 
 func normalizeAdminUsernames(usernames []string) map[string]struct{} {
@@ -65,7 +56,7 @@ func (role adminRole) allowsAdminAction(action domain.AdminActionType) bool {
 	switch action {
 	case domain.AdminActionBan, domain.AdminActionUnban:
 		return role.canModerateUsers()
-	case domain.AdminActionResetChoices, domain.AdminActionClearReports:
+	case domain.AdminActionResetChoices, domain.AdminActionResetStart, domain.AdminActionClearReports:
 		return role.canModerateUsers()
 	case domain.AdminActionModerator, domain.AdminActionUnmoderator:
 		return role.canManageModerators()

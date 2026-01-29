@@ -50,7 +50,7 @@ curl -X POST http://localhost:8080/api/v1/admin/users/1/reports/clear
 curl -X POST http://localhost:8080/api/v1/admin/users/1/choices/reset
 ```
 
-`birth_date` uses the `YYYY-MM-DD` format; age is derived automatically. `country` must be one of `russia`, `kazakhstan`,
+`birth_date` uses the `YYYY-MM-DD` format; age is derived automatically and must be between 16 and 120. `country` must be one of `russia`, `kazakhstan`,
 or `belarus`; `city` must be in the supported list for the selected country. `emoji_code` must be one of the supported
 profile emoji codes listed below. Set `is_hidden=true` to hide a profile from search results.
 Profile responses include `is_moderator` to indicate moderation role; it is managed through the admin endpoints.

@@ -242,6 +242,10 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 		arguments = strings.TrimPrefix(text, domain.CommandAdminReports+":")
 	default:
 		switch text {
+		case domain.CommandAgeConfirmYes:
+			command = domain.CommandAgeConfirmYes
+		case domain.CommandAgeConfirmNo:
+			command = domain.CommandAgeConfirmNo
 		case domain.CommandProfile:
 			command = domain.CommandProfile
 		case domain.CommandProfileSetupBack:
@@ -310,6 +314,8 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandAdminUnmoderator
 		case domain.CommandAdminResetChoices:
 			command = domain.CommandAdminResetChoices
+		case domain.CommandAdminResetStart:
+			command = domain.CommandAdminResetStart
 		case domain.CommandAdminClearReports:
 			command = domain.CommandAdminClearReports
 		}

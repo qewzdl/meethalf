@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 )
 
 const (
-	minAge            = 1
+	minAge            = 16
 	maxAge            = 120
 	maxNameLength     = 64
 	maxCityLength     = 64
@@ -24,7 +25,7 @@ var (
 	ErrInvalidUserID      = errors.New("user id is required")
 	ErrInvalidName        = errors.New("profile name is required")
 	ErrInvalidGender      = errors.New("profile gender is invalid")
-	ErrInvalidBirthDate   = errors.New("profile birth date must result in age between 1 and 120")
+	ErrInvalidBirthDate   = fmt.Errorf("profile birth date must result in age between %d and %d", minAge, maxAge)
 	ErrInvalidCountry     = errors.New("profile country is invalid")
 	ErrInvalidCity        = errors.New("profile city is invalid")
 	ErrInvalidDescription = errors.New("profile description is required")
