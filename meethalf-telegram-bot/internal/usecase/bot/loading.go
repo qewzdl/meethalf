@@ -18,7 +18,7 @@ func (s *service) LoadingMessage(ctx context.Context, msg domain.IncomingMessage
 
 	l := s.localizerForMessage(ctx, msg)
 	if msg.Command != "" {
-		loading, ok := s.loadingForCommand(l, msg)
+		loading, ok := s.loadingForCommand(ctx, l, msg)
 		return loading, ok, nil
 	}
 
@@ -30,7 +30,7 @@ func (s *service) LoadingMessage(ctx context.Context, msg domain.IncomingMessage
 	return s.loadingForDraft(ctx, msg, l)
 }
 
-func (s *service) loadingForCommand(l localizer, msg domain.IncomingMessage) (domain.OutgoingMessage, bool) {
+func (s *service) loadingForCommand(ctx context.Context, l localizer, msg domain.IncomingMessage) (domain.OutgoingMessage, bool) {
 	if s == nil || s.profiles == nil || msg.User.ID == 0 {
 		return domain.OutgoingMessage{}, false
 	}
@@ -63,6 +63,11 @@ func (s *service) loadingForCommand(l localizer, msg domain.IncomingMessage) (do
 	case domain.CommandProfileDeleteConfirm:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgDeletingProfile)}, true
 	case domain.CommandSearchAccuracy:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchStart)}, true
+	case domain.CommandSearchGender:
+		if s.sessionSearchAccuracyEnabled(ctx, msg.User.ID) {
+			return domain.OutgoingMessage{}, false
+		}
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchStart)}, true
 	case domain.CommandSearchRefresh:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchNext)}, true

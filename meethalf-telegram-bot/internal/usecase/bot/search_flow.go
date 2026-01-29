@@ -68,13 +68,17 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage, 
 			}, nil
 		}
 
-		return []domain.OutgoingMessage{
-			{
-				ChatID:         msg.ChatID,
-				Text:           s.searchAccuracyText(l),
-				InlineKeyboard: s.searchAccuracyInlineKeyboard(l, gender),
-			},
-		}, nil
+		if s.sessionSearchAccuracyEnabled(ctx, msg.User.ID) {
+			return []domain.OutgoingMessage{
+				{
+					ChatID:         msg.ChatID,
+					Text:           s.searchAccuracyText(l),
+					InlineKeyboard: s.searchAccuracyInlineKeyboard(l, gender),
+				},
+			}, nil
+		}
+
+		return s.startSearch(ctx, msg, l, gender, searchAccuracyDefault)
 	case domain.CommandSearchAccuracy:
 		gender, accuracy, ok := s.parseSearchAccuracyArgs(msg.Arguments)
 		if !ok {
@@ -87,19 +91,11 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage, 
 			}, nil
 		}
 
-		candidate, found, err := s.search.StartSearch(ctx, msg.User.ID, gender, accuracy)
-		if err != nil {
-			return s.searchErrorResponse(l, msg.ChatID, err), err
-		}
-		if !found {
-			return []domain.OutgoingMessage{{
-				ChatID:         msg.ChatID,
-				Text:           s.searchNoCandidatesText(l),
-				InlineKeyboard: s.searchNoCandidatesInlineKeyboard(l),
-			}}, nil
+		if !s.sessionSearchAccuracyEnabled(ctx, msg.User.ID) {
+			accuracy = searchAccuracyDefault
 		}
 
-		return s.matchProfileMessages(msg.ChatID, candidate, l), nil
+		return s.startSearch(ctx, msg, l, gender, accuracy)
 	case domain.CommandSearchRefresh:
 		return s.nextMatch(ctx, msg, l)
 	case domain.CommandMatchLike:
@@ -201,6 +197,22 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage, 
 	default:
 		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchStartRequiredText(l)}}, nil
 	}
+}
+
+func (s *service) startSearch(ctx context.Context, msg domain.IncomingMessage, l localizer, gender domain.Gender, accuracy int) ([]domain.OutgoingMessage, error) {
+	candidate, found, err := s.search.StartSearch(ctx, msg.User.ID, gender, accuracy)
+	if err != nil {
+		return s.searchErrorResponse(l, msg.ChatID, err), err
+	}
+	if !found {
+		return []domain.OutgoingMessage{{
+			ChatID:         msg.ChatID,
+			Text:           s.searchNoCandidatesText(l),
+			InlineKeyboard: s.searchNoCandidatesInlineKeyboard(l),
+		}}, nil
+	}
+
+	return s.matchProfileMessages(msg.ChatID, candidate, l), nil
 }
 
 func (s *service) nextMatch(ctx context.Context, msg domain.IncomingMessage, l localizer) ([]domain.OutgoingMessage, error) {
@@ -338,11 +350,11 @@ func (s *service) historyActionMessages(ctx context.Context, msg domain.Incoming
 		return historyMessages, errors.Join(historyErr, likeErr)
 	}
 
-		currentMatchMessages, targetMatchMessages, matchErr := s.mutualMatchMessages(ctx, msg, targetID, l)
-		messages := append(currentMatchMessages, historyMessages...)
-		if len(targetMatchMessages) > 0 {
-			messages = append(messages, targetMatchMessages...)
-		}
+	currentMatchMessages, targetMatchMessages, matchErr := s.mutualMatchMessages(ctx, msg, targetID, l)
+	messages := append(currentMatchMessages, historyMessages...)
+	if len(targetMatchMessages) > 0 {
+		messages = append(messages, targetMatchMessages...)
+	}
 
 	return messages, errors.Join(historyErr, matchErr)
 }

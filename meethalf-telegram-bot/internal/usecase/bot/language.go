@@ -48,11 +48,12 @@ func (s *service) setSessionLanguage(ctx context.Context, msg domain.IncomingMes
 	}
 	lang = normalizeLanguageValue(lang)
 	return s.sessions.Touch(ctx, domain.Session{
-		UserID:   msg.User.ID,
-		ChatID:   msg.ChatID,
-		Username: msg.User.Username,
-		Language: lang,
-		LastSeen: s.now(msg.ReceivedAt),
+		UserID:                msg.User.ID,
+		ChatID:                msg.ChatID,
+		Username:              msg.User.Username,
+		Language:              lang,
+		LastSeen:              s.now(msg.ReceivedAt),
+		SearchAccuracyEnabled: s.sessionSearchAccuracyEnabled(ctx, msg.User.ID),
 	})
 }
 
@@ -115,8 +116,9 @@ func (s *service) profileLanguageMessage(ctx context.Context, msg domain.Incomin
 	}
 
 	if found {
-		text := updatedLocalizer.message(msgLanguageUpdated) + "\n" + s.profileSettingsTextWithVisibility(updatedLocalizer, profile.IsHidden)
-		return text, s.profileSettingsInlineKeyboard(updatedLocalizer, profile.IsHidden), err
+		searchAccuracyEnabled := s.sessionSearchAccuracyEnabled(ctx, msg.User.ID)
+		text := updatedLocalizer.message(msgLanguageUpdated) + "\n" + s.profileSettingsTextWithVisibility(updatedLocalizer, profile.IsHidden, searchAccuracyEnabled)
+		return text, s.profileSettingsInlineKeyboard(updatedLocalizer, profile.IsHidden, searchAccuracyEnabled), err
 	}
 
 	text := updatedLocalizer.message(msgLanguageUpdated) + "\n" + updatedLocalizer.message(msgProfileNotFoundCreateButton)

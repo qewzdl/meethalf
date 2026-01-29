@@ -132,13 +132,20 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 	l := newLocalizer(msg.Language)
 
 	var touchErr error
+	searchAccuracyEnabled := false
+	if s != nil && s.sessions != nil && msg.User.ID != 0 {
+		if session, found, err := s.sessions.Get(ctx, msg.User.ID); err == nil && found {
+			searchAccuracyEnabled = session.SearchAccuracyEnabled
+		}
+	}
 	if s != nil && s.sessions != nil {
 		touchErr = s.sessions.Touch(ctx, domain.Session{
-			UserID:   msg.User.ID,
-			ChatID:   msg.ChatID,
-			Username: msg.User.Username,
-			Language: msg.Language,
-			LastSeen: s.now(msg.ReceivedAt),
+			UserID:                msg.User.ID,
+			ChatID:                msg.ChatID,
+			Username:              msg.User.Username,
+			Language:              msg.Language,
+			LastSeen:              s.now(msg.ReceivedAt),
+			SearchAccuracyEnabled: searchAccuracyEnabled,
 		})
 	}
 
@@ -303,8 +310,9 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 				break
 			}
 			if found {
-				response.Text = s.profileSettingsTextWithVisibility(l, profile.IsHidden)
-				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden)
+				searchAccuracyEnabled := s.sessionSearchAccuracyEnabled(ctx, msg.User.ID)
+				response.Text = s.profileSettingsTextWithVisibility(l, profile.IsHidden, searchAccuracyEnabled)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled)
 			} else {
 				response.Text = l.message(msgProfileNotFoundCreateButton)
 				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
@@ -322,7 +330,27 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 				break
 			}
 			if found {
-				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden)
+				searchAccuracyEnabled := s.sessionSearchAccuracyEnabled(ctx, msg.User.ID)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled)
+			} else {
+				response.Text = l.message(msgProfileNotFoundCreateButton)
+				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
+			}
+			messages[0] = response
+		case domain.CommandProfileSearchAccuracy:
+			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
+			if err != nil {
+				if isBannedError(err) {
+					response.Text = s.userBannedText(l)
+					response.InlineKeyboard = nil
+					messages[0] = response
+				}
+				replyErr = errors.Join(replyErr, err)
+				break
+			}
+			if found {
+				searchAccuracyEnabled := s.sessionSearchAccuracyEnabled(ctx, msg.User.ID)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled)
 			} else {
 				response.Text = l.message(msgProfileNotFoundCreateButton)
 				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
@@ -340,7 +368,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 				break
 			}
 			if found {
-				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden)
+				searchAccuracyEnabled := s.sessionSearchAccuracyEnabled(ctx, msg.User.ID)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled)
 			} else {
 				response.Text = l.message(msgProfileNotFoundCreateButton)
 				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
@@ -361,7 +390,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 				break
 			}
 			if found {
-				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden)
+				searchAccuracyEnabled := s.sessionSearchAccuracyEnabled(ctx, msg.User.ID)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled)
 			} else {
 				response.Text = l.message(msgProfileNotFoundCreateButton)
 				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)

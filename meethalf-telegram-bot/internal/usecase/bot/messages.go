@@ -292,9 +292,10 @@ func (s *service) profileVisibilityUpdateFailedText(l localizer) string {
 	return l.message(msgProfileVisibilityUpdateFailed)
 }
 
-func (s *service) profileSettingsTextWithVisibility(l localizer, isHidden bool) string {
+func (s *service) profileSettingsTextWithVisibility(l localizer, isHidden bool, searchAccuracyEnabled bool) string {
 	status := s.profileVisibilityStatus(l, isHidden)
-	return l.message(msgProfileSettingsWithVisibility, status)
+	searchStatus := s.searchAccuracyStatus(l, searchAccuracyEnabled)
+	return l.message(msgProfileSettingsWithVisibility, status, searchStatus)
 }
 
 func (s *service) profileVisibilityStatus(l localizer, isHidden bool) string {
@@ -302,6 +303,13 @@ func (s *service) profileVisibilityStatus(l localizer, isHidden bool) string {
 		return l.label(labelStatusHidden)
 	}
 	return l.label(labelStatusVisible)
+}
+
+func (s *service) searchAccuracyStatus(l localizer, enabled bool) string {
+	if enabled {
+		return l.label(labelStatusEnabled)
+	}
+	return l.label(labelStatusDisabled)
 }
 
 func (s *service) profileVisibilityUpdated(l localizer, isHidden bool) string {
@@ -317,6 +325,18 @@ func (s *service) searchGenderText(l localizer) string {
 
 func (s *service) searchAccuracyText(l localizer) string {
 	return l.message(msgSearchAccuracyPrompt)
+}
+
+func (s *service) searchAccuracyEnabledText(l localizer) string {
+	return l.message(msgSearchAccuracyEnabled)
+}
+
+func (s *service) searchAccuracyDisabledText(l localizer) string {
+	return l.message(msgSearchAccuracyDisabled)
+}
+
+func (s *service) searchAccuracyUpdateFailedText(l localizer) string {
+	return l.message(msgSearchAccuracyUpdateFailed)
 }
 
 func (s *service) searchNoCandidatesText(l localizer) string {

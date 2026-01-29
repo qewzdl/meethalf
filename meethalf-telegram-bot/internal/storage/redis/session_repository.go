@@ -35,7 +35,15 @@ func (r *SessionRepository) Touch(ctx context.Context, session domain.Session) e
 
 	key := fmt.Sprintf("meethalf:sessions:%d", session.UserID)
 	lastSeen := session.LastSeen.UTC().Format(time.RFC3339Nano)
-	if err := r.client.HSet(ctx, key, "chat_id", session.ChatID, "last_seen", lastSeen, "username", session.Username, "language", string(session.Language)).Err(); err != nil {
+	if err := r.client.HSet(
+		ctx,
+		key,
+		"chat_id", session.ChatID,
+		"last_seen", lastSeen,
+		"username", session.Username,
+		"language", string(session.Language),
+		"search_accuracy_enabled", session.SearchAccuracyEnabled,
+	).Err(); err != nil {
 		return err
 	}
 
@@ -86,11 +94,21 @@ func (r *SessionRepository) Get(ctx context.Context, userID int64) (domain.Sessi
 		lastSeen = parsed
 	}
 
+	searchAccuracyEnabled := false
+	if raw, ok := values["search_accuracy_enabled"]; ok && raw != "" {
+		parsed, err := strconv.ParseBool(raw)
+		if err != nil {
+			return domain.Session{}, false, err
+		}
+		searchAccuracyEnabled = parsed
+	}
+
 	return domain.Session{
-		UserID:   userID,
-		ChatID:   chatID,
-		Username: values["username"],
-		Language: domain.Language(values["language"]),
-		LastSeen: lastSeen,
+		UserID:                userID,
+		ChatID:                chatID,
+		Username:              values["username"],
+		Language:              domain.Language(values["language"]),
+		LastSeen:              lastSeen,
+		SearchAccuracyEnabled: searchAccuracyEnabled,
 	}, true, nil
 }

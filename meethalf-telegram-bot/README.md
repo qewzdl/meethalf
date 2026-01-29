@@ -106,7 +106,8 @@ prompt or result. This keeps the chat tidy and makes each step feel like a repla
 ## Profile settings
 
 Use the inline `Settings` button from `/start` to open profile settings. The menu includes a `Delete profile`
-button that opens a confirmation step, a `Language` button to switch between English and Russian, and a
+button that opens a confirmation step, a `Language` button to switch between English and Russian, an
+`Advanced search` toggle (off by default) that controls whether the bot asks for match accuracy, and a
 `Hide from search` / `Show in search` toggle that controls whether your profile appears in search results. If the
 profile does not exist, Settings returns a not-found message and shows the `Create Profile` button instead of delete.
 Confirming removes the profile via the Meethalf API, and cancel keeps the profile unchanged.
@@ -120,11 +121,12 @@ applies to all future bot responses.
 ## Search flow
 
 Use the `Start search` button from `/start` to start browsing. If you press it without a profile, the bot asks you to
-create one first. The bot asks for the gender to search, then the match accuracy level (0-4). The prompt explains the
-scale (0 is wider/random, 4 is strict/precise) and the keyboard shows a single-row 0-4 button layout. If no profiles
-match the selected accuracy, the search widens
-automatically until it finds candidates. The Meethalf API enforces age eligibility: users aged 16-17 see only 16-17
-profiles, and users aged 18+ never see profiles under 18. After
+create one first. The bot always asks for the gender to search. With advanced search disabled (default), it immediately
+starts matching with accuracy 4 (strict) and the Meethalf API relaxes accuracy step-by-step down to 0 if needed. When
+advanced search is enabled in Settings, the bot also asks for the match accuracy level (0-4). The prompt explains the
+scale (0 is wider/random, 4 is strict/precise) and the keyboard shows a single-row 4-0 button layout. If no profiles
+match the selected accuracy, the search widens automatically until it finds candidates. The Meethalf API enforces age
+eligibility: users aged 16-17 see only 16-17 profiles, and users aged 18+ never see profiles under 18. After
 that it shows profile cards with action buttons:
 
 - 👎 - skip and show the next profile

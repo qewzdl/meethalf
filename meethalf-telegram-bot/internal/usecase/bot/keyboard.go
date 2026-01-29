@@ -424,12 +424,19 @@ func (s *service) profilePreviewInlineKeyboard(l localizer) *domain.InlineKeyboa
 	})
 }
 
-func (s *service) profileSettingsInlineKeyboard(l localizer, isHidden bool) *domain.InlineKeyboard {
+func (s *service) profileSettingsInlineKeyboard(l localizer, isHidden bool, searchAccuracyEnabled bool) *domain.InlineKeyboard {
 	visibilityText := l.button(btnHideFromSearch)
 	visibilityAction := profileVisibilityHideAction
 	if isHidden {
 		visibilityText = l.button(btnShowInSearch)
 		visibilityAction = profileVisibilityShowAction
+	}
+
+	searchAccuracyText := l.button(btnAdvancedSearchEnable)
+	searchAccuracyAction := searchAccuracyEnableAction
+	if searchAccuracyEnabled {
+		searchAccuracyText = l.button(btnAdvancedSearchDisable)
+		searchAccuracyAction = searchAccuracyDisableAction
 	}
 
 	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
@@ -438,6 +445,12 @@ func (s *service) profileSettingsInlineKeyboard(l localizer, isHidden bool) *dom
 				{
 					Text:         visibilityText,
 					CallbackData: domain.CommandProfileVisibility + ":" + visibilityAction,
+				},
+			},
+			{
+				{
+					Text:         searchAccuracyText,
+					CallbackData: domain.CommandProfileSearchAccuracy + ":" + searchAccuracyAction,
 				},
 			},
 			{
@@ -734,9 +747,9 @@ func (s *service) searchAccuracyInlineKeyboard(l localizer, gender domain.Gender
 	}
 
 	rows := make([][]domain.InlineButton, 0, (total+columns-1)/columns)
-	for accuracy := searchAccuracyMin; accuracy <= searchAccuracyMax; accuracy++ {
-		position := accuracy - searchAccuracyMin
-		if position%columns == 0 {
+	index := 0
+	for accuracy := searchAccuracyMax; accuracy >= searchAccuracyMin; accuracy-- {
+		if index%columns == 0 {
 			rows = append(rows, []domain.InlineButton{})
 		}
 		label := strconv.Itoa(accuracy)
@@ -745,6 +758,7 @@ func (s *service) searchAccuracyInlineKeyboard(l localizer, gender domain.Gender
 			Text:         label,
 			CallbackData: prefix + label,
 		})
+		index++
 	}
 
 	return withSearchGenderCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: rows})

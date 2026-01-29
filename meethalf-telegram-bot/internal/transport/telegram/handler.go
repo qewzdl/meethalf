@@ -186,6 +186,9 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 	case strings.HasPrefix(text, domain.CommandProfileLanguage+":"):
 		command = domain.CommandProfileLanguage
 		arguments = strings.TrimPrefix(text, domain.CommandProfileLanguage+":")
+	case strings.HasPrefix(text, domain.CommandProfileSearchAccuracy+":"):
+		command = domain.CommandProfileSearchAccuracy
+		arguments = strings.TrimPrefix(text, domain.CommandProfileSearchAccuracy+":")
 	case strings.HasPrefix(text, domain.CommandSearchGender+":"):
 		command = domain.CommandSearchGender
 		arguments = strings.TrimPrefix(text, domain.CommandSearchGender+":")
@@ -276,6 +279,8 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandProfileSettings
 		case domain.CommandProfileLanguage:
 			command = domain.CommandProfileLanguage
+		case domain.CommandProfileSearchAccuracy:
+			command = domain.CommandProfileSearchAccuracy
 		case domain.CommandProfileDelete:
 			command = domain.CommandProfileDelete
 		case domain.CommandProfileDeleteConfirm:

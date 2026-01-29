@@ -280,6 +280,9 @@ const (
 	msgProfileVisibilityUpdateFailed  messageKey = "profile_visibility_update_failed"
 	msgSearchGenderPrompt             messageKey = "search_gender_prompt"
 	msgSearchAccuracyPrompt           messageKey = "search_accuracy_prompt"
+	msgSearchAccuracyEnabled          messageKey = "search_accuracy_enabled"
+	msgSearchAccuracyDisabled         messageKey = "search_accuracy_disabled"
+	msgSearchAccuracyUpdateFailed     messageKey = "search_accuracy_update_failed"
 	msgSearchNoCandidates             messageKey = "search_no_candidates"
 	msgSearchNoPrevious               messageKey = "search_no_previous"
 	msgSearchHistoryEmpty             messageKey = "search_history_empty"
@@ -463,6 +466,8 @@ const (
 	btnHideFromSearch         buttonKey = "hide_from_search"
 	btnShowInSearch           buttonKey = "show_in_search"
 	btnLanguage               buttonKey = "language"
+	btnAdvancedSearchEnable   buttonKey = "advanced_search_enable"
+	btnAdvancedSearchDisable  buttonKey = "advanced_search_disable"
 	btnBackToSettings         buttonKey = "back_to_settings"
 	btnLanguageEnglish        buttonKey = "language_english"
 	btnLanguageRussian        buttonKey = "language_russian"
@@ -495,6 +500,8 @@ const (
 	labelStatusModerator   labelKey = "status_moderator"
 	labelStatusHidden      labelKey = "status_hidden"
 	labelStatusVisible     labelKey = "status_visible"
+	labelStatusEnabled     labelKey = "status_enabled"
+	labelStatusDisabled    labelKey = "status_disabled"
 	labelName              labelKey = "label_name"
 	labelEmoji             labelKey = "label_emoji"
 	labelGender            labelKey = "label_gender"
@@ -606,6 +613,9 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgProfileVisibilityUpdateFailed:  "Unable to update search visibility. Please try again later.",
 		msgSearchGenderPrompt:             "Select the gender to search for.",
 		msgSearchAccuracyPrompt:           "Choose match accuracy (0-4).\n0 — wider search with more random profiles.\n4 — stricter search with more precise matches.",
+		msgSearchAccuracyEnabled:          "Advanced search enabled.",
+		msgSearchAccuracyDisabled:         "Advanced search disabled.",
+		msgSearchAccuracyUpdateFailed:     "Unable to update advanced search. Please try again later.",
 		msgSearchNoCandidates:             "No matching profiles yet. Try again later.",
 		msgSearchNoPrevious:               "No previous profile.",
 		msgSearchHistoryEmpty:             "History is empty.",
@@ -633,8 +643,8 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgEmojiPrompt:                    "Select the emoji that describes you using the buttons below.",
 		msgPhotosPrompt:                   "Send 1-4 photos for your album. Use the Done button when finished.",
 		msgProfileEditMenu:                "Choose what you want to update in your profile.",
-		msgProfileSettings:                "Profile settings. Use the buttons below to manage search visibility or delete your profile.",
-		msgProfileSettingsWithVisibility:  "Profile settings.\nSearch visibility: %s.\nUse the buttons below to manage search visibility or delete your profile.",
+		msgProfileSettings:                "Profile settings. Use the buttons below to manage search visibility, advanced search, or delete your profile.",
+		msgProfileSettingsWithVisibility:  "Profile settings.\nSearch visibility: %s.\nAdvanced search: %s.\nUse the buttons below to manage search visibility, advanced search, update language, or delete your profile.",
 		msgProfileActions:                 "Use the buttons below to preview or edit your profile.",
 		msgProfilePreviewActions:          "Use the buttons below to return to your profile or edit it.",
 		msgEditNamePrompt:                 "Enter the new name.",
@@ -722,7 +732,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLanguagePrompt:                 "Select your language.",
 		msgLanguageUpdated:                "Language updated.",
 		msgLanguageUnsupported:            "Unsupported language. Please choose one of the available options.",
-		msgProfileSettingsLanguageHint:    "Profile settings. Use the buttons below to manage search visibility, update language, or delete your profile.",
+		msgProfileSettingsLanguageHint:    "Profile settings. Use the buttons below to manage search visibility, advanced search, update language, or delete your profile.",
 	},
 	domain.LanguageRussian: {
 		msgDefaultHelp:                    "Используйте кнопки ниже, чтобы начать поиск, посмотреть или создать профиль, либо открыть настройки.",
@@ -818,6 +828,9 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgProfileVisibilityUpdateFailed:  "Не удалось обновить видимость в поиске. Попробуйте позже.",
 		msgSearchGenderPrompt:             "Выберите пол для поиска.",
 		msgSearchAccuracyPrompt:           "Выберите точность совпадения (0-4).\n0 — широкий поиск, больше случайных анкет.\n4 — строгий поиск, больше точных совпадений.",
+		msgSearchAccuracyEnabled:          "Расширенный поиск включен.",
+		msgSearchAccuracyDisabled:         "Расширенный поиск выключен.",
+		msgSearchAccuracyUpdateFailed:     "Не удалось обновить расширенный поиск. Попробуйте позже.",
 		msgSearchNoCandidates:             "Пока нет подходящих профилей. Попробуйте позже.",
 		msgSearchNoPrevious:               "Предыдущего профиля нет.",
 		msgSearchHistoryEmpty:             "История пуста.",
@@ -845,8 +858,8 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgEmojiPrompt:                    "Выберите эмодзи, которое вас описывает, с помощью кнопок ниже.",
 		msgPhotosPrompt:                   "Отправьте 1-4 фото для альбома. Используйте кнопку «Готово», когда закончите.",
 		msgProfileEditMenu:                "Выберите, что хотите обновить в профиле.",
-		msgProfileSettings:                "Настройки профиля. Используйте кнопки ниже, чтобы управлять видимостью в поиске или удалить профиль.",
-		msgProfileSettingsWithVisibility:  "Настройки профиля.\nВидимость в поиске: %s.\nИспользуйте кнопки ниже, чтобы управлять видимостью в поиске или удалить профиль.",
+		msgProfileSettings:                "Настройки профиля. Используйте кнопки ниже, чтобы управлять видимостью в поиске, расширенным поиском или удалить профиль.",
+		msgProfileSettingsWithVisibility:  "Настройки профиля.\nВидимость в поиске: %s.\nРасширенный поиск: %s.\nИспользуйте кнопки ниже, чтобы управлять видимостью в поиске, расширенным поиском, изменить язык или удалить профиль.",
 		msgProfileActions:                 "Используйте кнопки ниже, чтобы посмотреть или отредактировать профиль.",
 		msgProfilePreviewActions:          "Используйте кнопки ниже, чтобы вернуться к профилю или отредактировать его.",
 		msgEditNamePrompt:                 "Введите новое имя.",
@@ -934,7 +947,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLanguagePrompt:                 "Выберите язык.",
 		msgLanguageUpdated:                "Язык обновлен.",
 		msgLanguageUnsupported:            "Неподдерживаемый язык. Пожалуйста, выберите один из доступных.",
-		msgProfileSettingsLanguageHint:    "Настройки профиля. Используйте кнопки ниже, чтобы управлять видимостью, изменить язык или удалить профиль.",
+		msgProfileSettingsLanguageHint:    "Настройки профиля. Используйте кнопки ниже, чтобы управлять видимостью в поиске, расширенным поиском, изменить язык или удалить профиль.",
 	},
 }
 
@@ -1003,6 +1016,8 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnHideFromSearch:         "Hide from search",
 		btnShowInSearch:           "Show in search",
 		btnLanguage:               "Language",
+		btnAdvancedSearchEnable:   "Enable advanced search",
+		btnAdvancedSearchDisable:  "Disable advanced search",
 		btnBackToSettings:         "Back to settings",
 		btnLanguageEnglish:        "English",
 		btnLanguageRussian:        "Русский",
@@ -1071,6 +1086,8 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnHideFromSearch:         "Скрыть из поиска",
 		btnShowInSearch:           "Показывать в поиске",
 		btnLanguage:               "Язык",
+		btnAdvancedSearchEnable:   "Включить расширенный поиск",
+		btnAdvancedSearchDisable:  "Выключить расширенный поиск",
 		btnBackToSettings:         "Назад к настройкам",
 		btnLanguageEnglish:        "English",
 		btnLanguageRussian:        "Русский",
@@ -1105,6 +1122,8 @@ var labelCatalog = map[domain.Language]map[labelKey]string{
 		labelStatusModerator:   "moderator",
 		labelStatusHidden:      "hidden",
 		labelStatusVisible:     "visible",
+		labelStatusEnabled:     "enabled",
+		labelStatusDisabled:    "disabled",
 		labelName:              "Name",
 		labelEmoji:             "Emoji",
 		labelGender:            "Gender",
@@ -1147,6 +1166,8 @@ var labelCatalog = map[domain.Language]map[labelKey]string{
 		labelStatusModerator:   "модератор",
 		labelStatusHidden:      "скрыт",
 		labelStatusVisible:     "видим",
+		labelStatusEnabled:     "включен",
+		labelStatusDisabled:    "выключен",
 		labelName:              "Имя",
 		labelEmoji:             "Эмодзи",
 		labelGender:            "Пол",
