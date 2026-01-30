@@ -63,6 +63,32 @@ func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessa
 		msg.Command = domain.CommandAdminUnban
 		msg.Arguments = s.adminUserIdentifierLabel(userID, username)
 		return msg, nil, false, nil
+	case domain.AdminActionShadowBan:
+		userID, username, ok := s.parseAdminUserIdentifier(msg.Text)
+		if !ok {
+			response := domain.OutgoingMessage{
+				ChatID:         msg.ChatID,
+				Text:           s.adminShadowBanUsageText(l),
+				InlineKeyboard: s.adminShadowBanInlineKeyboard(l),
+			}
+			return msg, &response, true, nil
+		}
+		msg.Command = domain.CommandAdminShadowBan
+		msg.Arguments = s.adminUserIdentifierLabel(userID, username)
+		return msg, nil, false, nil
+	case domain.AdminActionUnshadowBan:
+		userID, username, ok := s.parseAdminUserIdentifier(msg.Text)
+		if !ok {
+			response := domain.OutgoingMessage{
+				ChatID:         msg.ChatID,
+				Text:           s.adminShadowUnbanUsageText(l),
+				InlineKeyboard: s.adminShadowUnbanInlineKeyboard(l),
+			}
+			return msg, &response, true, nil
+		}
+		msg.Command = domain.CommandAdminShadowUnban
+		msg.Arguments = s.adminUserIdentifierLabel(userID, username)
+		return msg, nil, false, nil
 	case domain.AdminActionHideProfile:
 		userID, username, ok := s.parseAdminUserIdentifier(msg.Text)
 		if !ok {

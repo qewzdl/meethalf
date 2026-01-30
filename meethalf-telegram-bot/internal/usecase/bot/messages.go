@@ -97,6 +97,14 @@ func (s *service) adminBannedUsersLoadFailedText(l localizer) string {
 	return l.message(msgAdminBannedUsersLoadFailed)
 }
 
+func (s *service) adminShadowBannedUsersEmptyText(l localizer) string {
+	return l.message(msgAdminShadowBannedUsersEmpty)
+}
+
+func (s *service) adminShadowBannedUsersLoadFailedText(l localizer) string {
+	return l.message(msgAdminShadowBannedUsersLoadFailed)
+}
+
 func (s *service) adminModeratorsEmptyText(l localizer) string {
 	return l.message(msgAdminModeratorsEmpty)
 }
@@ -143,6 +151,30 @@ func (s *service) adminUnbanFailedText(l localizer) string {
 
 func (s *service) adminUnbanSuccessText(l localizer, userRef string) string {
 	return l.message(msgAdminUnbanSuccess, userRef)
+}
+
+func (s *service) adminShadowBanUsageText(l localizer) string {
+	return l.message(msgAdminShadowBanUsage)
+}
+
+func (s *service) adminShadowBanFailedText(l localizer) string {
+	return l.message(msgAdminShadowBanFailed)
+}
+
+func (s *service) adminShadowBanSuccessText(l localizer, userRef string) string {
+	return l.message(msgAdminShadowBanSuccess, userRef)
+}
+
+func (s *service) adminShadowUnbanUsageText(l localizer) string {
+	return l.message(msgAdminShadowUnbanUsage)
+}
+
+func (s *service) adminShadowUnbanFailedText(l localizer) string {
+	return l.message(msgAdminShadowUnbanFailed)
+}
+
+func (s *service) adminShadowUnbanSuccessText(l localizer, userRef string) string {
+	return l.message(msgAdminShadowUnbanSuccess, userRef)
 }
 
 func (s *service) adminHideProfileUsageText(l localizer) string {

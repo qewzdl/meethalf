@@ -25,19 +25,21 @@ go run ./cmd/bot
 ## Admin
 
 Set `BOT_ADMIN_USERNAME` to one or more Telegram usernames (comma-separated). Admins see an `Admin dashboard` button in the main
-menu that opens admin management. The admin dashboard supports `All users`, `Banned list`, `Hidden profiles`, `Moderator list`,
+menu that opens admin management. The admin dashboard supports `All users`, `Banned list`, `Shadow banned list`, `Hidden profiles`, `Moderator list`,
 and `Reports` lists (reported users include report counts) that return users (including their Telegram usernames) from the Meethalf API
 with pagination, plus `Ban a user` / `Lift ban` buttons that prompt for the profile id or `@username` (you can also use
-`/ban <user_id|@username>` and `/unban <user_id|@username>`), plus `Hide profile` / `Show profile`
+`/ban <user_id|@username>` and `/unban <user_id|@username>`), plus `Shadow ban` / `Lift shadow ban`
+(`/shadow_ban <user_id|@username>` and `/shadow_unban <user_id|@username>`), plus `Hide profile` / `Show profile`
 (`/hide_profile <user_id|@username>` and `/show_profile <user_id|@username>`). It also supports `Grant moderator` / `Revoke moderator` actions
 (`/moderator <user_id|@username>` and `/unmoderator <user_id|@username>`), and `Reset matches` to clear match history and
 decisions (`/reset_choices <user_id|@username>`). `Reset 16+ check` clears the first-start age confirmation
 (`/reset_start <user_id|@username>`). `Clear reports` removes a user from the reported list
 (`/clear_reports <user_id|@username>`).
 Moderators (profiles with `is_moderator=true` in the Meethalf API) see a `Moderator access enabled.` badge and a
-`Moderator dashboard` button, but only with `All users`, `Banned list`, `Hidden profiles`, and `Reports` lists plus `Ban a user` / `Lift ban`,
-`Hide profile` / `Show profile` (regular users only), and `Clear reports`.
+`Moderator dashboard` button, but only with `All users`, `Banned list`, `Shadow banned list`, `Hidden profiles`, and `Reports` lists plus
+`Ban a user` / `Lift ban`, `Shadow ban` / `Lift shadow ban`, `Hide profile` / `Show profile` (regular users only), and `Clear reports`.
 Moderator management and the moderators list remain admin-only.
+Admin UI labels are localized for English and Russian, including shadow-ban actions.
 
 ## Profile setup
 

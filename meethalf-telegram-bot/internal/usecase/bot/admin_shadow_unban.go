@@ -1,0 +1,106 @@
+package bot
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"strings"
+
+	"meethalf-telegram-bot/internal/domain"
+)
+
+func (s *service) adminShadowUnbanMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
+	role, roleErr := s.resolveAdminRole(ctx, msg.User)
+	if roleErr != nil && isBannedError(roleErr) {
+		return s.userBannedText(l), nil, roleErr
+	}
+	if !role.canModerateUsers() {
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg, l)
+		return text, keyboard, errors.Join(roleErr, err)
+	}
+
+	if s == nil || s.admin == nil {
+		return s.adminShadowUnbanFailedText(l), s.adminMenuInlineKeyboard(l, role), errors.New("admin service is not configured")
+	}
+
+	if strings.TrimSpace(msg.Arguments) == "" {
+		return s.startAdminShadowUnban(ctx, msg, role, l)
+	}
+
+	userID, username, ok := s.parseAdminUserIdentifier(msg.Arguments)
+	if !ok {
+		return s.adminShadowUnbanUsageText(l), s.adminShadowUnbanInlineKeyboard(l), nil
+	}
+
+	restrictionText, restrictionErr := s.ensureModeratorCanModerateUser(ctx, role, userID, username, s.adminShadowUnbanFailedText(l), s.adminShadowUnbanUsageText(l), l)
+	if restrictionText != "" {
+		return restrictionText, s.adminMenuInlineKeyboard(l, role), restrictionErr
+	}
+
+	shouldClear := s.hasPendingAdminShadowUnban(ctx, msg.User.ID)
+	text, err := s.performAdminShadowUnban(ctx, userID, username, l)
+	if err == nil && shouldClear {
+		_ = s.clearAdminAction(ctx, msg.User.ID)
+	}
+
+	return text, s.adminMenuInlineKeyboard(l, role), err
+}
+
+func (s *service) startAdminShadowUnban(ctx context.Context, msg domain.IncomingMessage, role adminRole, l localizer) (string, *domain.InlineKeyboard, error) {
+	if s == nil || s.adminActions == nil {
+		return s.adminShadowUnbanUsageText(l), s.adminMenuInlineKeyboard(l, role), errors.New("admin action repository is not configured")
+	}
+
+	action := domain.AdminActionState{
+		UserID:      msg.User.ID,
+		ChatID:      msg.ChatID,
+		Action:      domain.AdminActionUnshadowBan,
+		RequestedAt: s.now(msg.ReceivedAt),
+	}
+	if err := s.adminActions.Save(ctx, action); err != nil {
+		return s.adminShadowUnbanFailedText(l), s.adminMenuInlineKeyboard(l, role), err
+	}
+
+	return s.adminShadowUnbanUsageText(l), s.adminShadowUnbanInlineKeyboard(l), nil
+}
+
+func (s *service) performAdminShadowUnban(ctx context.Context, userID int64, username string, l localizer) (string, error) {
+	if s == nil || s.admin == nil {
+		return s.adminShadowUnbanFailedText(l), errors.New("admin service is not configured")
+	}
+
+	var err error
+	if username != "" {
+		err = s.admin.UnshadowBanUserByUsername(ctx, username)
+	} else {
+		err = s.admin.UnshadowBanUser(ctx, userID)
+	}
+	if err != nil {
+		text := s.adminShadowUnbanFailedText(l)
+		var status statusError
+		if errors.As(err, &status) {
+			switch status.StatusCode() {
+			case http.StatusBadRequest:
+				text = s.adminShadowUnbanUsageText(l)
+			case http.StatusNotFound:
+				text = s.adminUserNotFoundText(l)
+			}
+		}
+		return text, err
+	}
+
+	return s.adminShadowUnbanSuccessText(l, s.adminUserIdentifierLabel(userID, username)), nil
+}
+
+func (s *service) hasPendingAdminShadowUnban(ctx context.Context, userID int64) bool {
+	if s == nil || s.adminActions == nil || userID == 0 {
+		return false
+	}
+
+	action, found, err := s.adminActions.Get(ctx, userID)
+	if err != nil || !found {
+		return false
+	}
+
+	return action.Action == domain.AdminActionUnshadowBan
+}

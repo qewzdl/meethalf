@@ -75,13 +75,14 @@ func (r *ProfileRepository) Upsert(ctx context.Context, profile domain.Profile) 
 			photos = EXCLUDED.photos,
 			is_hidden = EXCLUDED.is_hidden,
 			updated_at = EXCLUDED.updated_at
-		 RETURNING created_at, updated_at, is_banned, is_moderator`,
+		 RETURNING created_at, updated_at, is_banned, is_shadow_banned, is_moderator`,
 		r.table,
 	)
 
 	var createdAt time.Time
 	var updatedAt time.Time
 	var isBanned bool
+	var isShadowBanned bool
 	var isModerator bool
 	if err := r.db.QueryRowContext(
 		ctx,
@@ -100,13 +101,14 @@ func (r *ProfileRepository) Upsert(ctx context.Context, profile domain.Profile) 
 		profile.IsHidden,
 		now,
 		now,
-	).Scan(&createdAt, &updatedAt, &isBanned, &isModerator); err != nil {
+	).Scan(&createdAt, &updatedAt, &isBanned, &isShadowBanned, &isModerator); err != nil {
 		return domain.Profile{}, err
 	}
 
 	profile.CreatedAt = createdAt
 	profile.UpdatedAt = updatedAt
 	profile.IsBanned = isBanned
+	profile.IsShadowBanned = isShadowBanned
 	profile.IsModerator = isModerator
 	return profile, nil
 }
@@ -121,7 +123,7 @@ func (r *ProfileRepository) GetByUserID(ctx context.Context, userID int64) (doma
 	}
 
 	query := fmt.Sprintf(
-		`SELECT user_id, username, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, is_banned, is_moderator, created_at, updated_at
+		`SELECT user_id, username, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, is_banned, is_shadow_banned, is_moderator, created_at, updated_at
 		 FROM %s
 		 WHERE user_id = $1`,
 		r.table,
@@ -151,6 +153,7 @@ func (r *ProfileRepository) GetByUserID(ctx context.Context, userID int64) (doma
 		photosScanner,
 		&stored.IsHidden,
 		&stored.IsBanned,
+		&stored.IsShadowBanned,
 		&stored.IsModerator,
 		&stored.CreatedAt,
 		&stored.UpdatedAt,
@@ -264,6 +267,38 @@ func (r *ProfileRepository) UpdateBanStatus(ctx context.Context, userID int64, i
 	return nil
 }
 
+func (r *ProfileRepository) UpdateShadowBanStatus(ctx context.Context, userID int64, isShadowBanned bool) error {
+	if r == nil || r.db == nil {
+		return errors.New("postgres profile repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	query := fmt.Sprintf(
+		`UPDATE %s
+		 SET is_shadow_banned = $1, updated_at = $2
+		 WHERE user_id = $3`,
+		r.table,
+	)
+
+	result, err := r.db.ExecContext(ctx, query, isShadowBanned, time.Now().UTC(), userID)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
 func (r *ProfileRepository) UpdateModeratorStatus(ctx context.Context, userID int64, isModerator bool) error {
 	if r == nil || r.db == nil {
 		return errors.New("postgres profile repository is not configured")
@@ -332,7 +367,7 @@ func (r *ProfileRepository) GetUserSummary(ctx context.Context, userID int64) (d
 	}
 
 	query := fmt.Sprintf(
-		`SELECT user_id, username, name, is_hidden, is_banned, is_moderator, created_at, updated_at
+		`SELECT user_id, username, name, is_hidden, is_banned, is_shadow_banned, is_moderator, created_at, updated_at
 		 FROM %s
 		 WHERE user_id = $1`,
 		r.table,
@@ -345,6 +380,7 @@ func (r *ProfileRepository) GetUserSummary(ctx context.Context, userID int64) (d
 		&user.Name,
 		&user.IsHidden,
 		&user.IsBanned,
+		&user.IsShadowBanned,
 		&user.IsModerator,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -355,7 +391,7 @@ func (r *ProfileRepository) GetUserSummary(ctx context.Context, userID int64) (d
 	return user, nil
 }
 
-func (r *ProfileRepository) ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators, onlyHidden bool) ([]domain.UserSummary, int, error) {
+func (r *ProfileRepository) ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators, onlyHidden, onlyShadowBanned bool) ([]domain.UserSummary, int, error) {
 	if r == nil || r.db == nil {
 		return nil, 0, errors.New("postgres profile repository is not configured")
 	}
@@ -374,6 +410,9 @@ func (r *ProfileRepository) ListUsers(ctx context.Context, limit, offset int, on
 	if onlyHidden {
 		conditions = append(conditions, "is_hidden = TRUE")
 	}
+	if onlyShadowBanned {
+		conditions = append(conditions, "is_shadow_banned = TRUE")
+	}
 
 	whereClause := ""
 	if len(conditions) > 0 {
@@ -390,7 +429,7 @@ func (r *ProfileRepository) ListUsers(ctx context.Context, limit, offset int, on
 	}
 
 	query := fmt.Sprintf(
-		`SELECT user_id, username, name, is_hidden, is_banned, is_moderator, created_at, updated_at
+		`SELECT user_id, username, name, is_hidden, is_banned, is_shadow_banned, is_moderator, created_at, updated_at
 		 FROM %s%s
 		 ORDER BY user_id ASC
 		 LIMIT $1 OFFSET $2`,
@@ -413,6 +452,7 @@ func (r *ProfileRepository) ListUsers(ctx context.Context, limit, offset int, on
 			&user.Name,
 			&user.IsHidden,
 			&user.IsBanned,
+			&user.IsShadowBanned,
 			&user.IsModerator,
 			&user.CreatedAt,
 			&user.UpdatedAt,
@@ -456,12 +496,12 @@ func (r *ProfileRepository) ListReportedUsers(ctx context.Context, limit, offset
 	}
 
 	query := fmt.Sprintf(
-		`SELECT p.user_id, p.username, p.name, p.is_hidden, p.is_banned, p.is_moderator, p.created_at, p.updated_at,
+		`SELECT p.user_id, p.username, p.name, p.is_hidden, p.is_banned, p.is_shadow_banned, p.is_moderator, p.created_at, p.updated_at,
 				COUNT(i.viewer_id) AS report_count
 		 FROM %s i
 		 JOIN %s p ON p.user_id = i.target_id
 		 WHERE i.action = $1
-		 GROUP BY p.user_id, p.username, p.name, p.is_hidden, p.is_banned, p.is_moderator, p.created_at, p.updated_at
+		 GROUP BY p.user_id, p.username, p.name, p.is_hidden, p.is_banned, p.is_shadow_banned, p.is_moderator, p.created_at, p.updated_at
 		 ORDER BY report_count DESC, p.updated_at DESC, p.user_id ASC
 		 LIMIT $2 OFFSET $3`,
 		interactionsTable,
@@ -483,6 +523,7 @@ func (r *ProfileRepository) ListReportedUsers(ctx context.Context, limit, offset
 			&user.Name,
 			&user.IsHidden,
 			&user.IsBanned,
+			&user.IsShadowBanned,
 			&user.IsModerator,
 			&user.CreatedAt,
 			&user.UpdatedAt,
@@ -534,6 +575,7 @@ func (r *ProfileRepository) ensureTable(ctx context.Context) error {
 			photos TEXT[] NOT NULL DEFAULT '{}',
 			is_hidden BOOLEAN NOT NULL DEFAULT FALSE,
 			is_banned BOOLEAN NOT NULL DEFAULT FALSE,
+			is_shadow_banned BOOLEAN NOT NULL DEFAULT FALSE,
 			is_moderator BOOLEAN NOT NULL DEFAULT FALSE,
 			created_at TIMESTAMPTZ NOT NULL,
 			updated_at TIMESTAMPTZ NOT NULL
@@ -560,6 +602,7 @@ func (r *ProfileRepository) ensureColumns(ctx context.Context) error {
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS emoji_code TEXT NOT NULL DEFAULT ''", r.table),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN NOT NULL DEFAULT FALSE", r.table),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS is_banned BOOLEAN NOT NULL DEFAULT FALSE", r.table),
+		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS is_shadow_banned BOOLEAN NOT NULL DEFAULT FALSE", r.table),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS is_moderator BOOLEAN NOT NULL DEFAULT FALSE", r.table),
 	}
 	for _, query := range queries {

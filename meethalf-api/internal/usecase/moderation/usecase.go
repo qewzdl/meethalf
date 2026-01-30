@@ -15,7 +15,7 @@ const (
 )
 
 type Usecase interface {
-	ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators, onlyHidden bool) (UserList, error)
+	ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators, onlyHidden, onlyShadowBanned bool) (UserList, error)
 	ListReportedUsers(ctx context.Context, limit, offset int) (ReportedUserList, error)
 	GetUser(ctx context.Context, userID int64) (domain.UserSummary, error)
 	GetUserByUsername(ctx context.Context, username string) (domain.UserSummary, error)
@@ -23,6 +23,10 @@ type Usecase interface {
 	BanUserByUsername(ctx context.Context, username string) error
 	UnbanUser(ctx context.Context, userID int64) error
 	UnbanUserByUsername(ctx context.Context, username string) error
+	ShadowBanUser(ctx context.Context, userID int64) error
+	ShadowBanUserByUsername(ctx context.Context, username string) error
+	UnshadowBanUser(ctx context.Context, userID int64) error
+	UnshadowBanUserByUsername(ctx context.Context, username string) error
 	HideUser(ctx context.Context, userID int64) error
 	HideUserByUsername(ctx context.Context, username string) error
 	ShowUser(ctx context.Context, userID int64) error
@@ -36,10 +40,11 @@ type Usecase interface {
 }
 
 type Repository interface {
-	ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators, onlyHidden bool) ([]domain.UserSummary, int, error)
+	ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators, onlyHidden, onlyShadowBanned bool) ([]domain.UserSummary, int, error)
 	ListReportedUsers(ctx context.Context, limit, offset int) ([]domain.ReportedUserSummary, int, error)
 	GetUserSummary(ctx context.Context, userID int64) (domain.UserSummary, error)
 	UpdateBanStatus(ctx context.Context, userID int64, isBanned bool) error
+	UpdateShadowBanStatus(ctx context.Context, userID int64, isShadowBanned bool) error
 	UpdateVisibility(ctx context.Context, userID int64, isHidden bool) error
 	UpdateModeratorStatus(ctx context.Context, userID int64, isModerator bool) error
 	GetUserIDByUsername(ctx context.Context, username string) (int64, error)
@@ -68,7 +73,7 @@ func New(repo Repository) Usecase {
 	return &service{repo: repo}
 }
 
-func (s *service) ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators, onlyHidden bool) (UserList, error) {
+func (s *service) ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators, onlyHidden, onlyShadowBanned bool) (UserList, error) {
 	if s == nil || s.repo == nil {
 		return UserList{}, errors.New("moderation repository is not configured")
 	}
@@ -90,7 +95,7 @@ func (s *service) ListUsers(ctx context.Context, limit, offset int, onlyBanned, 
 		normalizedOffset = 0
 	}
 
-	users, total, err := s.repo.ListUsers(ctx, normalizedLimit, normalizedOffset, onlyBanned, onlyModerators, onlyHidden)
+	users, total, err := s.repo.ListUsers(ctx, normalizedLimit, normalizedOffset, onlyBanned, onlyModerators, onlyHidden, onlyShadowBanned)
 	if err != nil {
 		return UserList{}, err
 	}
@@ -257,6 +262,86 @@ func (s *service) UnbanUserByUsername(ctx context.Context, username string) erro
 	}
 
 	return s.UnbanUser(ctx, userID)
+}
+
+func (s *service) ShadowBanUser(ctx context.Context, userID int64) error {
+	if s == nil || s.repo == nil {
+		return errors.New("moderation repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	if userID <= 0 {
+		return ErrInvalidUserID
+	}
+
+	if err := s.repo.UpdateShadowBanStatus(ctx, userID, true); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrUserNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) ShadowBanUserByUsername(ctx context.Context, username string) error {
+	if s == nil || s.repo == nil {
+		return errors.New("moderation repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	userID, err := s.resolveUserIDByUsername(ctx, username)
+	if err != nil {
+		return err
+	}
+
+	return s.ShadowBanUser(ctx, userID)
+}
+
+func (s *service) UnshadowBanUser(ctx context.Context, userID int64) error {
+	if s == nil || s.repo == nil {
+		return errors.New("moderation repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	if userID <= 0 {
+		return ErrInvalidUserID
+	}
+
+	if err := s.repo.UpdateShadowBanStatus(ctx, userID, false); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrUserNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) UnshadowBanUserByUsername(ctx context.Context, username string) error {
+	if s == nil || s.repo == nil {
+		return errors.New("moderation repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	userID, err := s.resolveUserIDByUsername(ctx, username)
+	if err != nil {
+		return err
+	}
+
+	return s.UnshadowBanUser(ctx, userID)
 }
 
 func (s *service) HideUser(ctx context.Context, userID int64) error {

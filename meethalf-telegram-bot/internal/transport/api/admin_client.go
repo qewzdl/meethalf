@@ -33,7 +33,7 @@ func NewAdminClient(baseURL string, timeout time.Duration) *AdminClient {
 	}
 }
 
-func (c *AdminClient) ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators, onlyHidden bool) (domain.UserList, error) {
+func (c *AdminClient) ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators, onlyHidden, onlyShadowBanned bool) (domain.UserList, error) {
 	if c == nil || c.client == nil {
 		return domain.UserList{}, errors.New("admin client is not configured")
 	}
@@ -53,6 +53,9 @@ func (c *AdminClient) ListUsers(ctx context.Context, limit, offset int, onlyBann
 	}
 	if onlyHidden {
 		query = query + "&hidden=true"
+	}
+	if onlyShadowBanned {
+		query = query + "&shadow_banned=true"
 	}
 	url := fmt.Sprintf("%s/api/v1/admin/users?%s", c.baseURL, query)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -78,14 +81,15 @@ func (c *AdminClient) ListUsers(ctx context.Context, limit, offset int, onlyBann
 	users := make([]domain.UserSummary, 0, len(payload.Users))
 	for _, user := range payload.Users {
 		users = append(users, domain.UserSummary{
-			UserID:      user.UserID,
-			Username:    user.Username,
-			Name:        user.Name,
-			IsHidden:    user.IsHidden,
-			IsBanned:    user.IsBanned,
-			IsModerator: user.IsModerator,
-			CreatedAt:   user.CreatedAt,
-			UpdatedAt:   user.UpdatedAt,
+			UserID:         user.UserID,
+			Username:       user.Username,
+			Name:           user.Name,
+			IsHidden:       user.IsHidden,
+			IsBanned:       user.IsBanned,
+			IsShadowBanned: user.IsShadowBanned,
+			IsModerator:    user.IsModerator,
+			CreatedAt:      user.CreatedAt,
+			UpdatedAt:      user.UpdatedAt,
 		})
 	}
 
@@ -133,15 +137,16 @@ func (c *AdminClient) ListReportedUsers(ctx context.Context, limit, offset int) 
 	users := make([]domain.ReportedUserSummary, 0, len(payload.Users))
 	for _, user := range payload.Users {
 		users = append(users, domain.ReportedUserSummary{
-			UserID:      user.UserID,
-			Username:    user.Username,
-			Name:        user.Name,
-			IsHidden:    user.IsHidden,
-			IsBanned:    user.IsBanned,
-			IsModerator: user.IsModerator,
-			ReportCount: user.ReportCount,
-			CreatedAt:   user.CreatedAt,
-			UpdatedAt:   user.UpdatedAt,
+			UserID:         user.UserID,
+			Username:       user.Username,
+			Name:           user.Name,
+			IsHidden:       user.IsHidden,
+			IsBanned:       user.IsBanned,
+			IsShadowBanned: user.IsShadowBanned,
+			IsModerator:    user.IsModerator,
+			ReportCount:    user.ReportCount,
+			CreatedAt:      user.CreatedAt,
+			UpdatedAt:      user.UpdatedAt,
 		})
 	}
 
@@ -199,6 +204,38 @@ func (c *AdminClient) UnbanUserByUsername(ctx context.Context, username string) 
 	}
 
 	return c.postAdminAction(ctx, ref, "unban")
+}
+
+func (c *AdminClient) ShadowBanUser(ctx context.Context, userID int64) error {
+	if userID <= 0 {
+		return errors.New("user id is required")
+	}
+	return c.postAdminAction(ctx, fmt.Sprintf("%d", userID), "shadow-ban")
+}
+
+func (c *AdminClient) ShadowBanUserByUsername(ctx context.Context, username string) error {
+	ref, err := normalizeAdminUsernameRef(username)
+	if err != nil {
+		return err
+	}
+
+	return c.postAdminAction(ctx, ref, "shadow-ban")
+}
+
+func (c *AdminClient) UnshadowBanUser(ctx context.Context, userID int64) error {
+	if userID <= 0 {
+		return errors.New("user id is required")
+	}
+	return c.postAdminAction(ctx, fmt.Sprintf("%d", userID), "shadow-unban")
+}
+
+func (c *AdminClient) UnshadowBanUserByUsername(ctx context.Context, username string) error {
+	ref, err := normalizeAdminUsernameRef(username)
+	if err != nil {
+		return err
+	}
+
+	return c.postAdminAction(ctx, ref, "shadow-unban")
 }
 
 func (c *AdminClient) HideUser(ctx context.Context, userID int64) error {
@@ -335,14 +372,15 @@ func (c *AdminClient) getAdminUser(ctx context.Context, userRef string) (domain.
 	}
 
 	return domain.UserSummary{
-		UserID:      payload.UserID,
-		Username:    payload.Username,
-		Name:        payload.Name,
-		IsHidden:    payload.IsHidden,
-		IsBanned:    payload.IsBanned,
-		IsModerator: payload.IsModerator,
-		CreatedAt:   payload.CreatedAt,
-		UpdatedAt:   payload.UpdatedAt,
+		UserID:         payload.UserID,
+		Username:       payload.Username,
+		Name:           payload.Name,
+		IsHidden:       payload.IsHidden,
+		IsBanned:       payload.IsBanned,
+		IsShadowBanned: payload.IsShadowBanned,
+		IsModerator:    payload.IsModerator,
+		CreatedAt:      payload.CreatedAt,
+		UpdatedAt:      payload.UpdatedAt,
 	}, nil
 }
 
@@ -411,14 +449,15 @@ type adminUsersResponse struct {
 }
 
 type adminUserResponse struct {
-	UserID      int64     `json:"user_id"`
-	Username    string    `json:"username"`
-	Name        string    `json:"name"`
-	IsHidden    bool      `json:"is_hidden"`
-	IsBanned    bool      `json:"is_banned"`
-	IsModerator bool      `json:"is_moderator"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	UserID         int64     `json:"user_id"`
+	Username       string    `json:"username"`
+	Name           string    `json:"name"`
+	IsHidden       bool      `json:"is_hidden"`
+	IsBanned       bool      `json:"is_banned"`
+	IsShadowBanned bool      `json:"is_shadow_banned"`
+	IsModerator    bool      `json:"is_moderator"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 type adminReportedUsersResponse struct {
@@ -429,15 +468,16 @@ type adminReportedUsersResponse struct {
 }
 
 type adminReportedUserResponse struct {
-	UserID      int64     `json:"user_id"`
-	Username    string    `json:"username"`
-	Name        string    `json:"name"`
-	IsHidden    bool      `json:"is_hidden"`
-	IsBanned    bool      `json:"is_banned"`
-	IsModerator bool      `json:"is_moderator"`
-	ReportCount int       `json:"report_count"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	UserID         int64     `json:"user_id"`
+	Username       string    `json:"username"`
+	Name           string    `json:"name"`
+	IsHidden       bool      `json:"is_hidden"`
+	IsBanned       bool      `json:"is_banned"`
+	IsShadowBanned bool      `json:"is_shadow_banned"`
+	IsModerator    bool      `json:"is_moderator"`
+	ReportCount    int       `json:"report_count"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 func normalizeAdminUsernameRef(username string) (string, error) {

@@ -43,11 +43,14 @@ curl http://localhost:8080/api/v1/likes/1
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0
 curl http://localhost:8080/api/v1/admin/users/1
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&banned=true
+curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&shadow_banned=true
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&moderator=true
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&hidden=true
 curl http://localhost:8080/api/v1/admin/reports?limit=20&offset=0
 curl -X POST http://localhost:8080/api/v1/admin/users/1/ban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unban
+curl -X POST http://localhost:8080/api/v1/admin/users/1/shadow-ban
+curl -X POST http://localhost:8080/api/v1/admin/users/1/shadow-unban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/hide
 curl -X POST http://localhost:8080/api/v1/admin/users/1/show
 curl -X POST http://localhost:8080/api/v1/admin/users/1/moderator
@@ -66,24 +69,29 @@ search relaxes the accuracy step-by-step down to 0 while keeping the gender filt
 age windows when scoring candidates. Search enforces age eligibility: users aged 16-17 see only 16-17 profiles, and
 users aged 18+ never see profiles under 18.
 `POST /api/v1/search/ai` analyzes a free-form user message via OpenRouter and returns the best matching profile based on
-the extracted preferences and keywords. It respects the same age eligibility rules and excludes hidden/banned profiles.
+the extracted preferences and keywords. It respects the same age eligibility rules and excludes hidden/banned/shadow-banned profiles.
 `/api/v1/search/action` responds with `matched=true` when the like action forms a mutual match.
 `GET /api/v1/search/history/{user_id}` returns the cumulative search history across sessions (latest view per profile,
 latest first) with actions, position, and pagination via `limit`/`offset` query parameters.
-`/api/v1/admin/users` returns a paginated list of users (profiles) with `username`, `is_hidden`, `is_banned`, and
-`is_moderator` flags.
+`/api/v1/admin/users` returns a paginated list of users (profiles) with `username`, `is_hidden`, `is_banned`,
+`is_shadow_banned`, and `is_moderator` flags.
 `GET /api/v1/admin/users/{user_ref}` returns a single user summary by id or username (with or without `@`).
 Use `limit` and `offset` query parameters to paginate; pass `banned=true` to list only banned users or
-`moderator=true` to list only moderators, or `hidden=true` to list only hidden profiles. `/api/v1/admin/reports` returns a
+`moderator=true` to list only moderators, `hidden=true` to list only hidden profiles, or `shadow_banned=true` to list only
+shadow-banned profiles. `/api/v1/admin/reports` returns a
 paginated list of reported users with their report counts.
 `POST /api/v1/admin/users/{user_ref}/ban` bans the user by id or username (with or without `@`), and
-`POST /api/v1/admin/users/{user_ref}/unban` removes the ban. `POST /api/v1/admin/users/{user_ref}/hide` hides the profile
-from search, and `POST /api/v1/admin/users/{user_ref}/show` makes it visible again.
+`POST /api/v1/admin/users/{user_ref}/unban` removes the ban.
+`POST /api/v1/admin/users/{user_ref}/shadow-ban` applies a shadow ban, and
+`POST /api/v1/admin/users/{user_ref}/shadow-unban` removes it.
+`POST /api/v1/admin/users/{user_ref}/hide` hides the profile from search, and
+`POST /api/v1/admin/users/{user_ref}/show` makes it visible again.
 `POST /api/v1/admin/users/{user_ref}/moderator` assigns the moderator role, and
 `POST /api/v1/admin/users/{user_ref}/unmoderator` removes it.
 `POST /api/v1/admin/users/{user_ref}/reports/clear` removes the user from the reported list by clearing report actions.
 `POST /api/v1/admin/users/{user_ref}/choices/reset` clears all match choices and history for the selected user.
-Banned users cannot use profile or search endpoints.
+Banned users cannot use profile or search endpoints. Shadow-banned profiles are excluded from search results and likes; they
+can still use profile and search endpoints.
 
 Supported cities:
 
@@ -152,11 +160,14 @@ curl http://localhost:8080/api/v1/likes/1
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0
 curl http://localhost:8080/api/v1/admin/users/1
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&banned=true
+curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&shadow_banned=true
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&moderator=true
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&hidden=true
 curl http://localhost:8080/api/v1/admin/reports?limit=20&offset=0
 curl -X POST http://localhost:8080/api/v1/admin/users/1/ban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unban
+curl -X POST http://localhost:8080/api/v1/admin/users/1/shadow-ban
+curl -X POST http://localhost:8080/api/v1/admin/users/1/shadow-unban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/hide
 curl -X POST http://localhost:8080/api/v1/admin/users/1/show
 curl -X POST http://localhost:8080/api/v1/admin/users/1/moderator

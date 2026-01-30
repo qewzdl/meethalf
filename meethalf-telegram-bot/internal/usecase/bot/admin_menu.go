@@ -43,7 +43,7 @@ func (s *service) adminUsersMessage(ctx context.Context, msg domain.IncomingMess
 	}
 
 	offset := s.parseAdminUsersOffset(msg.Arguments)
-	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, false, false)
+	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, false, false, false)
 	if err != nil {
 		return s.adminUsersLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), err
 	}
@@ -68,13 +68,38 @@ func (s *service) adminBannedUsersMessage(ctx context.Context, msg domain.Incomi
 	}
 
 	offset := s.parseAdminUsersOffset(msg.Arguments)
-	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, true, false, false)
+	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, true, false, false, false)
 	if err != nil {
 		return s.adminBannedUsersLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), err
 	}
 
 	text := s.adminBannedUsersText(l, list)
 	keyboard := s.adminBannedUsersInlineKeyboard(l, list.Offset, list.Limit, list.Total)
+	return text, keyboard, nil
+}
+
+func (s *service) adminShadowBannedUsersMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
+	role, roleErr := s.resolveAdminRole(ctx, msg.User)
+	if roleErr != nil && isBannedError(roleErr) {
+		return s.userBannedText(l), nil, roleErr
+	}
+	if !role.canModerateUsers() {
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg, l)
+		return text, keyboard, errors.Join(roleErr, err)
+	}
+
+	if s == nil || s.admin == nil {
+		return s.adminShadowBannedUsersLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), errors.New("admin service is not configured")
+	}
+
+	offset := s.parseAdminUsersOffset(msg.Arguments)
+	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, false, false, true)
+	if err != nil {
+		return s.adminShadowBannedUsersLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), err
+	}
+
+	text := s.adminShadowBannedUsersText(l, list)
+	keyboard := s.adminShadowBannedUsersInlineKeyboard(l, list.Offset, list.Limit, list.Total)
 	return text, keyboard, nil
 }
 
@@ -93,7 +118,7 @@ func (s *service) adminModeratorsMessage(ctx context.Context, msg domain.Incomin
 	}
 
 	offset := s.parseAdminUsersOffset(msg.Arguments)
-	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, true, false)
+	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, true, false, false)
 	if err != nil {
 		return s.adminModeratorsLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), err
 	}
@@ -143,7 +168,7 @@ func (s *service) adminHiddenUsersMessage(ctx context.Context, msg domain.Incomi
 	}
 
 	offset := s.parseAdminUsersOffset(msg.Arguments)
-	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, false, true)
+	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, false, true, false)
 	if err != nil {
 		return s.adminHiddenUsersLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), err
 	}
@@ -196,6 +221,10 @@ func (s *service) adminBannedUsersText(l localizer, list domain.UserList) string
 	return s.adminUsersTextWithTemplates(l, list, msgAdminBannedUsersPage, msgAdminBannedUsersEmpty, msgAdminBannedUsersEmptyPage)
 }
 
+func (s *service) adminShadowBannedUsersText(l localizer, list domain.UserList) string {
+	return s.adminUsersTextWithTemplates(l, list, msgAdminShadowBannedUsersPage, msgAdminShadowBannedUsersEmpty, msgAdminShadowBannedUsersEmptyPage)
+}
+
 func (s *service) adminModeratorsText(l localizer, list domain.UserList) string {
 	return s.adminUsersTextWithTemplates(l, list, msgAdminModeratorsPage, msgAdminModeratorsEmpty, msgAdminModeratorsEmptyPage)
 }
@@ -234,7 +263,7 @@ func (s *service) adminUsersTextWithTemplates(l localizer, list domain.UserList,
 		if username := strings.TrimSpace(user.Username); username != "" {
 			usernameLabel = s.formatUsername(username)
 		}
-		status := l.adminStatusLabel(user.IsBanned, user.IsModerator, user.IsHidden)
+		status := l.adminStatusLabel(user.IsBanned, user.IsShadowBanned, user.IsModerator, user.IsHidden)
 		lines = append(lines, l.message(msgAdminUserListLine, list.Offset+i+1, name, user.UserID, usernameLabel, status))
 	}
 
@@ -267,7 +296,7 @@ func (s *service) adminReportedUsersTextWithTemplates(l localizer, list domain.R
 		if username := strings.TrimSpace(user.Username); username != "" {
 			usernameLabel = s.formatUsername(username)
 		}
-		status := l.adminStatusLabel(user.IsBanned, user.IsModerator, user.IsHidden)
+		status := l.adminStatusLabel(user.IsBanned, user.IsShadowBanned, user.IsModerator, user.IsHidden)
 		lines = append(lines, l.message(msgAdminReportedUserListLine, list.Offset+i+1, name, user.UserID, usernameLabel, user.ReportCount, status))
 	}
 

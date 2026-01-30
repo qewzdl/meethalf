@@ -3,14 +3,15 @@ package domain
 import "time"
 
 type UserSummary struct {
-	UserID      int64
-	Username    string
-	Name        string
-	IsHidden    bool
-	IsBanned    bool
-	IsModerator bool
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	UserID         int64
+	Username       string
+	Name           string
+	IsHidden       bool
+	IsBanned       bool
+	IsShadowBanned bool
+	IsModerator    bool
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type UserList struct {
@@ -21,15 +22,16 @@ type UserList struct {
 }
 
 type ReportedUserSummary struct {
-	UserID      int64
-	Username    string
-	Name        string
-	IsHidden    bool
-	IsBanned    bool
-	IsModerator bool
-	ReportCount int
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	UserID         int64
+	Username       string
+	Name           string
+	IsHidden       bool
+	IsBanned       bool
+	IsShadowBanned bool
+	IsModerator    bool
+	ReportCount    int
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type ReportedUserList struct {
@@ -44,6 +46,8 @@ type AdminActionType string
 const (
 	AdminActionBan          AdminActionType = "ban"
 	AdminActionUnban        AdminActionType = "unban"
+	AdminActionShadowBan    AdminActionType = "shadow_ban"
+	AdminActionUnshadowBan  AdminActionType = "shadow_unban"
 	AdminActionHideProfile  AdminActionType = "hide_profile"
 	AdminActionShowProfile  AdminActionType = "show_profile"
 	AdminActionModerator    AdminActionType = "moderator"

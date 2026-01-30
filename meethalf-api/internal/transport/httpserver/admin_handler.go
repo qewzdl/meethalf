@@ -35,14 +35,15 @@ type adminUsersResponse struct {
 }
 
 type adminUserResponse struct {
-	UserID      int64     `json:"user_id"`
-	Username    string    `json:"username"`
-	Name        string    `json:"name"`
-	IsHidden    bool      `json:"is_hidden"`
-	IsBanned    bool      `json:"is_banned"`
-	IsModerator bool      `json:"is_moderator"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	UserID         int64     `json:"user_id"`
+	Username       string    `json:"username"`
+	Name           string    `json:"name"`
+	IsHidden       bool      `json:"is_hidden"`
+	IsBanned       bool      `json:"is_banned"`
+	IsShadowBanned bool      `json:"is_shadow_banned"`
+	IsModerator    bool      `json:"is_moderator"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 type adminReportedUsersResponse struct {
@@ -53,15 +54,16 @@ type adminReportedUsersResponse struct {
 }
 
 type adminReportedUserResponse struct {
-	UserID      int64     `json:"user_id"`
-	Username    string    `json:"username"`
-	Name        string    `json:"name"`
-	IsHidden    bool      `json:"is_hidden"`
-	IsBanned    bool      `json:"is_banned"`
-	IsModerator bool      `json:"is_moderator"`
-	ReportCount int       `json:"report_count"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	UserID         int64     `json:"user_id"`
+	Username       string    `json:"username"`
+	Name           string    `json:"name"`
+	IsHidden       bool      `json:"is_hidden"`
+	IsBanned       bool      `json:"is_banned"`
+	IsShadowBanned bool      `json:"is_shadow_banned"`
+	IsModerator    bool      `json:"is_moderator"`
+	ReportCount    int       `json:"report_count"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 func (h *AdminHandler) ListUsers(c *gin.Context) {
@@ -100,7 +102,13 @@ func (h *AdminHandler) ListUsers(c *gin.Context) {
 		return
 	}
 
-	list, err := h.uc.ListUsers(c.Request.Context(), limit, offset, onlyBanned, onlyModerators, onlyHidden)
+	onlyShadowBanned, err := parseOptionalBoolQuery(c, "shadow_banned")
+	if err != nil {
+		respondError(c, http.StatusBadRequest, "invalid shadow_banned flag")
+		return
+	}
+
+	list, err := h.uc.ListUsers(c.Request.Context(), limit, offset, onlyBanned, onlyModerators, onlyHidden, onlyShadowBanned)
 	if err != nil {
 		respondError(c, http.StatusInternalServerError, "failed to list users")
 		return
@@ -189,15 +197,16 @@ func (h *AdminHandler) ListReportedUsers(c *gin.Context) {
 	}
 	for _, user := range list.Users {
 		resp.Users = append(resp.Users, adminReportedUserResponse{
-			UserID:      user.UserID,
-			Username:    user.Username,
-			Name:        user.Name,
-			IsHidden:    user.IsHidden,
-			IsBanned:    user.IsBanned,
-			IsModerator: user.IsModerator,
-			ReportCount: user.ReportCount,
-			CreatedAt:   user.CreatedAt.UTC(),
-			UpdatedAt:   user.UpdatedAt.UTC(),
+			UserID:         user.UserID,
+			Username:       user.Username,
+			Name:           user.Name,
+			IsHidden:       user.IsHidden,
+			IsBanned:       user.IsBanned,
+			IsShadowBanned: user.IsShadowBanned,
+			IsModerator:    user.IsModerator,
+			ReportCount:    user.ReportCount,
+			CreatedAt:      user.CreatedAt.UTC(),
+			UpdatedAt:      user.UpdatedAt.UTC(),
 		})
 	}
 
@@ -264,6 +273,92 @@ func (h *AdminHandler) UnbanUser(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func (h *AdminHandler) ShadowBanUser(c *gin.Context) {
+	if h == nil || h.uc == nil {
+		respondError(c, http.StatusInternalServerError, "admin handler is not configured")
+		return
+	}
+
+	userID, username, ok := parseAdminUserReference(c.Param("user_ref"))
+	if !ok {
+		respondError(c, http.StatusBadRequest, "invalid user reference")
+		return
+	}
+
+	if err := h.applyAdminShadowBan(c, userID, username); err != nil {
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func (h *AdminHandler) applyAdminShadowBan(c *gin.Context, userID int64, username string) error {
+	var err error
+	if username != "" {
+		err = h.uc.ShadowBanUserByUsername(c.Request.Context(), username)
+	} else {
+		err = h.uc.ShadowBanUser(c.Request.Context(), userID)
+	}
+	if err != nil {
+		switch {
+		case errors.Is(err, moderation.ErrInvalidUserID):
+			respondError(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, moderation.ErrInvalidUsername):
+			respondError(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, moderation.ErrUserNotFound):
+			respondError(c, http.StatusNotFound, err.Error())
+		default:
+			respondError(c, http.StatusInternalServerError, "failed to shadow ban user")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (h *AdminHandler) UnshadowBanUser(c *gin.Context) {
+	if h == nil || h.uc == nil {
+		respondError(c, http.StatusInternalServerError, "admin handler is not configured")
+		return
+	}
+
+	userID, username, ok := parseAdminUserReference(c.Param("user_ref"))
+	if !ok {
+		respondError(c, http.StatusBadRequest, "invalid user reference")
+		return
+	}
+
+	if err := h.applyAdminUnshadowBan(c, userID, username); err != nil {
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func (h *AdminHandler) applyAdminUnshadowBan(c *gin.Context, userID int64, username string) error {
+	var err error
+	if username != "" {
+		err = h.uc.UnshadowBanUserByUsername(c.Request.Context(), username)
+	} else {
+		err = h.uc.UnshadowBanUser(c.Request.Context(), userID)
+	}
+	if err != nil {
+		switch {
+		case errors.Is(err, moderation.ErrInvalidUserID):
+			respondError(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, moderation.ErrInvalidUsername):
+			respondError(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, moderation.ErrUserNotFound):
+			respondError(c, http.StatusNotFound, err.Error())
+		default:
+			respondError(c, http.StatusInternalServerError, "failed to remove shadow ban")
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (h *AdminHandler) HideUser(c *gin.Context) {
@@ -550,14 +645,15 @@ func (h *AdminHandler) applyAdminUnmoderator(c *gin.Context, userID int64, usern
 
 func toAdminUserResponse(user domain.UserSummary) adminUserResponse {
 	return adminUserResponse{
-		UserID:      user.UserID,
-		Username:    user.Username,
-		Name:        user.Name,
-		IsHidden:    user.IsHidden,
-		IsBanned:    user.IsBanned,
-		IsModerator: user.IsModerator,
-		CreatedAt:   user.CreatedAt.UTC(),
-		UpdatedAt:   user.UpdatedAt.UTC(),
+		UserID:         user.UserID,
+		Username:       user.Username,
+		Name:           user.Name,
+		IsHidden:       user.IsHidden,
+		IsBanned:       user.IsBanned,
+		IsShadowBanned: user.IsShadowBanned,
+		IsModerator:    user.IsModerator,
+		CreatedAt:      user.CreatedAt.UTC(),
+		UpdatedAt:      user.UpdatedAt.UTC(),
 	}
 }
 

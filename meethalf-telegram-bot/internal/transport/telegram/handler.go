@@ -262,6 +262,9 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 	case strings.HasPrefix(text, domain.CommandAdminBannedUsers+":"):
 		command = domain.CommandAdminBannedUsers
 		arguments = strings.TrimPrefix(text, domain.CommandAdminBannedUsers+":")
+	case strings.HasPrefix(text, domain.CommandAdminShadowBannedUsers+":"):
+		command = domain.CommandAdminShadowBannedUsers
+		arguments = strings.TrimPrefix(text, domain.CommandAdminShadowBannedUsers+":")
 	case strings.HasPrefix(text, domain.CommandAdminHiddenUsers+":"):
 		command = domain.CommandAdminHiddenUsers
 		arguments = strings.TrimPrefix(text, domain.CommandAdminHiddenUsers+":")
@@ -335,6 +338,8 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandAdminUsers
 		case domain.CommandAdminBannedUsers:
 			command = domain.CommandAdminBannedUsers
+		case domain.CommandAdminShadowBannedUsers:
+			command = domain.CommandAdminShadowBannedUsers
 		case domain.CommandAdminHiddenUsers:
 			command = domain.CommandAdminHiddenUsers
 		case domain.CommandAdminModerators:
@@ -345,6 +350,10 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandAdminBan
 		case domain.CommandAdminUnban:
 			command = domain.CommandAdminUnban
+		case domain.CommandAdminShadowBan:
+			command = domain.CommandAdminShadowBan
+		case domain.CommandAdminShadowUnban:
+			command = domain.CommandAdminShadowUnban
 		case domain.CommandAdminHideProfile:
 			command = domain.CommandAdminHideProfile
 		case domain.CommandAdminShowProfile:
