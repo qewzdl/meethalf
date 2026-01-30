@@ -102,7 +102,8 @@ response is sent.
 ## Message replacement
 
 When you press an inline action button, the bot first deletes the message that contained it and only then sends the next
-prompt or result. This keeps the chat tidy and makes each step feel like a replacement.
+prompt or result. For album-based profile cards that need a separate action message, the bot also removes the album so the
+entire card is replaced. This keeps the chat tidy and makes each step feel like a replacement.
 
 ## Profile settings
 

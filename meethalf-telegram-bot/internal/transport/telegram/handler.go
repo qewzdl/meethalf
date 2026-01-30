@@ -14,9 +14,11 @@ import (
 )
 
 type Handler struct {
-	usecase bot.Usecase
-	sender  Sender
-	logger  *log.Logger
+	usecase         bot.Usecase
+	sender          Sender
+	logger          *log.Logger
+	cleanupMu       sync.Mutex
+	callbackCleanup map[callbackCleanupKey]callbackCleanupRange
 }
 
 func NewHandler(usecase bot.Usecase, sender Sender, logger *log.Logger) *Handler {
@@ -37,6 +39,9 @@ func (h *Handler) Handle(ctx context.Context, update tgbotapi.Update) {
 	if hasCallbackMeta {
 		if err := h.deleteCallbackMessage(ctx, callbackMeta); err != nil && h.logger != nil {
 			h.logger.Printf("delete callback message error: %v", err)
+		}
+		if cleanup, ok := h.takeCallbackCleanup(callbackMeta.chatID, callbackMeta.messageID); ok {
+			h.deleteMessageRange(ctx, callbackMeta.chatID, cleanup.fromID, cleanup.toID)
 		}
 	}
 
@@ -73,6 +78,13 @@ func (h *Handler) Handle(ctx context.Context, update tgbotapi.Update) {
 		responses[0].CallbackQueryID = update.CallbackQuery.ID
 	}
 
+	type pendingAlbum struct {
+		chatID         int64
+		firstMessageID int
+		count          int
+	}
+
+	var pending *pendingAlbum
 	for _, response := range responses {
 		messageID, err := h.sender.Send(ctx, response)
 		if err != nil {
@@ -87,6 +99,19 @@ func (h *Handler) Handle(ctx context.Context, update tgbotapi.Update) {
 		}
 		if h.logger != nil && response.Kind != "" {
 			h.logger.Printf("notification sent: kind=%s chat_id=%d message_id=%d", response.Kind, response.ChatID, messageID)
+		}
+		if pending != nil {
+			if response.ChatID == pending.chatID && response.InlineKeyboard != nil && len(response.PhotoIDs) == 0 {
+				h.rememberCallbackCleanup(response.ChatID, messageID, pending.firstMessageID, pending.count)
+			}
+			pending = nil
+		}
+		if messageID > 0 && len(response.PhotoIDs) > 1 {
+			pending = &pendingAlbum{
+				chatID:         response.ChatID,
+				firstMessageID: messageID,
+				count:          len(response.PhotoIDs),
+			}
 		}
 		if response.CleanupFromMessageID > 0 && messageID > 0 {
 			if loadingMessageID != 0 && response.CleanupFromMessageID <= loadingMessageID && loadingMessageID <= messageID {
@@ -421,4 +446,51 @@ func (h *Handler) deleteMessageRange(ctx context.Context, chatID int64, fromID, 
 	}
 	close(messageIDs)
 	wg.Wait()
+}
+
+type callbackCleanupKey struct {
+	chatID    int64
+	messageID int
+}
+
+type callbackCleanupRange struct {
+	fromID int
+	toID   int
+}
+
+func (h *Handler) rememberCallbackCleanup(chatID int64, messageID, fromID, count int) {
+	if h == nil || chatID == 0 || messageID == 0 || fromID == 0 || count <= 0 {
+		return
+	}
+
+	toID := fromID + count - 1
+	if toID < fromID {
+		return
+	}
+
+	h.cleanupMu.Lock()
+	if h.callbackCleanup == nil {
+		h.callbackCleanup = make(map[callbackCleanupKey]callbackCleanupRange)
+	}
+	h.callbackCleanup[callbackCleanupKey{chatID: chatID, messageID: messageID}] = callbackCleanupRange{
+		fromID: fromID,
+		toID:   toID,
+	}
+	h.cleanupMu.Unlock()
+}
+
+func (h *Handler) takeCallbackCleanup(chatID int64, messageID int) (callbackCleanupRange, bool) {
+	if h == nil || chatID == 0 || messageID == 0 {
+		return callbackCleanupRange{}, false
+	}
+
+	key := callbackCleanupKey{chatID: chatID, messageID: messageID}
+	h.cleanupMu.Lock()
+	cleanup, ok := h.callbackCleanup[key]
+	if ok {
+		delete(h.callbackCleanup, key)
+	}
+	h.cleanupMu.Unlock()
+
+	return cleanup, ok
 }
