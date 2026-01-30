@@ -33,7 +33,7 @@ func NewAdminClient(baseURL string, timeout time.Duration) *AdminClient {
 	}
 }
 
-func (c *AdminClient) ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators bool) (domain.UserList, error) {
+func (c *AdminClient) ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators, onlyHidden bool) (domain.UserList, error) {
 	if c == nil || c.client == nil {
 		return domain.UserList{}, errors.New("admin client is not configured")
 	}
@@ -50,6 +50,9 @@ func (c *AdminClient) ListUsers(ctx context.Context, limit, offset int, onlyBann
 	}
 	if onlyModerators {
 		query = query + "&moderator=true"
+	}
+	if onlyHidden {
+		query = query + "&hidden=true"
 	}
 	url := fmt.Sprintf("%s/api/v1/admin/users?%s", c.baseURL, query)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -196,6 +199,38 @@ func (c *AdminClient) UnbanUserByUsername(ctx context.Context, username string) 
 	}
 
 	return c.postAdminAction(ctx, ref, "unban")
+}
+
+func (c *AdminClient) HideUser(ctx context.Context, userID int64) error {
+	if userID <= 0 {
+		return errors.New("user id is required")
+	}
+	return c.postAdminAction(ctx, fmt.Sprintf("%d", userID), "hide")
+}
+
+func (c *AdminClient) HideUserByUsername(ctx context.Context, username string) error {
+	ref, err := normalizeAdminUsernameRef(username)
+	if err != nil {
+		return err
+	}
+
+	return c.postAdminAction(ctx, ref, "hide")
+}
+
+func (c *AdminClient) ShowUser(ctx context.Context, userID int64) error {
+	if userID <= 0 {
+		return errors.New("user id is required")
+	}
+	return c.postAdminAction(ctx, fmt.Sprintf("%d", userID), "show")
+}
+
+func (c *AdminClient) ShowUserByUsername(ctx context.Context, username string) error {
+	ref, err := normalizeAdminUsernameRef(username)
+	if err != nil {
+		return err
+	}
+
+	return c.postAdminAction(ctx, ref, "show")
 }
 
 func (c *AdminClient) MakeModerator(ctx context.Context, userID int64) error {

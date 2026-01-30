@@ -94,7 +94,13 @@ func (h *AdminHandler) ListUsers(c *gin.Context) {
 		return
 	}
 
-	list, err := h.uc.ListUsers(c.Request.Context(), limit, offset, onlyBanned, onlyModerators)
+	onlyHidden, err := parseOptionalBoolQuery(c, "hidden")
+	if err != nil {
+		respondError(c, http.StatusBadRequest, "invalid hidden flag")
+		return
+	}
+
+	list, err := h.uc.ListUsers(c.Request.Context(), limit, offset, onlyBanned, onlyModerators, onlyHidden)
 	if err != nil {
 		respondError(c, http.StatusInternalServerError, "failed to list users")
 		return
@@ -258,6 +264,92 @@ func (h *AdminHandler) UnbanUser(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func (h *AdminHandler) HideUser(c *gin.Context) {
+	if h == nil || h.uc == nil {
+		respondError(c, http.StatusInternalServerError, "admin handler is not configured")
+		return
+	}
+
+	userID, username, ok := parseAdminUserReference(c.Param("user_ref"))
+	if !ok {
+		respondError(c, http.StatusBadRequest, "invalid user reference")
+		return
+	}
+
+	if err := h.applyAdminHide(c, userID, username); err != nil {
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func (h *AdminHandler) applyAdminHide(c *gin.Context, userID int64, username string) error {
+	var err error
+	if username != "" {
+		err = h.uc.HideUserByUsername(c.Request.Context(), username)
+	} else {
+		err = h.uc.HideUser(c.Request.Context(), userID)
+	}
+	if err != nil {
+		switch {
+		case errors.Is(err, admin.ErrInvalidUserID):
+			respondError(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, admin.ErrInvalidUsername):
+			respondError(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, admin.ErrUserNotFound):
+			respondError(c, http.StatusNotFound, err.Error())
+		default:
+			respondError(c, http.StatusInternalServerError, "failed to hide user profile")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (h *AdminHandler) ShowUser(c *gin.Context) {
+	if h == nil || h.uc == nil {
+		respondError(c, http.StatusInternalServerError, "admin handler is not configured")
+		return
+	}
+
+	userID, username, ok := parseAdminUserReference(c.Param("user_ref"))
+	if !ok {
+		respondError(c, http.StatusBadRequest, "invalid user reference")
+		return
+	}
+
+	if err := h.applyAdminShow(c, userID, username); err != nil {
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func (h *AdminHandler) applyAdminShow(c *gin.Context, userID int64, username string) error {
+	var err error
+	if username != "" {
+		err = h.uc.ShowUserByUsername(c.Request.Context(), username)
+	} else {
+		err = h.uc.ShowUser(c.Request.Context(), userID)
+	}
+	if err != nil {
+		switch {
+		case errors.Is(err, admin.ErrInvalidUserID):
+			respondError(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, admin.ErrInvalidUsername):
+			respondError(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, admin.ErrUserNotFound):
+			respondError(c, http.StatusNotFound, err.Error())
+		default:
+			respondError(c, http.StatusInternalServerError, "failed to show user profile")
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (h *AdminHandler) applyAdminUnban(c *gin.Context, userID int64, username string) error {

@@ -43,7 +43,7 @@ func (s *service) adminUsersMessage(ctx context.Context, msg domain.IncomingMess
 	}
 
 	offset := s.parseAdminUsersOffset(msg.Arguments)
-	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, false)
+	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, false, false)
 	if err != nil {
 		return s.adminUsersLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), err
 	}
@@ -68,7 +68,7 @@ func (s *service) adminBannedUsersMessage(ctx context.Context, msg domain.Incomi
 	}
 
 	offset := s.parseAdminUsersOffset(msg.Arguments)
-	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, true, false)
+	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, true, false, false)
 	if err != nil {
 		return s.adminBannedUsersLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), err
 	}
@@ -93,7 +93,7 @@ func (s *service) adminModeratorsMessage(ctx context.Context, msg domain.Incomin
 	}
 
 	offset := s.parseAdminUsersOffset(msg.Arguments)
-	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, true)
+	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, true, false)
 	if err != nil {
 		return s.adminModeratorsLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), err
 	}
@@ -125,6 +125,31 @@ func (s *service) adminReportsMessage(ctx context.Context, msg domain.IncomingMe
 
 	text := s.adminReportsText(l, list)
 	keyboard := s.adminReportsInlineKeyboard(l, list.Offset, list.Limit, list.Total)
+	return text, keyboard, nil
+}
+
+func (s *service) adminHiddenUsersMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
+	role, roleErr := s.resolveAdminRole(ctx, msg.User)
+	if roleErr != nil && isBannedError(roleErr) {
+		return s.userBannedText(l), nil, roleErr
+	}
+	if !role.canModerateUsers() {
+		text, keyboard, err := s.adminAccessDeniedMessage(ctx, msg, l)
+		return text, keyboard, errors.Join(roleErr, err)
+	}
+
+	if s == nil || s.admin == nil {
+		return s.adminHiddenUsersLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), errors.New("admin service is not configured")
+	}
+
+	offset := s.parseAdminUsersOffset(msg.Arguments)
+	list, err := s.admin.ListUsers(ctx, adminUsersPageSize, offset, false, false, true)
+	if err != nil {
+		return s.adminHiddenUsersLoadFailedText(l), s.adminMenuInlineKeyboard(l, role), err
+	}
+
+	text := s.adminHiddenUsersText(l, list)
+	keyboard := s.adminHiddenUsersInlineKeyboard(l, list.Offset, list.Limit, list.Total)
 	return text, keyboard, nil
 }
 
@@ -177,6 +202,10 @@ func (s *service) adminModeratorsText(l localizer, list domain.UserList) string 
 
 func (s *service) adminReportsText(l localizer, list domain.ReportedUserList) string {
 	return s.adminReportedUsersTextWithTemplates(l, list, msgAdminReportsPage, msgAdminReportsEmpty, msgAdminReportsEmptyPage)
+}
+
+func (s *service) adminHiddenUsersText(l localizer, list domain.UserList) string {
+	return s.adminUsersTextWithTemplates(l, list, msgAdminHiddenUsersPage, msgAdminHiddenUsersEmpty, msgAdminHiddenUsersEmptyPage)
 }
 
 func (s *service) adminUsersTextWithTemplates(l localizer, list domain.UserList, pageKey, emptyKey, emptyPageKey messageKey) string {

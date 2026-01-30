@@ -203,6 +203,10 @@ const (
 	msgAdminBannedUsersLoadFailed     messageKey = "admin_banned_users_load_failed"
 	msgAdminBannedUsersPage           messageKey = "admin_banned_users_page"
 	msgAdminBannedUsersEmptyPage      messageKey = "admin_banned_users_empty_page"
+	msgAdminHiddenUsersEmpty          messageKey = "admin_hidden_users_empty"
+	msgAdminHiddenUsersLoadFailed     messageKey = "admin_hidden_users_load_failed"
+	msgAdminHiddenUsersPage           messageKey = "admin_hidden_users_page"
+	msgAdminHiddenUsersEmptyPage      messageKey = "admin_hidden_users_empty_page"
 	msgAdminModeratorsEmpty           messageKey = "admin_moderators_empty"
 	msgAdminModeratorsLoadFailed      messageKey = "admin_moderators_load_failed"
 	msgAdminModeratorsPage            messageKey = "admin_moderators_page"
@@ -218,6 +222,12 @@ const (
 	msgAdminUnbanUsage                messageKey = "admin_unban_usage"
 	msgAdminUnbanFailed               messageKey = "admin_unban_failed"
 	msgAdminUnbanSuccess              messageKey = "admin_unban_success"
+	msgAdminHideProfileUsage          messageKey = "admin_hide_profile_usage"
+	msgAdminHideProfileFailed         messageKey = "admin_hide_profile_failed"
+	msgAdminHideProfileSuccess        messageKey = "admin_hide_profile_success"
+	msgAdminShowProfileUsage          messageKey = "admin_show_profile_usage"
+	msgAdminShowProfileFailed         messageKey = "admin_show_profile_failed"
+	msgAdminShowProfileSuccess        messageKey = "admin_show_profile_success"
 	msgAdminActionFailed              messageKey = "admin_action_failed"
 	msgAdminModeratorUsage            messageKey = "admin_moderator_usage"
 	msgAdminModeratorFailed           messageKey = "admin_moderator_failed"
@@ -259,6 +269,9 @@ const (
 	msgLoadingAdminUsers              messageKey = "loading_admin_users"
 	msgLoadingAdminBan                messageKey = "loading_admin_ban"
 	msgLoadingAdminUnban              messageKey = "loading_admin_unban"
+	msgLoadingAdminHiddenUsers        messageKey = "loading_admin_hidden_users"
+	msgLoadingAdminHideProfile        messageKey = "loading_admin_hide_profile"
+	msgLoadingAdminShowProfile        messageKey = "loading_admin_show_profile"
 	msgLoadingAdminModerator          messageKey = "loading_admin_moderator"
 	msgLoadingAdminUnmoderator        messageKey = "loading_admin_unmoderator"
 	msgLoadingAdminResetChoices       messageKey = "loading_admin_reset_choices"
@@ -425,6 +438,9 @@ const (
 	btnAdminUsers             buttonKey = "admin_users"
 	btnAdminBan               buttonKey = "admin_ban"
 	btnAdminUnban             buttonKey = "admin_unban"
+	btnAdminHiddenUsers       buttonKey = "admin_hidden_users"
+	btnAdminHideProfile       buttonKey = "admin_hide_profile"
+	btnAdminShowProfile       buttonKey = "admin_show_profile"
 	btnAdminModerator         buttonKey = "admin_moderator"
 	btnAdminUnmoderator       buttonKey = "admin_unmoderator"
 	btnAdminResetChoices      buttonKey = "admin_reset_choices"
@@ -533,7 +549,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgAdminMenu:                      "Admin dashboard — choose an action.",
 		msgModeratorMenu:                  "Moderator dashboard — choose an action.",
 		msgAdminAccessDenied:              "Admin access is required for this action.",
-		msgAdminModerationRestricted:      "Moderators can manage bans only for regular users.",
+		msgAdminModerationRestricted:      "Moderators can act only on regular users.",
 		msgAdminUsersEmpty:                "No users yet.",
 		msgAdminUsersLoadFailed:           "Couldn't load users. Please try again soon.",
 		msgAdminUsersPage:                 "Users: %d total. Showing %d–%d.",
@@ -542,6 +558,10 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgAdminBannedUsersLoadFailed:     "Couldn't load banned users. Please try again soon.",
 		msgAdminBannedUsersPage:           "Banned users: %d total. Showing %d–%d.",
 		msgAdminBannedUsersEmptyPage:      "Banned users: %d total. Nothing on this page.",
+		msgAdminHiddenUsersEmpty:          "No hidden profiles.",
+		msgAdminHiddenUsersLoadFailed:     "Couldn't load hidden profiles. Please try again soon.",
+		msgAdminHiddenUsersPage:           "Hidden profiles: %d total. Showing %d–%d.",
+		msgAdminHiddenUsersEmptyPage:      "Hidden profiles: %d total. Nothing on this page.",
 		msgAdminModeratorsEmpty:           "No moderators yet.",
 		msgAdminModeratorsLoadFailed:      "Couldn't load moderators. Please try again soon.",
 		msgAdminModeratorsPage:            "Moderators: %d total. Showing %d–%d.",
@@ -557,6 +577,12 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgAdminUnbanUsage:                "Send a user ID or @username to unban.",
 		msgAdminUnbanFailed:               "Couldn't unban the user. Please try again soon.",
 		msgAdminUnbanSuccess:              "User %s has been unbanned.",
+		msgAdminHideProfileUsage:          "Send a user ID or @username to hide the profile.",
+		msgAdminHideProfileFailed:         "Couldn't hide the profile. Please try again soon.",
+		msgAdminHideProfileSuccess:        "Profile hidden for %s.",
+		msgAdminShowProfileUsage:          "Send a user ID or @username to show the profile.",
+		msgAdminShowProfileFailed:         "Couldn't show the profile. Please try again soon.",
+		msgAdminShowProfileSuccess:        "Profile visible again for %s.",
 		msgAdminActionFailed:              "Couldn't complete the admin action. Please try again soon.",
 		msgAdminModeratorUsage:            "Send a user ID or @username to grant moderator access.",
 		msgAdminModeratorFailed:           "Couldn't grant moderator access. Please try again soon.",
@@ -598,6 +624,9 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLoadingAdminUsers:              "Loading users...",
 		msgLoadingAdminBan:                "Applying ban...",
 		msgLoadingAdminUnban:              "Lifting ban...",
+		msgLoadingAdminHiddenUsers:        "Loading hidden profiles...",
+		msgLoadingAdminHideProfile:        "Hiding profile...",
+		msgLoadingAdminShowProfile:        "Showing profile...",
 		msgLoadingAdminModerator:          "Granting moderator access...",
 		msgLoadingAdminUnmoderator:        "Revoking moderator access...",
 		msgLoadingAdminResetChoices:       "Resetting match choices...",
@@ -752,7 +781,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgAdminMenu:                      "Админ-меню — выберите действие.",
 		msgModeratorMenu:                  "Меню модератора — выберите действие.",
 		msgAdminAccessDenied:              "Для этого нужна админская роль.",
-		msgAdminModerationRestricted:      "Модераторы могут банить только обычных пользователей.",
+		msgAdminModerationRestricted:      "Модераторы могут модерировать только обычных пользователей.",
 		msgAdminUsersEmpty:                "Пользователей пока нет.",
 		msgAdminUsersLoadFailed:           "Не удалось загрузить пользователей. Попробуйте чуть позже.",
 		msgAdminUsersPage:                 "Пользователи: всего %d. Показаны %d–%d.",
@@ -761,6 +790,10 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgAdminBannedUsersLoadFailed:     "Не удалось загрузить список забаненных. Попробуйте позже.",
 		msgAdminBannedUsersPage:           "Забаненные: всего %d. Показаны %d–%d.",
 		msgAdminBannedUsersEmptyPage:      "Забаненные: всего %d. На этой странице пусто.",
+		msgAdminHiddenUsersEmpty:          "Скрытых профилей пока нет.",
+		msgAdminHiddenUsersLoadFailed:     "Не удалось загрузить скрытые профили. Попробуйте позже.",
+		msgAdminHiddenUsersPage:           "Скрытые профили: всего %d. Показаны %d–%d.",
+		msgAdminHiddenUsersEmptyPage:      "Скрытые профили: всего %d. На этой странице пусто.",
 		msgAdminModeratorsEmpty:           "Модераторов пока нет.",
 		msgAdminModeratorsLoadFailed:      "Не удалось загрузить модераторов. Попробуйте позже.",
 		msgAdminModeratorsPage:            "Модераторы: всего %d. Показаны %d–%d.",
@@ -776,6 +809,12 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgAdminUnbanUsage:                "Отправьте ID пользователя или @username, чтобы разбанить.",
 		msgAdminUnbanFailed:               "Не удалось разбанить пользователя. Попробуйте позже.",
 		msgAdminUnbanSuccess:              "Пользователь %s разбанен.",
+		msgAdminHideProfileUsage:          "Отправьте ID пользователя или @username, чтобы скрыть профиль.",
+		msgAdminHideProfileFailed:         "Не удалось скрыть профиль. Попробуйте позже.",
+		msgAdminHideProfileSuccess:        "Профиль для %s скрыт.",
+		msgAdminShowProfileUsage:          "Отправьте ID пользователя или @username, чтобы открыть профиль.",
+		msgAdminShowProfileFailed:         "Не удалось открыть профиль. Попробуйте позже.",
+		msgAdminShowProfileSuccess:        "Профиль для %s снова открыт.",
 		msgAdminActionFailed:              "Не удалось выполнить админ-действие. Попробуйте позже.",
 		msgAdminModeratorUsage:            "Отправьте ID пользователя или @username, чтобы выдать роль модератора.",
 		msgAdminModeratorFailed:           "Не удалось выдать роль модератора. Попробуйте позже.",
@@ -817,6 +856,9 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLoadingAdminUsers:              "Загружаем пользователей...",
 		msgLoadingAdminBan:                "Баним пользователя...",
 		msgLoadingAdminUnban:              "Снимаем бан...",
+		msgLoadingAdminHiddenUsers:        "Загружаем скрытые профили...",
+		msgLoadingAdminHideProfile:        "Скрываем профиль...",
+		msgLoadingAdminShowProfile:        "Открываем профиль...",
 		msgLoadingAdminModerator:          "Выдаём роль модератора...",
 		msgLoadingAdminUnmoderator:        "Снимаем роль модератора...",
 		msgLoadingAdminResetChoices:       "Сбрасываем решения...",
@@ -985,6 +1027,9 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnAdminUsers:             "All users",
 		btnAdminBan:               "Ban a user",
 		btnAdminUnban:             "Lift ban",
+		btnAdminHiddenUsers:       "Hidden profiles",
+		btnAdminHideProfile:       "Hide profile",
+		btnAdminShowProfile:       "Show profile",
 		btnAdminModerator:         "Grant moderator",
 		btnAdminUnmoderator:       "Revoke moderator",
 		btnAdminResetChoices:      "Reset matches",
@@ -1057,6 +1102,9 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnAdminUsers:             "Все пользователи",
 		btnAdminBan:               "Забанить",
 		btnAdminUnban:             "Разбанить",
+		btnAdminHiddenUsers:       "Скрытые профили",
+		btnAdminHideProfile:       "Скрыть профиль",
+		btnAdminShowProfile:       "Открыть профиль",
 		btnAdminModerator:         "Назначить модератором",
 		btnAdminUnmoderator:       "Снять роль модератора",
 		btnAdminResetChoices:      "Сбросить решения по матчам",

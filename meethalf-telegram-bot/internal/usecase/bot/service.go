@@ -60,7 +60,7 @@ type SearchService interface {
 }
 
 type AdminService interface {
-	ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators bool) (domain.UserList, error)
+	ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators, onlyHidden bool) (domain.UserList, error)
 	ListReportedUsers(ctx context.Context, limit, offset int) (domain.ReportedUserList, error)
 	GetUser(ctx context.Context, userID int64) (domain.UserSummary, error)
 	GetUserByUsername(ctx context.Context, username string) (domain.UserSummary, error)
@@ -68,6 +68,10 @@ type AdminService interface {
 	BanUserByUsername(ctx context.Context, username string) error
 	UnbanUser(ctx context.Context, userID int64) error
 	UnbanUserByUsername(ctx context.Context, username string) error
+	HideUser(ctx context.Context, userID int64) error
+	HideUserByUsername(ctx context.Context, username string) error
+	ShowUser(ctx context.Context, userID int64) error
+	ShowUserByUsername(ctx context.Context, username string) error
 	MakeModerator(ctx context.Context, userID int64) error
 	MakeModeratorByUsername(ctx context.Context, username string) error
 	RemoveModerator(ctx context.Context, userID int64) error
@@ -156,6 +160,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 	if msg.Command != "" &&
 		msg.Command != domain.CommandAdminBan &&
 		msg.Command != domain.CommandAdminUnban &&
+		msg.Command != domain.CommandAdminHideProfile &&
+		msg.Command != domain.CommandAdminShowProfile &&
 		msg.Command != domain.CommandAdminModerator &&
 		msg.Command != domain.CommandAdminUnmoderator &&
 		msg.Command != domain.CommandAdminResetChoices &&
@@ -211,6 +217,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		response.Text, response.InlineKeyboard, replyErr = s.adminUsersMessage(ctx, msg, l)
 	case domain.CommandAdminBannedUsers:
 		response.Text, response.InlineKeyboard, replyErr = s.adminBannedUsersMessage(ctx, msg, l)
+	case domain.CommandAdminHiddenUsers:
+		response.Text, response.InlineKeyboard, replyErr = s.adminHiddenUsersMessage(ctx, msg, l)
 	case domain.CommandAdminModerators:
 		response.Text, response.InlineKeyboard, replyErr = s.adminModeratorsMessage(ctx, msg, l)
 	case domain.CommandAdminReports:
@@ -219,6 +227,10 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		response.Text, response.InlineKeyboard, replyErr = s.adminBanMessage(ctx, msg, l)
 	case domain.CommandAdminUnban:
 		response.Text, response.InlineKeyboard, replyErr = s.adminUnbanMessage(ctx, msg, l)
+	case domain.CommandAdminHideProfile:
+		response.Text, response.InlineKeyboard, replyErr = s.adminHideProfileMessage(ctx, msg, l)
+	case domain.CommandAdminShowProfile:
+		response.Text, response.InlineKeyboard, replyErr = s.adminShowProfileMessage(ctx, msg, l)
 	case domain.CommandAdminModerator:
 		response.Text, response.InlineKeyboard, replyErr = s.adminModeratorMessage(ctx, msg, l)
 	case domain.CommandAdminUnmoderator:

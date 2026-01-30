@@ -44,6 +44,8 @@ type AdminActionType string
 const (
 	AdminActionBan          AdminActionType = "ban"
 	AdminActionUnban        AdminActionType = "unban"
+	AdminActionHideProfile  AdminActionType = "hide_profile"
+	AdminActionShowProfile  AdminActionType = "show_profile"
 	AdminActionModerator    AdminActionType = "moderator"
 	AdminActionUnmoderator  AdminActionType = "unmoderator"
 	AdminActionResetChoices AdminActionType = "reset_choices"

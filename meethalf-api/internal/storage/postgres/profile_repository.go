@@ -355,7 +355,7 @@ func (r *ProfileRepository) GetUserSummary(ctx context.Context, userID int64) (d
 	return user, nil
 }
 
-func (r *ProfileRepository) ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators bool) ([]domain.UserSummary, int, error) {
+func (r *ProfileRepository) ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators, onlyHidden bool) ([]domain.UserSummary, int, error) {
 	if r == nil || r.db == nil {
 		return nil, 0, errors.New("postgres profile repository is not configured")
 	}
@@ -370,6 +370,9 @@ func (r *ProfileRepository) ListUsers(ctx context.Context, limit, offset int, on
 	}
 	if onlyModerators {
 		conditions = append(conditions, "is_moderator = TRUE")
+	}
+	if onlyHidden {
+		conditions = append(conditions, "is_hidden = TRUE")
 	}
 
 	whereClause := ""

@@ -104,6 +104,8 @@ func (s *service) loadingForCommand(ctx context.Context, l localizer, msg domain
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminUsers)}, true
 	case domain.CommandAdminBannedUsers:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminBannedUsers)}, true
+	case domain.CommandAdminHiddenUsers:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminHiddenUsers)}, true
 	case domain.CommandAdminModerators:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminModerators)}, true
 	case domain.CommandAdminReports:
@@ -118,6 +120,16 @@ func (s *service) loadingForCommand(ctx context.Context, l localizer, msg domain
 			return domain.OutgoingMessage{}, false
 		}
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminUnban)}, true
+	case domain.CommandAdminHideProfile:
+		if strings.TrimSpace(msg.Arguments) == "" {
+			return domain.OutgoingMessage{}, false
+		}
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminHideProfile)}, true
+	case domain.CommandAdminShowProfile:
+		if strings.TrimSpace(msg.Arguments) == "" {
+			return domain.OutgoingMessage{}, false
+		}
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminShowProfile)}, true
 	case domain.CommandAdminModerator:
 		if strings.TrimSpace(msg.Arguments) == "" {
 			return domain.OutgoingMessage{}, false
@@ -164,6 +176,8 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 	switch action.Action {
 	case domain.AdminActionBan:
 	case domain.AdminActionUnban:
+	case domain.AdminActionHideProfile:
+	case domain.AdminActionShowProfile:
 	case domain.AdminActionModerator:
 	case domain.AdminActionUnmoderator:
 	case domain.AdminActionResetChoices:
@@ -187,6 +201,10 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 	switch action.Action {
 	case domain.AdminActionUnban:
 		loadingText = l.message(msgLoadingAdminUnban)
+	case domain.AdminActionHideProfile:
+		loadingText = l.message(msgLoadingAdminHideProfile)
+	case domain.AdminActionShowProfile:
+		loadingText = l.message(msgLoadingAdminShowProfile)
 	case domain.AdminActionModerator:
 		loadingText = l.message(msgLoadingAdminModerator)
 	case domain.AdminActionUnmoderator:

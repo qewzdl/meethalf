@@ -113,6 +113,10 @@ func (s *service) adminReportsLoadFailedText(l localizer) string {
 	return l.message(msgAdminReportsLoadFailed)
 }
 
+func (s *service) adminHiddenUsersLoadFailedText(l localizer) string {
+	return l.message(msgAdminHiddenUsersLoadFailed)
+}
+
 func (s *service) adminBanUsageText(l localizer) string {
 	return l.message(msgAdminBanUsage)
 }
@@ -139,6 +143,30 @@ func (s *service) adminUnbanFailedText(l localizer) string {
 
 func (s *service) adminUnbanSuccessText(l localizer, userRef string) string {
 	return l.message(msgAdminUnbanSuccess, userRef)
+}
+
+func (s *service) adminHideProfileUsageText(l localizer) string {
+	return l.message(msgAdminHideProfileUsage)
+}
+
+func (s *service) adminHideProfileFailedText(l localizer) string {
+	return l.message(msgAdminHideProfileFailed)
+}
+
+func (s *service) adminHideProfileSuccessText(l localizer, userRef string) string {
+	return l.message(msgAdminHideProfileSuccess, userRef)
+}
+
+func (s *service) adminShowProfileUsageText(l localizer) string {
+	return l.message(msgAdminShowProfileUsage)
+}
+
+func (s *service) adminShowProfileFailedText(l localizer) string {
+	return l.message(msgAdminShowProfileFailed)
+}
+
+func (s *service) adminShowProfileSuccessText(l localizer, userRef string) string {
+	return l.message(msgAdminShowProfileSuccess, userRef)
 }
 
 func (s *service) adminActionFailedText(l localizer) string {

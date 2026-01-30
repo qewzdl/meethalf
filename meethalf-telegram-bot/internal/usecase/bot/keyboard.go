@@ -101,6 +101,12 @@ func (s *service) adminMenuInlineKeyboard(l localizer, role adminRole) *domain.I
 				CallbackData: domain.CommandAdminBannedUsers,
 			},
 		},
+		{
+			{
+				Text:         l.button(btnAdminHiddenUsers),
+				CallbackData: domain.CommandAdminHiddenUsers,
+			},
+		},
 	}
 
 	if role.canManageModerators() {
@@ -135,6 +141,18 @@ func (s *service) adminMenuInlineKeyboard(l localizer, role adminRole) *domain.I
 			{
 				Text:         l.button(btnAdminUnban),
 				CallbackData: domain.CommandAdminUnban,
+			},
+		},
+		[]domain.InlineButton{
+			{
+				Text:         l.button(btnAdminHideProfile),
+				CallbackData: domain.CommandAdminHideProfile,
+			},
+		},
+		[]domain.InlineButton{
+			{
+				Text:         l.button(btnAdminShowProfile),
+				CallbackData: domain.CommandAdminShowProfile,
 			},
 		},
 	)
@@ -281,6 +299,45 @@ func (s *service) adminBannedUsersInlineKeyboard(l localizer, offset, limit, tot
 	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: rows})
 }
 
+func (s *service) adminHiddenUsersInlineKeyboard(l localizer, offset, limit, total int) *domain.InlineKeyboard {
+	rows := [][]domain.InlineButton{}
+
+	hasPrev := offset > 0
+	hasNext := limit > 0 && (offset+limit) < total
+	if hasPrev || hasNext {
+		row := []domain.InlineButton{}
+		if hasPrev {
+			prevOffset := offset - limit
+			if prevOffset < 0 {
+				prevOffset = 0
+			}
+			row = append(row, domain.InlineButton{
+				Text:         l.button(btnAdminUsersPrev),
+				CallbackData: domain.CommandAdminHiddenUsers + ":" + strconv.Itoa(prevOffset),
+			})
+		}
+		if hasNext {
+			nextOffset := offset + limit
+			row = append(row, domain.InlineButton{
+				Text:         l.button(btnAdminUsersNext),
+				CallbackData: domain.CommandAdminHiddenUsers + ":" + strconv.Itoa(nextOffset),
+			})
+		}
+		if len(row) > 0 {
+			rows = append(rows, row)
+		}
+	}
+
+	rows = append(rows, []domain.InlineButton{
+		{
+			Text:         l.button(btnAdminBackToMenu),
+			CallbackData: domain.CommandAdminMenu,
+		},
+	})
+
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: rows})
+}
+
 func (s *service) adminModeratorsInlineKeyboard(l localizer, offset, limit, total int) *domain.InlineKeyboard {
 	rows := [][]domain.InlineButton{}
 
@@ -360,6 +417,14 @@ func (s *service) adminReportsInlineKeyboard(l localizer, offset, limit, total i
 }
 
 func (s *service) adminUnbanInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return s.adminBanInlineKeyboard(l)
+}
+
+func (s *service) adminHideProfileInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return s.adminBanInlineKeyboard(l)
+}
+
+func (s *service) adminShowProfileInlineKeyboard(l localizer) *domain.InlineKeyboard {
 	return s.adminBanInlineKeyboard(l)
 }
 

@@ -44,9 +44,12 @@ curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0
 curl http://localhost:8080/api/v1/admin/users/1
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&banned=true
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&moderator=true
+curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&hidden=true
 curl http://localhost:8080/api/v1/admin/reports?limit=20&offset=0
 curl -X POST http://localhost:8080/api/v1/admin/users/1/ban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unban
+curl -X POST http://localhost:8080/api/v1/admin/users/1/hide
+curl -X POST http://localhost:8080/api/v1/admin/users/1/show
 curl -X POST http://localhost:8080/api/v1/admin/users/1/moderator
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unmoderator
 curl -X POST http://localhost:8080/api/v1/admin/users/1/reports/clear
@@ -71,11 +74,13 @@ latest first) with actions, position, and pagination via `limit`/`offset` query 
 `is_moderator` flags.
 `GET /api/v1/admin/users/{user_ref}` returns a single user summary by id or username (with or without `@`).
 Use `limit` and `offset` query parameters to paginate; pass `banned=true` to list only banned users or
-`moderator=true` to list only moderators. `/api/v1/admin/reports` returns a paginated list of reported users with
-their report counts.
+`moderator=true` to list only moderators, or `hidden=true` to list only hidden profiles. `/api/v1/admin/reports` returns a
+paginated list of reported users with their report counts.
 `POST /api/v1/admin/users/{user_ref}/ban` bans the user by id or username (with or without `@`), and
-`POST /api/v1/admin/users/{user_ref}/unban` removes the ban. `POST /api/v1/admin/users/{user_ref}/moderator` assigns the
-moderator role, and `POST /api/v1/admin/users/{user_ref}/unmoderator` removes it.
+`POST /api/v1/admin/users/{user_ref}/unban` removes the ban. `POST /api/v1/admin/users/{user_ref}/hide` hides the profile
+from search, and `POST /api/v1/admin/users/{user_ref}/show` makes it visible again.
+`POST /api/v1/admin/users/{user_ref}/moderator` assigns the moderator role, and
+`POST /api/v1/admin/users/{user_ref}/unmoderator` removes it.
 `POST /api/v1/admin/users/{user_ref}/reports/clear` removes the user from the reported list by clearing report actions.
 `POST /api/v1/admin/users/{user_ref}/choices/reset` clears all match choices and history for the selected user.
 Banned users cannot use profile or search endpoints.
@@ -148,9 +153,12 @@ curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0
 curl http://localhost:8080/api/v1/admin/users/1
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&banned=true
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&moderator=true
+curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&hidden=true
 curl http://localhost:8080/api/v1/admin/reports?limit=20&offset=0
 curl -X POST http://localhost:8080/api/v1/admin/users/1/ban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unban
+curl -X POST http://localhost:8080/api/v1/admin/users/1/hide
+curl -X POST http://localhost:8080/api/v1/admin/users/1/show
 curl -X POST http://localhost:8080/api/v1/admin/users/1/moderator
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unmoderator
 curl -X POST http://localhost:8080/api/v1/admin/users/1/reports/clear

@@ -54,7 +54,7 @@ func (role adminRole) canManageModerators() bool {
 
 func (role adminRole) allowsAdminAction(action domain.AdminActionType) bool {
 	switch action {
-	case domain.AdminActionBan, domain.AdminActionUnban:
+	case domain.AdminActionBan, domain.AdminActionUnban, domain.AdminActionHideProfile, domain.AdminActionShowProfile:
 		return role.canModerateUsers()
 	case domain.AdminActionResetChoices, domain.AdminActionResetStart, domain.AdminActionClearReports:
 		return role.canModerateUsers()
