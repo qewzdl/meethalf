@@ -18,7 +18,7 @@ go run ./cmd/bot
 
 ## Commands
 
-- /start - greet user by profile name when available, otherwise Telegram name; show inline Start matching, Search with AI, and My profile (or Create profile when missing) buttons, plus Preferences only after a profile is created. On the first /start, the bot shows a formal 16+ age confirmation statement before opening the main menu.
+- /start - greet user by profile name when available, otherwise Telegram name; show inline Start matching, Search with AI, My history, and My profile (or Create profile when missing) buttons, plus Preferences only after a profile is created. On the first /start, the bot shows a formal 16+ age confirmation statement before opening the main menu.
 - /cancel - cancel the current action and return to the main menu
 - /language - open language selection (optional args: `en` or `ru`)
 
@@ -138,6 +138,9 @@ that it shows profile cards with action buttons:
 - Report 🚩 - report and show the next profile
 - Previous profile - open the previous profile when available
 - My history - open the list of viewed profiles across sessions (with current decisions) and change them
+
+My history is also available from the main menu.
+When viewing a liked profile in history, the heart button turns into a 💔 button to revoke the like.
 
 When you receive likes, the bot sends a notification right away when it has your chat session; otherwise it shows
 notifications on `/start` with a button to view the sender profile. Mutual likes trigger a match message that shares each

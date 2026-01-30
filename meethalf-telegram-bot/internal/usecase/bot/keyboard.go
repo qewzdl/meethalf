@@ -11,6 +11,7 @@ const (
 	historyLabelMaxRunes   = 20
 	matchDislikeButtonText = "\U0001F44E"
 	matchLikeButtonText    = "\u2764\ufe0f"
+	matchUnlikeButtonText  = "\U0001F494"
 )
 
 type localizedOption struct {
@@ -63,6 +64,12 @@ func (s *service) profileStartInlineKeyboard(l localizer, text, callbackData str
 			{
 				Text:         l.button(btnStartSearchAI),
 				CallbackData: domain.CommandSearchAI,
+			},
+		},
+		{
+			{
+				Text:         l.button(btnSearchHistory),
+				CallbackData: domain.CommandMatchHistory,
 			},
 		},
 		{
@@ -1043,19 +1050,18 @@ func (s *service) historyInlineKeyboard(l localizer, list domain.MatchHistoryLis
 		rows = append(rows, row)
 	}
 
-	rows = append(rows, []domain.InlineButton{
-		{
-			Text:         l.button(btnSearchRefresh),
-			CallbackData: domain.CommandSearchRefresh,
-		},
-	})
-
 	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: rows})
 }
 
-func (s *service) historyActionsInlineKeyboard(l localizer, targetID int64, offset int) *domain.InlineKeyboard {
+func (s *service) historyActionsInlineKeyboard(l localizer, targetID int64, offset int, action domain.MatchAction) *domain.InlineKeyboard {
 	target := strconv.FormatInt(targetID, 10)
 	offsetValue := strconv.Itoa(offset)
+	likeText := matchLikeButtonText
+	likeCommand := domain.CommandMatchHistoryLike
+	if action == domain.MatchActionLike {
+		likeText = matchUnlikeButtonText
+		likeCommand = domain.CommandMatchHistoryDislike
+	}
 	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
 			{
@@ -1064,8 +1070,8 @@ func (s *service) historyActionsInlineKeyboard(l localizer, targetID int64, offs
 					CallbackData: domain.CommandMatchHistoryDislike + ":" + target + ":" + offsetValue,
 				},
 				{
-					Text:         matchLikeButtonText,
-					CallbackData: domain.CommandMatchHistoryLike + ":" + target + ":" + offsetValue,
+					Text:         likeText,
+					CallbackData: likeCommand + ":" + target + ":" + offsetValue,
 				},
 			},
 			{

@@ -481,7 +481,7 @@ func (s *service) historyProfileMessages(chatID int64, item domain.MatchHistoryI
 		item.Profile,
 		s.profilePreviewCard(l, item.Profile),
 		s.historyActionsText(l, item.Action),
-		s.historyActionsInlineKeyboard(l, item.Profile.UserID, offset),
+		s.historyActionsInlineKeyboard(l, item.Profile.UserID, offset, item.Action),
 	)
 }
 
