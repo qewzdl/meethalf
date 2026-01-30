@@ -339,6 +339,18 @@ func (s *service) searchAccuracyUpdateFailedText(l localizer) string {
 	return l.message(msgSearchAccuracyUpdateFailed)
 }
 
+func (s *service) searchAIPromptText(l localizer) string {
+	return l.message(msgSearchAIPrompt)
+}
+
+func (s *service) searchAITooShortText(l localizer) string {
+	return l.message(msgSearchAITooShort)
+}
+
+func (s *service) searchAIUnavailableText(l localizer) string {
+	return l.message(msgSearchAIUnavailable)
+}
+
 func (s *service) searchNoCandidatesText(l localizer) string {
 	return l.message(msgSearchNoCandidates)
 }

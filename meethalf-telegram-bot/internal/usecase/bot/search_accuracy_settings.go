@@ -43,6 +43,7 @@ func (s *service) setSessionSearchAccuracyEnabled(ctx context.Context, msg domai
 		Language:              normalizeLanguageValue(lang),
 		LastSeen:              s.now(msg.ReceivedAt),
 		SearchAccuracyEnabled: enabled,
+		PendingAISearch:       s.sessionAISearchPending(ctx, msg.User.ID),
 	})
 }
 

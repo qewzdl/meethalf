@@ -252,6 +252,7 @@ const (
 	msgLoadingSearchStart             messageKey = "loading_search_start"
 	msgLoadingSearchNext              messageKey = "loading_search_next"
 	msgLoadingSearchPrev              messageKey = "loading_search_prev"
+	msgLoadingSearchAI                messageKey = "loading_search_ai"
 	msgLoadingSearchHistory           messageKey = "loading_search_history"
 	msgLoadingSearchHistoryProfile    messageKey = "loading_search_history_profile"
 	msgLoadingSearchHistoryAction     messageKey = "loading_search_history_action"
@@ -283,6 +284,9 @@ const (
 	msgSearchAccuracyEnabled          messageKey = "search_accuracy_enabled"
 	msgSearchAccuracyDisabled         messageKey = "search_accuracy_disabled"
 	msgSearchAccuracyUpdateFailed     messageKey = "search_accuracy_update_failed"
+	msgSearchAIPrompt                 messageKey = "search_ai_prompt"
+	msgSearchAITooShort               messageKey = "search_ai_too_short"
+	msgSearchAIUnavailable            messageKey = "search_ai_unavailable"
 	msgSearchNoCandidates             messageKey = "search_no_candidates"
 	msgSearchNoPrevious               messageKey = "search_no_previous"
 	msgSearchHistoryEmpty             messageKey = "search_history_empty"
@@ -433,6 +437,8 @@ const (
 	btnAdminUsersNext         buttonKey = "admin_users_next"
 	btnAdminBackToMenu        buttonKey = "admin_back_to_menu"
 	btnStartSearch            buttonKey = "start_search"
+	btnStartSearchAI          buttonKey = "start_search_ai"
+	btnSearchAIRepeat         buttonKey = "search_ai_repeat"
 	btnProfile                buttonKey = "profile"
 	btnCreateProfile          buttonKey = "create_profile"
 	btnSettings               buttonKey = "settings"
@@ -520,7 +526,7 @@ const (
 
 var messageCatalog = map[domain.Language]map[messageKey]string{
 	domain.LanguageEnglish: {
-		msgDefaultHelp:                    "Tap below to start matching, open your profile, or tweak preferences.",
+		msgDefaultHelp:                    "Meethalf helps you find people by interests and vibe. Tell us who you want to meet and we will do the rest.",
 		msgUnknownCommand:                 "I didn't recognize that command. Try the buttons below.",
 		msgAdminBadge:                     "Admin access enabled. You're in control.",
 		msgModeratorBadge:                 "Moderator access enabled. Thanks for keeping it safe.",
@@ -585,6 +591,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLoadingSearchStart:             "Looking for matches...",
 		msgLoadingSearchNext:              "Finding the next profile...",
 		msgLoadingSearchPrev:              "Opening the previous profile...",
+		msgLoadingSearchAI:                "Analyzing your request...",
 		msgLoadingSearchHistory:           "Loading your history...",
 		msgLoadingSearchHistoryProfile:    "Opening a history profile...",
 		msgLoadingSearchHistoryAction:     "Saving your decision...",
@@ -616,6 +623,9 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgSearchAccuracyEnabled:          "Advanced search is on.",
 		msgSearchAccuracyDisabled:         "Advanced search is off.",
 		msgSearchAccuracyUpdateFailed:     "Couldn't update advanced search. Please try again soon.",
+		msgSearchAIPrompt:                 "Tell us what matters: gender, age range, city, and a few traits or interests.\nExample: \"Woman 25–30, Moscow, loves art, travel, and hiking.\"",
+		msgSearchAITooShort:               "Please add a bit more detail so the AI can help.",
+		msgSearchAIUnavailable:            "AI search is unavailable right now. Please try again later.",
 		msgSearchNoCandidates:             "No matches yet. Try again a bit later.",
 		msgSearchNoPrevious:               "No previous profile to return to.",
 		msgSearchHistoryEmpty:             "Your history is empty.",
@@ -735,7 +745,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgProfileSettingsLanguageHint:    "Profile settings. Use the buttons below to manage visibility, advanced search, language, or delete your profile.",
 	},
 	domain.LanguageRussian: {
-		msgDefaultHelp:                    "Нажмите кнопку ниже, чтобы начать поиск, открыть/создать профиль или зайти в параметры.",
+		msgDefaultHelp:                    "Meethalf помогает находить людей по интересам и настроению. Расскажите, кого хотите встретить, и мы сделаем остальное.",
 		msgUnknownCommand:                 "Не понимаю эту команду. Воспользуйтесь кнопками ниже.",
 		msgAdminBadge:                     "Режим администратора включён. Всё под контролем.",
 		msgModeratorBadge:                 "Режим модератора включён. Спасибо, что следите за порядком.",
@@ -800,6 +810,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLoadingSearchStart:             "Ищем интересные профили...",
 		msgLoadingSearchNext:              "Ищем следующий профиль...",
 		msgLoadingSearchPrev:              "Открываем предыдущий профиль...",
+		msgLoadingSearchAI:                "Анализируем ваш запрос...",
 		msgLoadingSearchHistory:           "Загружаем историю...",
 		msgLoadingSearchHistoryProfile:    "Открываем профиль из истории...",
 		msgLoadingSearchHistoryAction:     "Сохраняем ваше решение...",
@@ -831,6 +842,9 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgSearchAccuracyEnabled:          "Расширенный поиск включён.",
 		msgSearchAccuracyDisabled:         "Расширенный поиск выключен.",
 		msgSearchAccuracyUpdateFailed:     "Не удалось обновить расширенный поиск. Попробуйте позже.",
+		msgSearchAIPrompt:                 "Кого вы хотите найти? Укажите пол, возраст, город и пару важных черт/интересов.\nПример: \"Девушка 25–30, Москва, любит искусство, путешествия, прогулки.\"",
+		msgSearchAITooShort:               "Добавьте чуть больше деталей, чтобы ИИ смог подобрать профиль.",
+		msgSearchAIUnavailable:            "Поиск с ИИ сейчас недоступен. Попробуйте позже.",
 		msgSearchNoCandidates:             "Пока нет подходящих профилей. Загляните чуть позже.",
 		msgSearchNoPrevious:               "Предыдущего профиля нет.",
 		msgSearchHistoryEmpty:             "История пока пуста.",
@@ -983,6 +997,8 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnAdminUsersNext:         "Next",
 		btnAdminBackToMenu:        "Back to admin menu",
 		btnStartSearch:            "✨ Start matching ✨",
+		btnStartSearchAI:          "⚡️ Search with AI ⚡️",
+		btnSearchAIRepeat:         "Try again",
 		btnProfile:                "My profile",
 		btnCreateProfile:          "Create profile",
 		btnSettings:               "Preferences",
@@ -1053,6 +1069,8 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnAdminUsersNext:         "Следующие",
 		btnAdminBackToMenu:        "Назад в админ-меню",
 		btnStartSearch:            "✨ Начать знакомиться ✨",
+		btnStartSearchAI:          "⚡️ Искать с ИИ ⚡️",
+		btnSearchAIRepeat:         "Попробовать ещё раз",
 		btnProfile:                "Мой профиль",
 		btnCreateProfile:          "Создать профиль",
 		btnSettings:               "Параметры",

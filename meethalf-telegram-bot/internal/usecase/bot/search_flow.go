@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 
 	"meethalf-telegram-bot/internal/domain"
 )
@@ -52,6 +53,62 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage, 
 				InlineKeyboard: s.searchGenderInlineKeyboard(l),
 			},
 		}, nil
+	case domain.CommandSearchAI:
+		hasProfile, err := s.viewerHasProfile(ctx, msg.User.ID)
+		if err != nil {
+			_ = s.setSessionAISearchPending(ctx, msg, false)
+			if isBannedError(err) {
+				return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.userBannedText(l)}}, err
+			}
+			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, err
+		}
+		if !hasProfile {
+			_ = s.setSessionAISearchPending(ctx, msg, false)
+			return []domain.OutgoingMessage{
+				{
+					ChatID:         msg.ChatID,
+					Text:           s.searchProfileMissingText(l),
+					InlineKeyboard: s.profileCreateInlineKeyboardWithAdmin(ctx, msg, l),
+				},
+			}, nil
+		}
+
+		if s.sessionAISearchPending(ctx, msg.User.ID) {
+			prompt := strings.TrimSpace(msg.Text)
+			if len([]rune(prompt)) < aiSearchMinPromptLength {
+				return []domain.OutgoingMessage{
+					{
+						ChatID:         msg.ChatID,
+						Text:           s.searchAITooShortText(l) + "\n" + s.searchAIPromptText(l),
+						InlineKeyboard: withCancelInlineKeyboard(l, nil),
+					},
+				}, nil
+			}
+
+			_ = s.setSessionAISearchPending(ctx, msg, false)
+			candidate, found, err := s.search.SearchWithAI(ctx, msg.User.ID, prompt)
+			if err != nil {
+				return s.searchErrorResponse(ctx, msg, l, err), err
+			}
+			if !found {
+				return []domain.OutgoingMessage{{
+					ChatID:         msg.ChatID,
+					Text:           s.searchNoCandidatesText(l),
+					InlineKeyboard: s.searchNoCandidatesInlineKeyboard(l),
+				}}, nil
+			}
+
+			return s.matchProfileMessages(msg.ChatID, candidate, l), nil
+		}
+
+		pendingErr := s.setSessionAISearchPending(ctx, msg, true)
+		return []domain.OutgoingMessage{
+			{
+				ChatID:         msg.ChatID,
+				Text:           s.searchAIPromptText(l),
+				InlineKeyboard: withCancelInlineKeyboard(l, nil),
+			},
+		}, pendingErr
 	case domain.CommandSearchGender:
 		value := msg.Arguments
 		if value == "" {
@@ -251,6 +308,12 @@ func (s *service) searchErrorResponse(ctx context.Context, msg domain.IncomingMe
 			}
 		case http.StatusConflict:
 			return []domain.OutgoingMessage{{ChatID: chatID, Text: s.searchStartRequiredText(l)}}
+		case http.StatusServiceUnavailable:
+			return []domain.OutgoingMessage{{
+				ChatID:         chatID,
+				Text:           s.searchAIUnavailableText(l),
+				InlineKeyboard: s.searchAIUnavailableInlineKeyboard(l),
+			}}
 		}
 	}
 
@@ -423,7 +486,7 @@ func (s *service) historyProfileMessages(chatID int64, item domain.MatchHistoryI
 }
 
 func (s *service) pendingLikesFollowUp(ctx context.Context, msg domain.IncomingMessage, l localizer) ([]domain.OutgoingMessage, error) {
-	if msg.Command != domain.CommandStart && msg.Command != domain.CommandSearchStart {
+	if msg.Command != domain.CommandStart && msg.Command != domain.CommandSearchStart && msg.Command != domain.CommandSearchAI {
 		return nil, nil
 	}
 	if s == nil || s.search == nil {

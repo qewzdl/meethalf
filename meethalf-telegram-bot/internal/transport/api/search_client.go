@@ -43,6 +43,11 @@ type searchUserRequest struct {
 	UserID int64 `json:"user_id"`
 }
 
+type searchAIRequest struct {
+	UserID  int64  `json:"user_id"`
+	Message string `json:"message"`
+}
+
 type searchActionRequest struct {
 	UserID   int64              `json:"user_id"`
 	TargetID int64              `json:"target_id"`
@@ -102,6 +107,68 @@ func (c *SearchClient) StartSearch(ctx context.Context, userID int64, gender dom
 		ctx,
 		http.MethodPost,
 		c.baseURL+"/api/v1/search/start",
+		bytes.NewReader(payload),
+	)
+	if err != nil {
+		return domain.MatchCandidate{}, false, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return domain.MatchCandidate{}, false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNoContent {
+		return domain.MatchCandidate{}, false, nil
+	}
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return domain.MatchCandidate{}, false, c.apiError(resp)
+	}
+
+	var payloadResp searchCandidateResponse
+	if err := json.NewDecoder(resp.Body).Decode(&payloadResp); err != nil {
+		return domain.MatchCandidate{}, false, err
+	}
+
+	profile, err := profileFromResponse(payloadResp.Profile)
+	if err != nil {
+		return domain.MatchCandidate{}, false, err
+	}
+
+	return domain.MatchCandidate{Profile: profile, HasPrevious: payloadResp.HasPrevious}, true, nil
+}
+
+func (c *SearchClient) SearchWithAI(ctx context.Context, userID int64, message string) (domain.MatchCandidate, bool, error) {
+	if c == nil || c.client == nil {
+		return domain.MatchCandidate{}, false, errors.New("search client is not configured")
+	}
+	if c.baseURL == "" {
+		return domain.MatchCandidate{}, false, errors.New("search client base url is empty")
+	}
+	if userID <= 0 {
+		return domain.MatchCandidate{}, false, errors.New("user id is required")
+	}
+	if strings.TrimSpace(message) == "" {
+		return domain.MatchCandidate{}, false, errors.New("search query is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return domain.MatchCandidate{}, false, err
+	}
+
+	payload, err := json.Marshal(searchAIRequest{
+		UserID:  userID,
+		Message: message,
+	})
+	if err != nil {
+		return domain.MatchCandidate{}, false, err
+	}
+
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		c.baseURL+"/api/v1/search/ai",
 		bytes.NewReader(payload),
 	)
 	if err != nil {

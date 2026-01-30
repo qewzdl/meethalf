@@ -29,6 +29,7 @@ const (
 	CommandProfileDeleteConfirm  = "profile_delete_confirm"
 	CommandProfileDeleteCancel   = "profile_delete_cancel"
 	CommandSearchStart           = "search_start"
+	CommandSearchAI              = "search_ai"
 	CommandSearchRefresh         = "search_refresh"
 	CommandSearchGender          = "search_gender"
 	CommandSearchAccuracy        = "search_accuracy"

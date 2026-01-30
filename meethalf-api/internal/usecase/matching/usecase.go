@@ -26,6 +26,7 @@ var (
 	ErrInvalidGender    = errors.New("gender filter is invalid")
 	ErrInvalidAccuracy  = errors.New("accuracy must be between 0 and 4")
 	ErrInvalidAction    = errors.New("match action is invalid")
+	ErrInvalidQuery     = errors.New("search query is required")
 	ErrProfileNotFound  = errors.New("profile not found")
 	ErrSessionNotFound  = errors.New("search session not found")
 	ErrNoCandidates     = errors.New("no candidates found")
@@ -33,10 +34,12 @@ var (
 	ErrInvalidTargetID  = errors.New("target user id is required")
 	ErrInvalidSelfMatch = errors.New("viewer and target must be different")
 	ErrUserBanned       = errors.New("user is banned")
+	ErrAIUnavailable    = errors.New("ai search is not configured")
 )
 
 type Usecase interface {
 	Start(ctx context.Context, viewerID int64, gender domain.Gender, accuracy int) (domain.MatchCandidate, error)
+	SearchAI(ctx context.Context, viewerID int64, message string) (domain.MatchCandidate, error)
 	Next(ctx context.Context, viewerID int64) (domain.MatchCandidate, error)
 	Previous(ctx context.Context, viewerID int64) (domain.MatchCandidate, error)
 	History(ctx context.Context, viewerID int64, limit, offset int) (HistoryList, error)
@@ -54,6 +57,7 @@ type Repository interface {
 	ListHistory(ctx context.Context, viewerID int64, limit, offset int) ([]domain.MatchHistoryItem, int, error)
 	ResetChoices(ctx context.Context, viewerID int64) error
 	FindCandidate(ctx context.Context, params CandidateParams) (domain.Profile, bool, error)
+	FindAICandidate(ctx context.Context, params AICandidateParams) (domain.Profile, bool, error)
 	RecordAction(ctx context.Context, viewerID, targetID int64, action domain.MatchAction) error
 	HasAction(ctx context.Context, viewerID, targetID int64, action domain.MatchAction) (bool, error)
 	ListPendingLikes(ctx context.Context, userID int64) ([]domain.Profile, []int64, error)
@@ -84,12 +88,14 @@ type HistoryList struct {
 type service struct {
 	repo    Repository
 	planner searchPlanner
+	ai      AIAnalyzer
 }
 
-func New(repo Repository) Usecase {
+func New(repo Repository, ai AIAnalyzer) Usecase {
 	return &service{
 		repo:    repo,
 		planner: newSearchPlanner(),
+		ai:      ai,
 	}
 }
 

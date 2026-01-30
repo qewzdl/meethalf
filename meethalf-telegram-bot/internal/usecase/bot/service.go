@@ -51,6 +51,7 @@ type ProfileService interface {
 
 type SearchService interface {
 	StartSearch(ctx context.Context, userID int64, gender domain.Gender, accuracy int) (domain.MatchCandidate, bool, error)
+	SearchWithAI(ctx context.Context, userID int64, message string) (domain.MatchCandidate, bool, error)
 	NextCandidate(ctx context.Context, userID int64) (domain.MatchCandidate, bool, error)
 	PreviousCandidate(ctx context.Context, userID int64) (domain.MatchCandidate, bool, error)
 	History(ctx context.Context, userID int64, limit, offset int) (domain.MatchHistoryList, error)
@@ -133,9 +134,11 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 
 	var touchErr error
 	searchAccuracyEnabled := false
+	pendingAISearch := false
 	if s != nil && s.sessions != nil && msg.User.ID != 0 {
 		if session, found, err := s.sessions.Get(ctx, msg.User.ID); err == nil && found {
 			searchAccuracyEnabled = session.SearchAccuracyEnabled
+			pendingAISearch = session.PendingAISearch
 		}
 	}
 	if s != nil && s.sessions != nil {
@@ -146,6 +149,7 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 			Language:              msg.Language,
 			LastSeen:              s.now(msg.ReceivedAt),
 			SearchAccuracyEnabled: searchAccuracyEnabled,
+			PendingAISearch:       pendingAISearch,
 		})
 	}
 
@@ -158,6 +162,9 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		msg.Command != domain.CommandAdminResetStart &&
 		msg.Command != domain.CommandAdminClearReports {
 		_ = s.clearAdminAction(ctx, msg.User.ID)
+	}
+	if msg.Command != "" && msg.Command != domain.CommandSearchAI {
+		_ = s.setSessionAISearchPending(ctx, msg, false)
 	}
 
 	if accessResponse, handled, accessErr := s.enforceAgeAccess(ctx, msg, l); handled {
@@ -173,6 +180,9 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 			return []domain.OutgoingMessage{*response}, errors.Join(touchErr, err)
 		}
 		msg = updatedMsg
+		if msg.Command == "" && s.sessionAISearchPending(ctx, msg.User.ID) && !s.hasActiveDraft(ctx, msg.User.ID) {
+			msg.Command = domain.CommandSearchAI
+		}
 		if msg.Language == "" {
 			msg.Language = l.lang
 		}

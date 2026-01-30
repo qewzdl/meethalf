@@ -9,4 +9,5 @@ type Session struct {
 	Language              Language
 	LastSeen              time.Time
 	SearchAccuracyEnabled bool
+	PendingAISearch       bool
 }

@@ -221,6 +221,7 @@ func (s *service) isDraftCommand(command string) bool {
 func (s *service) isSearchCommand(command string) bool {
 	switch command {
 	case domain.CommandSearchStart,
+		domain.CommandSearchAI,
 		domain.CommandSearchRefresh,
 		domain.CommandSearchGender,
 		domain.CommandSearchAccuracy,

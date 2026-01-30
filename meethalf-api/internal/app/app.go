@@ -14,6 +14,7 @@ import (
 	"meethalf-api/internal/storage/postgres"
 	redisstorage "meethalf-api/internal/storage/redis"
 	"meethalf-api/internal/transport/httpserver"
+	"meethalf-api/internal/transport/openrouter"
 	"meethalf-api/internal/usecase/admin"
 	"meethalf-api/internal/usecase/health"
 	"meethalf-api/internal/usecase/matching"
@@ -71,7 +72,16 @@ func New(cfg config.Config, logger *log.Logger) (*App, error) {
 		_ = db.Close()
 		return nil, err
 	}
-	matchingUC := matching.New(matchingRepo)
+	var aiAnalyzer matching.AIAnalyzer
+	if cfg.OpenRouter.APIKey != "" {
+		aiAnalyzer = openrouter.New(
+			cfg.OpenRouter.APIKey,
+			cfg.OpenRouter.BaseURL,
+			cfg.OpenRouter.Model,
+			cfg.OpenRouter.Timeout,
+		)
+	}
+	matchingUC := matching.New(matchingRepo, aiAnalyzer)
 	handlers := httpserver.NewHandlers(healthUC, profileUC, matchingUC, adminUC)
 
 	var limiter ratelimit.Limiter

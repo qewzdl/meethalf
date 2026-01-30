@@ -68,13 +68,21 @@ type RateLimitConfig struct {
 	Burst    int
 }
 
+type OpenRouterConfig struct {
+	APIKey  string
+	BaseURL string
+	Model   string
+	Timeout time.Duration
+}
+
 type Config struct {
-	Env       string
-	HTTP      HTTPConfig
-	DB        DBConfig
-	Redis     RedisConfig
-	Health    HealthConfig
-	RateLimit RateLimitConfig
+	Env        string
+	HTTP       HTTPConfig
+	DB         DBConfig
+	Redis      RedisConfig
+	Health     HealthConfig
+	RateLimit  RateLimitConfig
+	OpenRouter OpenRouterConfig
 }
 
 func Load() Config {
@@ -84,6 +92,7 @@ func Load() Config {
 	redisConnectTimeout := getDuration("REDIS_CONNECT_TIMEOUT", "5s")
 	redisReadTimeout := getDuration("REDIS_READ_TIMEOUT", "3s")
 	redisWriteTimeout := getDuration("REDIS_WRITE_TIMEOUT", "3s")
+	openRouterTimeout := getDuration("OPENROUTER_TIMEOUT", "12s")
 
 	return Config{
 		Env: getEnv("APP_ENV", "dev"),
@@ -135,6 +144,12 @@ func Load() Config {
 			Requests: getEnvInt("RATE_LIMIT_REQUESTS", 60),
 			Window:   getDuration("RATE_LIMIT_WINDOW", "1m"),
 			Burst:    getEnvInt("RATE_LIMIT_BURST", 60),
+		},
+		OpenRouter: OpenRouterConfig{
+			APIKey:  getEnv("OPENROUTER_API_KEY", ""),
+			BaseURL: getEnv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
+			Model:   getEnv("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
+			Timeout: openRouterTimeout,
 		},
 	}
 }

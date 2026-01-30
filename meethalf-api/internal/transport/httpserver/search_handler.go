@@ -29,6 +29,11 @@ type searchUserRequest struct {
 	UserID int64 `json:"user_id"`
 }
 
+type searchAIRequest struct {
+	UserID  int64  `json:"user_id"`
+	Message string `json:"message"`
+}
+
 type searchActionRequest struct {
 	UserID   int64  `json:"user_id"`
 	TargetID int64  `json:"target_id"`
@@ -108,6 +113,35 @@ func (h *SearchHandler) Next(c *gin.Context) {
 	}
 
 	candidate, err := h.uc.Next(c.Request.Context(), req.UserID)
+	if err != nil {
+		if errors.Is(err, matching.ErrNoCandidates) {
+			c.Status(http.StatusNoContent)
+			return
+		}
+		code, message := searchHTTPError(err)
+		respondError(c, code, message)
+		return
+	}
+
+	c.JSON(http.StatusOK, searchCandidateResponse{
+		Profile:     toProfileResponse(candidate.Profile),
+		HasPrevious: candidate.HasPrevious,
+	})
+}
+
+func (h *SearchHandler) AI(c *gin.Context) {
+	if h == nil || h.uc == nil {
+		respondError(c, http.StatusInternalServerError, "search handler is not configured")
+		return
+	}
+
+	var req searchAIRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	candidate, err := h.uc.SearchAI(c.Request.Context(), req.UserID, req.Message)
 	if err != nil {
 		if errors.Is(err, matching.ErrNoCandidates) {
 			c.Status(http.StatusNoContent)
@@ -261,6 +295,7 @@ func searchHTTPError(err error) (int, string) {
 		errors.Is(err, matching.ErrInvalidGender),
 		errors.Is(err, matching.ErrInvalidAccuracy),
 		errors.Is(err, matching.ErrInvalidAction),
+		errors.Is(err, matching.ErrInvalidQuery),
 		errors.Is(err, matching.ErrInvalidTargetID),
 		errors.Is(err, matching.ErrInvalidSelfMatch):
 		return http.StatusBadRequest, err.Error()
@@ -270,6 +305,8 @@ func searchHTTPError(err error) (int, string) {
 		return http.StatusConflict, err.Error()
 	case errors.Is(err, matching.ErrUserBanned):
 		return http.StatusForbidden, err.Error()
+	case errors.Is(err, matching.ErrAIUnavailable):
+		return http.StatusServiceUnavailable, err.Error()
 	default:
 		return http.StatusInternalServerError, "internal error"
 	}

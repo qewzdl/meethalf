@@ -392,6 +392,79 @@ func (r *MatchingRepository) FindCandidate(ctx context.Context, params matching.
 	return candidate, true, nil
 }
 
+func (r *MatchingRepository) FindAICandidate(ctx context.Context, params matching.AICandidateParams) (domain.Profile, bool, error) {
+	if r == nil || r.db == nil {
+		return domain.Profile{}, false, errors.New("postgres matching repository is not configured")
+	}
+	if err := ctx.Err(); err != nil {
+		return domain.Profile{}, false, err
+	}
+
+	genderFilter := strings.TrimSpace(string(params.GenderFilter))
+	if genderFilter == string(domain.GenderUnspecified) {
+		genderFilter = ""
+	}
+
+	country := strings.TrimSpace(string(params.Country))
+	city := strings.TrimSpace(params.City)
+	emoji := strings.TrimSpace(string(params.EmojiCode))
+	keywords := params.Keywords
+	if keywords == nil {
+		keywords = []string{}
+	}
+
+	keywordScoreExpr := `COALESCE((SELECT COUNT(*) FROM unnest($8::text[]) AS kw ` +
+		`WHERE kw <> '' AND (p.description ILIKE '%' || kw || '%' OR p.name ILIKE '%' || kw || '%')), 0)`
+
+	scoreExpr := "(" + keywordScoreExpr + ` * 2) + ` +
+		`(CASE WHEN $5 <> '' AND p.country = $5 THEN 1 ELSE 0 END) + ` +
+		`(CASE WHEN $6 <> '' AND p.city = $6 THEN 2 ELSE 0 END) + ` +
+		`(CASE WHEN $7 <> '' AND p.emoji_code = $7 THEN 1 ELSE 0 END)`
+
+	query := fmt.Sprintf(
+		`SELECT user_id, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, is_banned, created_at, updated_at
+		 FROM %s p
+		 WHERE p.user_id <> $1
+		   AND p.is_hidden = FALSE
+		   AND p.is_banned = FALSE
+		   AND ($2 = '' OR p.gender = $2)
+		   AND NOT EXISTS (
+				SELECT 1 FROM %s i
+				WHERE i.viewer_id = $1 AND i.target_id = p.user_id
+		   )
+		   AND ($3::int IS NULL OR p.age >= $3::int)
+		   AND ($4::int IS NULL OR p.age <= $4::int)
+		 ORDER BY %s DESC, p.updated_at DESC, p.user_id DESC
+		 LIMIT 1`,
+		profileTable(r.schema),
+		r.interactionsTable,
+		scoreExpr,
+	)
+
+	row := r.db.QueryRowContext(
+		ctx,
+		query,
+		params.ViewerID,
+		genderFilter,
+		params.MinAge,
+		params.MaxAge,
+		country,
+		city,
+		emoji,
+		keywords,
+	)
+
+	candidate, err := r.scanProfile(row.Scan)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.Profile{}, false, nil
+		}
+		return domain.Profile{}, false, err
+	}
+
+	return candidate, true, nil
+}
+
 func (r *MatchingRepository) RecordAction(ctx context.Context, viewerID, targetID int64, action domain.MatchAction) error {
 	if r == nil || r.db == nil {
 		return errors.New("postgres matching repository is not configured")

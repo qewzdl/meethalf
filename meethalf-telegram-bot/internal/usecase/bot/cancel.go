@@ -57,6 +57,11 @@ func (s *service) cancelAction(ctx context.Context, msg domain.IncomingMessage, 
 			cancelErr = errors.Join(cancelErr, err)
 		}
 	}
+	if s != nil && s.sessions != nil {
+		if err := s.setSessionAISearchPending(ctx, msg, false); err != nil {
+			cancelErr = errors.Join(cancelErr, err)
+		}
+	}
 
 	if canceledDraft {
 		if draftMode == domain.ProfileDraftModeEdit {

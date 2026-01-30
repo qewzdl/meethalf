@@ -291,6 +291,8 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandCancel
 		case domain.CommandSearchStart:
 			command = domain.CommandSearchStart
+		case domain.CommandSearchAI:
+			command = domain.CommandSearchAI
 		case domain.CommandSearchRefresh:
 			command = domain.CommandSearchRefresh
 		case domain.CommandSearchGender:

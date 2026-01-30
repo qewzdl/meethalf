@@ -18,7 +18,7 @@ go run ./cmd/bot
 
 ## Commands
 
-- /start - greet user by profile name when available, otherwise Telegram name; show inline Start matching and My profile (or Create profile when missing) buttons, plus Preferences only after a profile is created. On the first /start, the bot asks to confirm you are 16+ before opening the main menu.
+- /start - greet user by profile name when available, otherwise Telegram name; show inline Start matching, Search with AI, and My profile (or Create profile when missing) buttons, plus Preferences only after a profile is created. On the first /start, the bot asks to confirm you are 16+ before opening the main menu.
 - /cancel - cancel the current action and return to the main menu
 - /language - open language selection (optional args: `en` or `ru`)
 
@@ -142,6 +142,10 @@ results and likes) requires an existing profile; otherwise the bot prompts you t
 Search prompts and match actions include a Back to menu button to exit the flow and return to the main menu. The match
 accuracy step shows a Cancel button that returns to gender selection. When no matching profiles are available, the bot
 shows a Refresh feed button next to Back to menu.
+
+Use the `Search with AI` button in the main menu to describe who you want to meet in free-form text. The bot sends your
+message to the Meethalf API, which uses OpenRouter to analyze preferences and returns the most suitable profile. The
+result is shown with the same match action buttons.
 
 ## Docker
 

@@ -25,6 +25,9 @@ curl -X DELETE http://localhost:8080/api/v1/profiles/1
 curl -X POST http://localhost:8080/api/v1/search/start \
   -H "Content-Type: application/json" \
   -d '{"user_id":1,"gender":"female","accuracy":3}'
+curl -X POST http://localhost:8080/api/v1/search/ai \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1,"message":"Looking for a creative woman in Moscow around 25-30, loves art and travel"}'
 curl -X POST http://localhost:8080/api/v1/search/next \
   -H "Content-Type: application/json" \
   -d '{"user_id":1}'
@@ -59,6 +62,8 @@ and `accuracy` is a 0-4 scale where 0 is wider/random and 4 is stricter. If no c
 search relaxes the accuracy step-by-step down to 0 while keeping the gender filter. Lower accuracy levels also use wider
 age windows when scoring candidates. Search enforces age eligibility: users aged 16-17 see only 16-17 profiles, and
 users aged 18+ never see profiles under 18.
+`POST /api/v1/search/ai` analyzes a free-form user message via OpenRouter and returns the best matching profile based on
+the extracted preferences and keywords. It respects the same age eligibility rules and excludes hidden/banned profiles.
 `/api/v1/search/action` responds with `matched=true` when the like action forms a mutual match.
 `GET /api/v1/search/history/{user_id}` returns the cumulative search history across sessions (latest view per profile,
 latest first) with actions, position, and pagination via `limit`/`offset` query parameters.
@@ -124,6 +129,9 @@ curl -X DELETE http://localhost:8080/api/v1/profiles/1
 curl -X POST http://localhost:8080/api/v1/search/start \
   -H "Content-Type: application/json" \
   -d '{"user_id":1,"gender":"female","accuracy":3}'
+curl -X POST http://localhost:8080/api/v1/search/ai \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1,"message":"Looking for a creative woman in Moscow around 25-30, loves art and travel"}'
 curl -X POST http://localhost:8080/api/v1/search/next \
   -H "Content-Type: application/json" \
   -d '{"user_id":1}'
@@ -196,6 +204,10 @@ To keep using the public schema, set `DB_SCHEMA=public`.
 - REDIS_MIN_IDLE_CONNS (0)
 - HEALTH_DB_TIMEOUT (5s)
 - HEALTH_REDIS_TIMEOUT (3s)
+- OPENROUTER_API_KEY ()
+- OPENROUTER_BASE_URL (https://openrouter.ai/api/v1)
+- OPENROUTER_MODEL (openai/gpt-4o-mini)
+- OPENROUTER_TIMEOUT (12s)
 - DB_HOST (localhost)
 - DB_PORT (5432)
 - DB_USER (meethalf_app)

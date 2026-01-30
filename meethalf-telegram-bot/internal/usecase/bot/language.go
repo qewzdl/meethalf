@@ -54,6 +54,7 @@ func (s *service) setSessionLanguage(ctx context.Context, msg domain.IncomingMes
 		Language:              lang,
 		LastSeen:              s.now(msg.ReceivedAt),
 		SearchAccuracyEnabled: s.sessionSearchAccuracyEnabled(ctx, msg.User.ID),
+		PendingAISearch:       s.sessionAISearchPending(ctx, msg.User.ID),
 	})
 }
 

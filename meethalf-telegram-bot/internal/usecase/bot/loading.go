@@ -69,6 +69,11 @@ func (s *service) loadingForCommand(ctx context.Context, l localizer, msg domain
 			return domain.OutgoingMessage{}, false
 		}
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchStart)}, true
+	case domain.CommandSearchAI:
+		if s.sessionAISearchPending(ctx, msg.User.ID) && strings.TrimSpace(msg.Text) != "" {
+			return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchAI)}, true
+		}
+		return domain.OutgoingMessage{}, false
 	case domain.CommandSearchRefresh:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchNext)}, true
 	case domain.CommandMatchLike:

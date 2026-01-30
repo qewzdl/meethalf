@@ -43,6 +43,7 @@ func (r *SessionRepository) Touch(ctx context.Context, session domain.Session) e
 		"username", session.Username,
 		"language", string(session.Language),
 		"search_accuracy_enabled", session.SearchAccuracyEnabled,
+		"pending_ai_search", session.PendingAISearch,
 	).Err(); err != nil {
 		return err
 	}
@@ -103,6 +104,15 @@ func (r *SessionRepository) Get(ctx context.Context, userID int64) (domain.Sessi
 		searchAccuracyEnabled = parsed
 	}
 
+	pendingAISearch := false
+	if raw, ok := values["pending_ai_search"]; ok && raw != "" {
+		parsed, err := strconv.ParseBool(raw)
+		if err != nil {
+			return domain.Session{}, false, err
+		}
+		pendingAISearch = parsed
+	}
+
 	return domain.Session{
 		UserID:                userID,
 		ChatID:                chatID,
@@ -110,5 +120,6 @@ func (r *SessionRepository) Get(ctx context.Context, userID int64) (domain.Sessi
 		Language:              domain.Language(values["language"]),
 		LastSeen:              lastSeen,
 		SearchAccuracyEnabled: searchAccuracyEnabled,
+		PendingAISearch:       pendingAISearch,
 	}, true, nil
 }

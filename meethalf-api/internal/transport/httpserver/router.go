@@ -27,6 +27,7 @@ func NewRouter(handlers *Handlers, limiter ratelimit.Limiter) *gin.Engine {
 
 	searchGroup := v1.Group("/search")
 	searchGroup.POST("/start", handlers.Search.Start)
+	searchGroup.POST("/ai", handlers.Search.AI)
 	searchGroup.POST("/next", handlers.Search.Next)
 	searchGroup.POST("/previous", handlers.Search.Previous)
 	searchGroup.POST("/action", handlers.Search.Action)

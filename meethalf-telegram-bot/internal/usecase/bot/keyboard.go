@@ -61,6 +61,12 @@ func (s *service) profileStartInlineKeyboard(l localizer, text, callbackData str
 		},
 		{
 			{
+				Text:         l.button(btnStartSearchAI),
+				CallbackData: domain.CommandSearchAI,
+			},
+		},
+		{
+			{
 				Text:         text,
 				CallbackData: callbackData,
 			},
@@ -776,6 +782,19 @@ func (s *service) searchNoCandidatesInlineKeyboard(l localizer) *domain.InlineKe
 				{
 					Text:         l.button(btnSearchRefresh),
 					CallbackData: domain.CommandSearchRefresh,
+				},
+			},
+		},
+	})
+}
+
+func (s *service) searchAIUnavailableInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
+		Buttons: [][]domain.InlineButton{
+			{
+				{
+					Text:         l.button(btnSearchAIRepeat),
+					CallbackData: domain.CommandSearchAI,
 				},
 			},
 		},
