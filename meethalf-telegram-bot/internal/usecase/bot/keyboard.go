@@ -44,35 +44,40 @@ func (s *service) ageConfirmationInlineKeyboard(l localizer) *domain.InlineKeybo
 }
 
 func (s *service) profileInlineKeyboard(l localizer) *domain.InlineKeyboard {
-	return s.profileStartInlineKeyboard(l, l.button(btnProfile), domain.CommandProfileView)
+	return s.profileStartInlineKeyboard(l, l.button(btnProfile), domain.CommandProfileView, true)
 }
 
 func (s *service) profileCreateInlineKeyboard(l localizer) *domain.InlineKeyboard {
-	return s.profileStartInlineKeyboard(l, l.button(btnCreateProfile), domain.CommandProfile)
+	return s.profileStartInlineKeyboard(l, l.button(btnCreateProfile), domain.CommandProfile, false)
 }
 
-func (s *service) profileStartInlineKeyboard(l localizer, text, callbackData string) *domain.InlineKeyboard {
-	return &domain.InlineKeyboard{
-		Buttons: [][]domain.InlineButton{
+func (s *service) profileStartInlineKeyboard(l localizer, text, callbackData string, showSettings bool) *domain.InlineKeyboard {
+	rows := [][]domain.InlineButton{
+		{
 			{
-				{
-					Text:         l.button(btnStartSearch),
-					CallbackData: domain.CommandSearchStart,
-				},
-			},
-			{
-				{
-					Text:         text,
-					CallbackData: callbackData,
-				},
-			},
-			{
-				{
-					Text:         l.button(btnSettings),
-					CallbackData: domain.CommandProfileSettings,
-				},
+				Text:         l.button(btnStartSearch),
+				CallbackData: domain.CommandSearchStart,
 			},
 		},
+		{
+			{
+				Text:         text,
+				CallbackData: callbackData,
+			},
+		},
+	}
+
+	if showSettings {
+		rows = append(rows, []domain.InlineButton{
+			{
+				Text:         l.button(btnSettings),
+				CallbackData: domain.CommandProfileSettings,
+			},
+		})
+	}
+
+	return &domain.InlineKeyboard{
+		Buttons: rows,
 	}
 }
 

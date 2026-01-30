@@ -18,7 +18,7 @@ go run ./cmd/bot
 
 ## Commands
 
-- /start - greet user by profile name when available, otherwise Telegram name; show inline Start matching, My profile (or Create profile when missing), and Preferences buttons. On the first /start, the bot asks to confirm you are 16+ before opening the main menu.
+- /start - greet user by profile name when available, otherwise Telegram name; show inline Start matching and My profile (or Create profile when missing) buttons, plus Preferences only after a profile is created. On the first /start, the bot asks to confirm you are 16+ before opening the main menu.
 - /cancel - cancel the current action and return to the main menu
 - /language - open language selection (optional args: `en` or `ru`)
 
@@ -105,7 +105,7 @@ prompt or result. This keeps the chat tidy and makes each step feel like a repla
 
 ## Profile settings
 
-Use the inline `Preferences` button from `/start` to open profile settings. The menu includes a `Delete profile`
+The inline `Preferences` button appears only when a profile already exists and opens profile settings. The menu includes a `Delete profile`
 button that opens a confirmation step, a `Language` button to switch between English and Russian, an
 `Advanced search` toggle (off by default) that controls whether the bot asks for match accuracy, and a
 `Hide my profile` / `Show my profile` toggle that controls whether your profile appears in search results. If the
