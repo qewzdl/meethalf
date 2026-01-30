@@ -18,7 +18,7 @@ go run ./cmd/bot
 
 ## Commands
 
-- /start - greet user by profile name when available, otherwise Telegram name; show inline Start matching, Search with AI, and My profile (or Create profile when missing) buttons, plus Preferences only after a profile is created. On the first /start, the bot asks to confirm you are 16+ before opening the main menu.
+- /start - greet user by profile name when available, otherwise Telegram name; show inline Start matching, Search with AI, and My profile (or Create profile when missing) buttons, plus Preferences only after a profile is created. On the first /start, the bot shows a formal 16+ age confirmation statement before opening the main menu.
 - /cancel - cancel the current action and return to the main menu
 - /language - open language selection (optional args: `en` or `ru`)
 
