@@ -210,5 +210,16 @@ bot greeting; comma-separated values are accepted.
 - internal/transport/telegram - Telegram transport (poller, handler, sender)
 - internal/logger - logging
 
+## Architecture boundaries
+
+Run the boundary check:
+
+```bash
+go test ./internal/architecture
+```
+
+It enforces clean architecture layering inside `internal`, keeps Telegram transport isolated from the Meethalf API client
+adapter, and blocks imports from the API module.
+
 
 

@@ -22,6 +22,11 @@ func newSearchPlanner() searchPlanner {
 	}
 }
 
+func newSearchPlannerV2() searchPlanner {
+	// Placeholder for future matching_v2 tuning.
+	return newSearchPlanner()
+}
+
 func (p searchPlanner) Attempts(requested int) []searchAttempt {
 	planner := p.withDefaults()
 	minAccuracy := planner.minAccuracy

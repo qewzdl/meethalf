@@ -30,17 +30,6 @@ type AIQuery struct {
 	Keywords  []string
 }
 
-type AICandidateParams struct {
-	ViewerID     int64
-	GenderFilter domain.Gender
-	MinAge       *int
-	MaxAge       *int
-	Country      domain.Country
-	City         string
-	EmojiCode    domain.ProfileEmojiCode
-	Keywords     []string
-}
-
 func (s *service) SearchAI(ctx context.Context, viewerID int64, message string) (domain.MatchCandidate, error) {
 	if s == nil || s.repo == nil {
 		return domain.MatchCandidate{}, errors.New("matching repository is not configured")
@@ -77,7 +66,7 @@ func (s *service) SearchAI(ctx context.Context, viewerID int64, message string) 
 		return domain.MatchCandidate{}, ErrNoCandidates
 	}
 
-	candidate, found, err := s.repo.FindAICandidate(ctx, AICandidateParams{
+	candidate, found, err := s.repo.FindAICandidate(ctx, domain.AICandidateParams{
 		ViewerID:     viewerID,
 		GenderFilter: normalized.Gender,
 		MinAge:       minAge,

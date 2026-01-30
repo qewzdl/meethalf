@@ -21,6 +21,8 @@ const (
 	adultMinAge         = 18
 )
 
+const defaultAlgorithmVersion = domain.MatchingAlgorithmV1
+
 var (
 	ErrInvalidUserID    = errors.New("user id is required")
 	ErrInvalidGender    = errors.New("gender filter is invalid")
@@ -36,6 +38,10 @@ var (
 	ErrUserBanned       = errors.New("user is banned")
 	ErrAIUnavailable    = errors.New("ai search is not configured")
 )
+
+type Config struct {
+	AlgorithmVersion string
+}
 
 type Usecase interface {
 	Start(ctx context.Context, viewerID int64, gender domain.Gender, accuracy int) (domain.MatchCandidate, error)
@@ -56,26 +62,12 @@ type Repository interface {
 	SaveHistoryCandidate(ctx context.Context, viewerID int64, sessionVersion int64, position int, candidateID int64) error
 	ListHistory(ctx context.Context, viewerID int64, limit, offset int) ([]domain.MatchHistoryItem, int, error)
 	ResetChoices(ctx context.Context, viewerID int64) error
-	FindCandidate(ctx context.Context, params CandidateParams) (domain.Profile, bool, error)
-	FindAICandidate(ctx context.Context, params AICandidateParams) (domain.Profile, bool, error)
+	FindCandidate(ctx context.Context, params domain.CandidateParams) (domain.Profile, bool, error)
+	FindAICandidate(ctx context.Context, params domain.AICandidateParams) (domain.Profile, bool, error)
 	RecordAction(ctx context.Context, viewerID, targetID int64, action domain.MatchAction) error
 	HasAction(ctx context.Context, viewerID, targetID int64, action domain.MatchAction) (bool, error)
 	ListPendingLikes(ctx context.Context, userID int64) ([]domain.Profile, []int64, error)
 	MarkLikesNotified(ctx context.Context, userID int64, likerIDs []int64) error
-}
-
-type CandidateParams struct {
-	ViewerID       int64
-	GenderFilter   domain.Gender
-	Accuracy       int
-	SessionVersion int64
-	ViewerCountry  domain.Country
-	ViewerCity     string
-	ViewerAge      int
-	ViewerEmoji    domain.ProfileEmojiCode
-	AgeWindow      int
-	MinAge         *int
-	MaxAge         *int
 }
 
 type HistoryList struct {
@@ -86,16 +78,22 @@ type HistoryList struct {
 }
 
 type service struct {
-	repo    Repository
-	planner searchPlanner
-	ai      AIAnalyzer
+	repo             Repository
+	planners         map[domain.MatchingAlgorithmVersion]searchPlanner
+	ai               AIAnalyzer
+	algorithmVersion domain.MatchingAlgorithmVersion
 }
 
-func New(repo Repository, ai AIAnalyzer) Usecase {
+func New(repo Repository, ai AIAnalyzer, cfg Config) Usecase {
+	normalizedVersion := normalizeAlgorithmVersion(cfg.AlgorithmVersion)
 	return &service{
-		repo:    repo,
-		planner: newSearchPlanner(),
-		ai:      ai,
+		repo: repo,
+		planners: map[domain.MatchingAlgorithmVersion]searchPlanner{
+			domain.MatchingAlgorithmV1: newSearchPlanner(),
+			domain.MatchingAlgorithmV2: newSearchPlannerV2(),
+		},
+		ai:               ai,
+		algorithmVersion: normalizedVersion,
 	}
 }
 
@@ -132,13 +130,14 @@ func (s *service) Start(ctx context.Context, viewerID int64, gender domain.Gende
 
 	now := time.Now().UTC()
 	session := domain.MatchSession{
-		ViewerID:       viewerID,
-		GenderFilter:   normalizedGender,
-		Accuracy:       accuracy,
-		SessionVersion: sessionVersion,
-		CurrentIndex:   0,
-		CreatedAt:      now,
-		UpdatedAt:      now,
+		ViewerID:         viewerID,
+		GenderFilter:     normalizedGender,
+		Accuracy:         accuracy,
+		AlgorithmVersion: s.algorithmVersion,
+		SessionVersion:   sessionVersion,
+		CurrentIndex:     0,
+		CreatedAt:        now,
+		UpdatedAt:        now,
 	}
 	if err := s.repo.SaveSession(ctx, session); err != nil {
 		return domain.MatchCandidate{}, err
@@ -164,6 +163,9 @@ func (s *service) Next(ctx context.Context, viewerID int64) (domain.MatchCandida
 	}
 	if !found {
 		return domain.MatchCandidate{}, ErrSessionNotFound
+	}
+	if session.AlgorithmVersion == "" {
+		session.AlgorithmVersion = s.algorithmVersion
 	}
 
 	viewer, err := s.viewerProfile(ctx, viewerID)
@@ -192,6 +194,9 @@ func (s *service) Previous(ctx context.Context, viewerID int64) (domain.MatchCan
 	if !found {
 		return domain.MatchCandidate{}, ErrSessionNotFound
 	}
+	if session.AlgorithmVersion == "" {
+		session.AlgorithmVersion = s.algorithmVersion
+	}
 	if _, err := s.viewerProfile(ctx, viewerID); err != nil {
 		return domain.MatchCandidate{}, err
 	}
@@ -213,6 +218,9 @@ func (s *service) Previous(ctx context.Context, viewerID int64) (domain.MatchCan
 		session.CreatedAt = now
 	}
 	session.CurrentIndex = position
+	if session.AlgorithmVersion == "" {
+		session.AlgorithmVersion = s.algorithmVersion
+	}
 	session.UpdatedAt = now
 	if err := s.repo.SaveSession(ctx, session); err != nil {
 		return domain.MatchCandidate{}, err
@@ -396,6 +404,9 @@ func (s *service) nextCandidate(ctx context.Context, viewer domain.Profile, sess
 		session.CreatedAt = now
 	}
 	session.CurrentIndex = position
+	if session.AlgorithmVersion == "" {
+		session.AlgorithmVersion = s.algorithmVersion
+	}
 	session.UpdatedAt = now
 	if err := s.repo.SaveSession(ctx, session); err != nil {
 		return domain.MatchCandidate{}, err
@@ -409,12 +420,13 @@ func (s *service) nextCandidate(ctx context.Context, viewer domain.Profile, sess
 }
 
 func (s *service) findCandidate(ctx context.Context, viewer domain.Profile, session domain.MatchSession) (domain.Profile, bool, error) {
-	attempts := s.planner.Attempts(session.Accuracy)
+	planner := s.plannerForVersion(session.AlgorithmVersion)
+	attempts := planner.Attempts(session.Accuracy)
 	if len(attempts) == 0 {
 		return domain.Profile{}, false, nil
 	}
 
-	params := CandidateParams{
+	params := domain.CandidateParams{
 		ViewerID:       session.ViewerID,
 		GenderFilter:   session.GenderFilter,
 		SessionVersion: session.SessionVersion,
@@ -438,6 +450,30 @@ func (s *service) findCandidate(ctx context.Context, viewer domain.Profile, sess
 	}
 
 	return domain.Profile{}, false, nil
+}
+
+func (s *service) plannerForVersion(version domain.MatchingAlgorithmVersion) searchPlanner {
+	normalized := normalizeAlgorithmVersion(string(version))
+	if s != nil && s.planners != nil {
+		if planner, ok := s.planners[normalized]; ok {
+			return planner
+		}
+	}
+	return newSearchPlanner()
+}
+
+func normalizeAlgorithmVersion(value string) domain.MatchingAlgorithmVersion {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	if normalized == "" {
+		return defaultAlgorithmVersion
+	}
+
+	switch domain.MatchingAlgorithmVersion(normalized) {
+	case domain.MatchingAlgorithmV1, domain.MatchingAlgorithmV2:
+		return domain.MatchingAlgorithmVersion(normalized)
+	default:
+		return defaultAlgorithmVersion
+	}
 }
 
 func candidateAgeBounds(viewerAge int) (*int, *int) {

@@ -216,6 +216,7 @@ To keep using the public schema, set `DB_SCHEMA=public`.
 - OPENROUTER_BASE_URL (https://openrouter.ai/api/v1)
 - OPENROUTER_MODEL (openai/gpt-4o-mini)
 - OPENROUTER_TIMEOUT (12s)
+- MATCHING_ALGORITHM_VERSION (matching_v1)
 - DB_HOST (localhost)
 - DB_PORT (5432)
 - DB_USER (meethalf_app)
@@ -247,9 +248,22 @@ Rate limiting uses a token bucket per client IP; set `RATE_LIMIT_STORE=redis` to
 - internal/usecase/database - database provisioning
 - internal/usecase/matching - matching and interactions logic
 - internal/usecase/profile - profile logic
-- internal/usecase - business logic
+- internal/usecase/moderation - moderation and admin controls
+- internal/usecase/payments - payments logic (placeholder)
+- internal/usecase/analytics - analytics logic (placeholder)
 - internal/storage/postgres - Postgres repositories
 - internal/storage/redis - Redis client and repositories
 - internal/transport/httpserver - HTTP layer (Gin)
 - internal/ratelimit - rate limiting primitives
 - internal/logger - logging
+
+## Architecture boundaries
+
+Run the boundary check:
+
+```bash
+go test ./internal/architecture
+```
+
+It enforces clean architecture layering inside `internal` and prevents accidental imports from the Telegram bot module.
+It also enforces bounded contexts so matching, profiles, moderation, payments, and analytics do not import each other.

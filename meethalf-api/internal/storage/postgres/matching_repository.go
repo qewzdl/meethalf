@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"meethalf-api/internal/domain"
-	"meethalf-api/internal/usecase/matching"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -79,17 +78,19 @@ func (r *MatchingRepository) GetSession(ctx context.Context, viewerID int64) (do
 	}
 
 	query := fmt.Sprintf(
-		`SELECT viewer_id, gender_filter, accuracy, session_version, current_index, created_at, updated_at
+		`SELECT viewer_id, gender_filter, accuracy, algorithm_version, session_version, current_index, created_at, updated_at
 		 FROM %s
 		 WHERE viewer_id = $1`,
 		r.sessionsTable,
 	)
 
 	var session domain.MatchSession
+	var algorithmVersion sql.NullString
 	err := r.db.QueryRowContext(ctx, query, viewerID).Scan(
 		&session.ViewerID,
 		&session.GenderFilter,
 		&session.Accuracy,
+		&algorithmVersion,
 		&session.SessionVersion,
 		&session.CurrentIndex,
 		&session.CreatedAt,
@@ -100,6 +101,10 @@ func (r *MatchingRepository) GetSession(ctx context.Context, viewerID int64) (do
 			return domain.MatchSession{}, false, nil
 		}
 		return domain.MatchSession{}, false, err
+	}
+
+	if algorithmVersion.Valid {
+		session.AlgorithmVersion = domain.MatchingAlgorithmVersion(strings.TrimSpace(algorithmVersion.String))
 	}
 
 	return session, true, nil
@@ -114,11 +119,12 @@ func (r *MatchingRepository) SaveSession(ctx context.Context, session domain.Mat
 	}
 
 	query := fmt.Sprintf(
-		`INSERT INTO %s (viewer_id, gender_filter, accuracy, session_version, current_index, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`INSERT INTO %s (viewer_id, gender_filter, accuracy, algorithm_version, session_version, current_index, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		 ON CONFLICT (viewer_id) DO UPDATE SET
 			gender_filter = EXCLUDED.gender_filter,
 			accuracy = EXCLUDED.accuracy,
+			algorithm_version = EXCLUDED.algorithm_version,
 			session_version = EXCLUDED.session_version,
 			current_index = EXCLUDED.current_index,
 			created_at = EXCLUDED.created_at,
@@ -132,6 +138,7 @@ func (r *MatchingRepository) SaveSession(ctx context.Context, session domain.Mat
 		session.ViewerID,
 		session.GenderFilter,
 		session.Accuracy,
+		session.AlgorithmVersion,
 		session.SessionVersion,
 		session.CurrentIndex,
 		session.CreatedAt,
@@ -320,7 +327,7 @@ func (r *MatchingRepository) ResetChoices(ctx context.Context, viewerID int64) e
 	return nil
 }
 
-func (r *MatchingRepository) FindCandidate(ctx context.Context, params matching.CandidateParams) (domain.Profile, bool, error) {
+func (r *MatchingRepository) FindCandidate(ctx context.Context, params domain.CandidateParams) (domain.Profile, bool, error) {
 	if r == nil || r.db == nil {
 		return domain.Profile{}, false, errors.New("postgres matching repository is not configured")
 	}
@@ -392,7 +399,7 @@ func (r *MatchingRepository) FindCandidate(ctx context.Context, params matching.
 	return candidate, true, nil
 }
 
-func (r *MatchingRepository) FindAICandidate(ctx context.Context, params matching.AICandidateParams) (domain.Profile, bool, error) {
+func (r *MatchingRepository) FindAICandidate(ctx context.Context, params domain.AICandidateParams) (domain.Profile, bool, error) {
 	if r == nil || r.db == nil {
 		return domain.Profile{}, false, errors.New("postgres matching repository is not configured")
 	}
@@ -687,12 +694,14 @@ func (r *MatchingRepository) ensureTables(ctx context.Context) error {
 				viewer_id BIGINT PRIMARY KEY,
 				gender_filter TEXT NOT NULL DEFAULT 'unspecified',
 				accuracy INT NOT NULL DEFAULT 0,
+				algorithm_version TEXT NOT NULL DEFAULT '%s',
 				session_version BIGINT NOT NULL DEFAULT 1,
 				current_index INT NOT NULL DEFAULT 0,
 				created_at TIMESTAMPTZ NOT NULL,
 				updated_at TIMESTAMPTZ NOT NULL
 			)`,
 			r.sessionsTable,
+			domain.MatchingAlgorithmV1,
 		),
 		fmt.Sprintf(
 			`CREATE TABLE IF NOT EXISTS %s (
@@ -737,6 +746,7 @@ func (r *MatchingRepository) ensureColumns(ctx context.Context) error {
 	queries := []string{
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS gender_filter TEXT NOT NULL DEFAULT '%s'", r.sessionsTable, domain.GenderUnspecified),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS accuracy INT NOT NULL DEFAULT 0", r.sessionsTable),
+		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS algorithm_version TEXT NOT NULL DEFAULT '%s'", r.sessionsTable, domain.MatchingAlgorithmV1),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS session_version BIGINT NOT NULL DEFAULT 1", r.sessionsTable),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS current_index INT NOT NULL DEFAULT 0", r.sessionsTable),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ", r.sessionsTable),

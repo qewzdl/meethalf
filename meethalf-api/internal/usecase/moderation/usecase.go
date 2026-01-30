@@ -1,4 +1,4 @@
-package admin
+package moderation
 
 import (
 	"context"
@@ -70,7 +70,7 @@ func New(repo Repository) Usecase {
 
 func (s *service) ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators, onlyHidden bool) (UserList, error) {
 	if s == nil || s.repo == nil {
-		return UserList{}, errors.New("admin repository is not configured")
+		return UserList{}, errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -105,7 +105,7 @@ func (s *service) ListUsers(ctx context.Context, limit, offset int, onlyBanned, 
 
 func (s *service) ListReportedUsers(ctx context.Context, limit, offset int) (ReportedUserList, error) {
 	if s == nil || s.repo == nil {
-		return ReportedUserList{}, errors.New("admin repository is not configured")
+		return ReportedUserList{}, errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -140,7 +140,7 @@ func (s *service) ListReportedUsers(ctx context.Context, limit, offset int) (Rep
 
 func (s *service) GetUser(ctx context.Context, userID int64) (domain.UserSummary, error) {
 	if s == nil || s.repo == nil {
-		return domain.UserSummary{}, errors.New("admin repository is not configured")
+		return domain.UserSummary{}, errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -164,7 +164,7 @@ func (s *service) GetUser(ctx context.Context, userID int64) (domain.UserSummary
 
 func (s *service) GetUserByUsername(ctx context.Context, username string) (domain.UserSummary, error) {
 	if s == nil || s.repo == nil {
-		return domain.UserSummary{}, errors.New("admin repository is not configured")
+		return domain.UserSummary{}, errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -181,7 +181,7 @@ func (s *service) GetUserByUsername(ctx context.Context, username string) (domai
 
 func (s *service) BanUser(ctx context.Context, userID int64) error {
 	if s == nil || s.repo == nil {
-		return errors.New("admin repository is not configured")
+		return errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -204,7 +204,7 @@ func (s *service) BanUser(ctx context.Context, userID int64) error {
 
 func (s *service) BanUserByUsername(ctx context.Context, username string) error {
 	if s == nil || s.repo == nil {
-		return errors.New("admin repository is not configured")
+		return errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -221,7 +221,7 @@ func (s *service) BanUserByUsername(ctx context.Context, username string) error 
 
 func (s *service) UnbanUser(ctx context.Context, userID int64) error {
 	if s == nil || s.repo == nil {
-		return errors.New("admin repository is not configured")
+		return errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -244,7 +244,7 @@ func (s *service) UnbanUser(ctx context.Context, userID int64) error {
 
 func (s *service) UnbanUserByUsername(ctx context.Context, username string) error {
 	if s == nil || s.repo == nil {
-		return errors.New("admin repository is not configured")
+		return errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -261,7 +261,7 @@ func (s *service) UnbanUserByUsername(ctx context.Context, username string) erro
 
 func (s *service) HideUser(ctx context.Context, userID int64) error {
 	if s == nil || s.repo == nil {
-		return errors.New("admin repository is not configured")
+		return errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -284,7 +284,7 @@ func (s *service) HideUser(ctx context.Context, userID int64) error {
 
 func (s *service) HideUserByUsername(ctx context.Context, username string) error {
 	if s == nil || s.repo == nil {
-		return errors.New("admin repository is not configured")
+		return errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -301,7 +301,7 @@ func (s *service) HideUserByUsername(ctx context.Context, username string) error
 
 func (s *service) ShowUser(ctx context.Context, userID int64) error {
 	if s == nil || s.repo == nil {
-		return errors.New("admin repository is not configured")
+		return errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -324,7 +324,7 @@ func (s *service) ShowUser(ctx context.Context, userID int64) error {
 
 func (s *service) ShowUserByUsername(ctx context.Context, username string) error {
 	if s == nil || s.repo == nil {
-		return errors.New("admin repository is not configured")
+		return errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -341,7 +341,7 @@ func (s *service) ShowUserByUsername(ctx context.Context, username string) error
 
 func (s *service) MakeModerator(ctx context.Context, userID int64) error {
 	if s == nil || s.repo == nil {
-		return errors.New("admin repository is not configured")
+		return errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -364,7 +364,7 @@ func (s *service) MakeModerator(ctx context.Context, userID int64) error {
 
 func (s *service) MakeModeratorByUsername(ctx context.Context, username string) error {
 	if s == nil || s.repo == nil {
-		return errors.New("admin repository is not configured")
+		return errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -381,7 +381,7 @@ func (s *service) MakeModeratorByUsername(ctx context.Context, username string) 
 
 func (s *service) RemoveModerator(ctx context.Context, userID int64) error {
 	if s == nil || s.repo == nil {
-		return errors.New("admin repository is not configured")
+		return errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -404,7 +404,7 @@ func (s *service) RemoveModerator(ctx context.Context, userID int64) error {
 
 func (s *service) RemoveModeratorByUsername(ctx context.Context, username string) error {
 	if s == nil || s.repo == nil {
-		return errors.New("admin repository is not configured")
+		return errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -421,7 +421,7 @@ func (s *service) RemoveModeratorByUsername(ctx context.Context, username string
 
 func (s *service) ClearUserReports(ctx context.Context, userID int64) error {
 	if s == nil || s.repo == nil {
-		return errors.New("admin repository is not configured")
+		return errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -444,7 +444,7 @@ func (s *service) ClearUserReports(ctx context.Context, userID int64) error {
 
 func (s *service) ClearUserReportsByUsername(ctx context.Context, username string) error {
 	if s == nil || s.repo == nil {
-		return errors.New("admin repository is not configured")
+		return errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -461,7 +461,7 @@ func (s *service) ClearUserReportsByUsername(ctx context.Context, username strin
 
 func (s *service) resolveUserIDByUsername(ctx context.Context, username string) (int64, error) {
 	if s == nil || s.repo == nil {
-		return 0, errors.New("admin repository is not configured")
+		return 0, errors.New("moderation repository is not configured")
 	}
 
 	if err := ctx.Err(); err != nil {

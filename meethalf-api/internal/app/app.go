@@ -15,9 +15,9 @@ import (
 	redisstorage "meethalf-api/internal/storage/redis"
 	"meethalf-api/internal/transport/httpserver"
 	"meethalf-api/internal/transport/openrouter"
-	"meethalf-api/internal/usecase/admin"
 	"meethalf-api/internal/usecase/health"
 	"meethalf-api/internal/usecase/matching"
+	"meethalf-api/internal/usecase/moderation"
 	"meethalf-api/internal/usecase/profile"
 
 	redisgo "github.com/redis/go-redis/v9"
@@ -63,7 +63,7 @@ func New(cfg config.Config, logger *log.Logger) (*App, error) {
 		return nil, err
 	}
 	profileUC := profile.New(profileRepo)
-	adminUC := admin.New(profileRepo)
+	moderationUC := moderation.New(profileRepo)
 	matchingRepo, err := postgres.NewMatchingRepository(db, cfg.DB.Schema)
 	if err != nil {
 		if redisClient != nil {
@@ -81,8 +81,10 @@ func New(cfg config.Config, logger *log.Logger) (*App, error) {
 			cfg.OpenRouter.Timeout,
 		)
 	}
-	matchingUC := matching.New(matchingRepo, aiAnalyzer)
-	handlers := httpserver.NewHandlers(healthUC, profileUC, matchingUC, adminUC)
+	matchingUC := matching.New(matchingRepo, aiAnalyzer, matching.Config{
+		AlgorithmVersion: cfg.Matching.AlgorithmVersion,
+	})
+	handlers := httpserver.NewHandlers(healthUC, profileUC, matchingUC, moderationUC)
 
 	var limiter ratelimit.Limiter
 	if cfg.RateLimit.Enabled {

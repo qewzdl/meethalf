@@ -75,6 +75,10 @@ type OpenRouterConfig struct {
 	Timeout time.Duration
 }
 
+type MatchingConfig struct {
+	AlgorithmVersion string
+}
+
 type Config struct {
 	Env        string
 	HTTP       HTTPConfig
@@ -83,6 +87,7 @@ type Config struct {
 	Health     HealthConfig
 	RateLimit  RateLimitConfig
 	OpenRouter OpenRouterConfig
+	Matching   MatchingConfig
 }
 
 func Load() Config {
@@ -150,6 +155,9 @@ func Load() Config {
 			BaseURL: getEnv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
 			Model:   getEnv("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
 			Timeout: openRouterTimeout,
+		},
+		Matching: MatchingConfig{
+			AlgorithmVersion: getEnv("MATCHING_ALGORITHM_VERSION", "matching_v1"),
 		},
 	}
 }

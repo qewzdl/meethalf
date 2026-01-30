@@ -9,18 +9,18 @@ import (
 	"time"
 
 	"meethalf-api/internal/domain"
-	"meethalf-api/internal/usecase/admin"
 	"meethalf-api/internal/usecase/matching"
+	"meethalf-api/internal/usecase/moderation"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AdminHandler struct {
-	uc       admin.Usecase
+	uc       moderation.Usecase
 	matching matching.Usecase
 }
 
-func NewAdminHandler(uc admin.Usecase, matchingUC matching.Usecase) *AdminHandler {
+func NewAdminHandler(uc moderation.Usecase, matchingUC matching.Usecase) *AdminHandler {
 	return &AdminHandler{
 		uc:       uc,
 		matching: matchingUC,
@@ -142,11 +142,11 @@ func (h *AdminHandler) GetUser(c *gin.Context) {
 	}
 	if err != nil {
 		switch {
-		case errors.Is(err, admin.ErrInvalidUserID):
+		case errors.Is(err, moderation.ErrInvalidUserID):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrInvalidUsername):
+		case errors.Is(err, moderation.ErrInvalidUsername):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrUserNotFound):
+		case errors.Is(err, moderation.ErrUserNotFound):
 			respondError(c, http.StatusNotFound, err.Error())
 		default:
 			respondError(c, http.StatusInternalServerError, "failed to load user")
@@ -232,11 +232,11 @@ func (h *AdminHandler) applyAdminBan(c *gin.Context, userID int64, username stri
 	}
 	if err != nil {
 		switch {
-		case errors.Is(err, admin.ErrInvalidUserID):
+		case errors.Is(err, moderation.ErrInvalidUserID):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrInvalidUsername):
+		case errors.Is(err, moderation.ErrInvalidUsername):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrUserNotFound):
+		case errors.Is(err, moderation.ErrUserNotFound):
 			respondError(c, http.StatusNotFound, err.Error())
 		default:
 			respondError(c, http.StatusInternalServerError, "failed to ban user")
@@ -294,11 +294,11 @@ func (h *AdminHandler) applyAdminHide(c *gin.Context, userID int64, username str
 	}
 	if err != nil {
 		switch {
-		case errors.Is(err, admin.ErrInvalidUserID):
+		case errors.Is(err, moderation.ErrInvalidUserID):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrInvalidUsername):
+		case errors.Is(err, moderation.ErrInvalidUsername):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrUserNotFound):
+		case errors.Is(err, moderation.ErrUserNotFound):
 			respondError(c, http.StatusNotFound, err.Error())
 		default:
 			respondError(c, http.StatusInternalServerError, "failed to hide user profile")
@@ -337,11 +337,11 @@ func (h *AdminHandler) applyAdminShow(c *gin.Context, userID int64, username str
 	}
 	if err != nil {
 		switch {
-		case errors.Is(err, admin.ErrInvalidUserID):
+		case errors.Is(err, moderation.ErrInvalidUserID):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrInvalidUsername):
+		case errors.Is(err, moderation.ErrInvalidUsername):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrUserNotFound):
+		case errors.Is(err, moderation.ErrUserNotFound):
 			respondError(c, http.StatusNotFound, err.Error())
 		default:
 			respondError(c, http.StatusInternalServerError, "failed to show user profile")
@@ -361,11 +361,11 @@ func (h *AdminHandler) applyAdminUnban(c *gin.Context, userID int64, username st
 	}
 	if err != nil {
 		switch {
-		case errors.Is(err, admin.ErrInvalidUserID):
+		case errors.Is(err, moderation.ErrInvalidUserID):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrInvalidUsername):
+		case errors.Is(err, moderation.ErrInvalidUsername):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrUserNotFound):
+		case errors.Is(err, moderation.ErrUserNotFound):
 			respondError(c, http.StatusNotFound, err.Error())
 		default:
 			respondError(c, http.StatusInternalServerError, "failed to unban user")
@@ -404,11 +404,11 @@ func (h *AdminHandler) applyAdminModerator(c *gin.Context, userID int64, usernam
 	}
 	if err != nil {
 		switch {
-		case errors.Is(err, admin.ErrInvalidUserID):
+		case errors.Is(err, moderation.ErrInvalidUserID):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrInvalidUsername):
+		case errors.Is(err, moderation.ErrInvalidUsername):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrUserNotFound):
+		case errors.Is(err, moderation.ErrUserNotFound):
 			respondError(c, http.StatusNotFound, err.Error())
 		default:
 			respondError(c, http.StatusInternalServerError, "failed to set moderator role")
@@ -473,9 +473,9 @@ func (h *AdminHandler) ResetChoices(c *gin.Context) {
 		user, err := h.uc.GetUserByUsername(c.Request.Context(), username)
 		if err != nil {
 			switch {
-			case errors.Is(err, admin.ErrInvalidUsername):
+			case errors.Is(err, moderation.ErrInvalidUsername):
 				respondError(c, http.StatusBadRequest, err.Error())
-			case errors.Is(err, admin.ErrUserNotFound):
+			case errors.Is(err, moderation.ErrUserNotFound):
 				respondError(c, http.StatusNotFound, err.Error())
 			default:
 				respondError(c, http.StatusInternalServerError, "failed to load user")
@@ -509,11 +509,11 @@ func (h *AdminHandler) applyAdminClearReports(c *gin.Context, userID int64, user
 	}
 	if err != nil {
 		switch {
-		case errors.Is(err, admin.ErrInvalidUserID):
+		case errors.Is(err, moderation.ErrInvalidUserID):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrInvalidUsername):
+		case errors.Is(err, moderation.ErrInvalidUsername):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrUserNotFound):
+		case errors.Is(err, moderation.ErrUserNotFound):
 			respondError(c, http.StatusNotFound, err.Error())
 		default:
 			respondError(c, http.StatusInternalServerError, "failed to clear reports")
@@ -533,11 +533,11 @@ func (h *AdminHandler) applyAdminUnmoderator(c *gin.Context, userID int64, usern
 	}
 	if err != nil {
 		switch {
-		case errors.Is(err, admin.ErrInvalidUserID):
+		case errors.Is(err, moderation.ErrInvalidUserID):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrInvalidUsername):
+		case errors.Is(err, moderation.ErrInvalidUsername):
 			respondError(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, admin.ErrUserNotFound):
+		case errors.Is(err, moderation.ErrUserNotFound):
 			respondError(c, http.StatusNotFound, err.Error())
 		default:
 			respondError(c, http.StatusInternalServerError, "failed to remove moderator role")
