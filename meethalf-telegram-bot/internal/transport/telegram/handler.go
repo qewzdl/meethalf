@@ -253,6 +253,21 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 	case strings.HasPrefix(text, domain.CommandMatchHistoryReport+":"):
 		command = domain.CommandMatchHistoryReport
 		arguments = strings.TrimPrefix(text, domain.CommandMatchHistoryReport+":")
+	case strings.HasPrefix(text, domain.CommandMatchLikesLike+":"):
+		command = domain.CommandMatchLikesLike
+		arguments = strings.TrimPrefix(text, domain.CommandMatchLikesLike+":")
+	case strings.HasPrefix(text, domain.CommandMatchLikesDislike+":"):
+		command = domain.CommandMatchLikesDislike
+		arguments = strings.TrimPrefix(text, domain.CommandMatchLikesDislike+":")
+	case strings.HasPrefix(text, domain.CommandMatchLikesReport+":"):
+		command = domain.CommandMatchLikesReport
+		arguments = strings.TrimPrefix(text, domain.CommandMatchLikesReport+":")
+	case strings.HasPrefix(text, domain.CommandMatchLikesView+":"):
+		command = domain.CommandMatchLikesView
+		arguments = strings.TrimPrefix(text, domain.CommandMatchLikesView+":")
+	case strings.HasPrefix(text, domain.CommandMatchLikes+":"):
+		command = domain.CommandMatchLikes
+		arguments = strings.TrimPrefix(text, domain.CommandMatchLikes+":")
 	case strings.HasPrefix(text, domain.CommandMatchHistory+":"):
 		command = domain.CommandMatchHistory
 		arguments = strings.TrimPrefix(text, domain.CommandMatchHistory+":")
@@ -332,6 +347,8 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandMatchPrevious
 		case domain.CommandMatchHistory:
 			command = domain.CommandMatchHistory
+		case domain.CommandMatchLikes:
+			command = domain.CommandMatchLikes
 		case domain.CommandAdminMenu:
 			command = domain.CommandAdminMenu
 		case domain.CommandAdminUsers:

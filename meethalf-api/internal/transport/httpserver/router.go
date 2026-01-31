@@ -35,6 +35,7 @@ func NewRouter(handlers *Handlers, limiter ratelimit.Limiter) *gin.Engine {
 
 	likesGroup := v1.Group("/likes")
 	likesGroup.GET("/:user_id", handlers.Search.PendingLikes)
+	likesGroup.GET("/:user_id/received", handlers.Search.ReceivedLikes)
 
 	adminGroup := v1.Group("/admin")
 	adminGroup.GET("/users", handlers.Admin.ListUsers)

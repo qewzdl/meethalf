@@ -55,6 +55,7 @@ type SearchService interface {
 	NextCandidate(ctx context.Context, userID int64) (domain.MatchCandidate, bool, error)
 	PreviousCandidate(ctx context.Context, userID int64) (domain.MatchCandidate, bool, error)
 	History(ctx context.Context, userID int64, limit, offset int) (domain.MatchHistoryList, error)
+	ReceivedLikes(ctx context.Context, userID int64, limit, offset int) (domain.MatchLikesList, error)
 	RecordAction(ctx context.Context, userID, targetID int64, action domain.MatchAction) (domain.MatchActionResult, error)
 	PendingLikes(ctx context.Context, userID int64) ([]domain.Profile, error)
 }

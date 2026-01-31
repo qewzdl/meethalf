@@ -237,7 +237,12 @@ func (s *service) isSearchCommand(command string) bool {
 		domain.CommandMatchHistoryView,
 		domain.CommandMatchHistoryLike,
 		domain.CommandMatchHistoryDislike,
-		domain.CommandMatchHistoryReport:
+		domain.CommandMatchHistoryReport,
+		domain.CommandMatchLikes,
+		domain.CommandMatchLikesView,
+		domain.CommandMatchLikesLike,
+		domain.CommandMatchLikesDislike,
+		domain.CommandMatchLikesReport:
 		return true
 	default:
 		return false

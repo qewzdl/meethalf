@@ -63,6 +63,13 @@ type likesResponse struct {
 	Likes []profileResponse `json:"likes"`
 }
 
+type likesListResponse struct {
+	Likes  []profileResponse `json:"likes"`
+	Total  int               `json:"total"`
+	Limit  int               `json:"limit"`
+	Offset int               `json:"offset"`
+}
+
 type historyResponse struct {
 	History []historyItemResponse `json:"history"`
 	Total   int                   `json:"total"`
@@ -315,6 +322,59 @@ func (c *SearchClient) PendingLikes(ctx context.Context, userID int64) ([]domain
 	}
 
 	return likes, nil
+}
+
+func (c *SearchClient) ReceivedLikes(ctx context.Context, userID int64, limit, offset int) (domain.MatchLikesList, error) {
+	if c == nil || c.client == nil {
+		return domain.MatchLikesList{}, errors.New("search client is not configured")
+	}
+	if c.baseURL == "" {
+		return domain.MatchLikesList{}, errors.New("search client base url is empty")
+	}
+	if userID <= 0 {
+		return domain.MatchLikesList{}, errors.New("user id is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return domain.MatchLikesList{}, err
+	}
+
+	query := fmt.Sprintf("limit=%d&offset=%d", limit, offset)
+	url := fmt.Sprintf("%s/api/v1/likes/%d/received?%s", c.baseURL, userID, query)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return domain.MatchLikesList{}, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return domain.MatchLikesList{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return domain.MatchLikesList{}, c.apiError(resp)
+	}
+
+	var payload likesListResponse
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return domain.MatchLikesList{}, err
+	}
+
+	items := make([]domain.Profile, 0, len(payload.Likes))
+	for _, item := range payload.Likes {
+		profile, err := profileFromResponse(item)
+		if err != nil {
+			return domain.MatchLikesList{}, err
+		}
+		items = append(items, profile)
+	}
+
+	return domain.MatchLikesList{
+		Items:  items,
+		Total:  payload.Total,
+		Limit:  payload.Limit,
+		Offset: payload.Offset,
+	}, nil
 }
 
 func (c *SearchClient) History(ctx context.Context, userID int64, limit, offset int) (domain.MatchHistoryList, error) {

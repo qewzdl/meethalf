@@ -14,7 +14,10 @@ type statusError interface {
 	StatusCode() int
 }
 
-const historyPageSize = 5
+const (
+	historyPageSize = 5
+	likesPageSize   = 5
+)
 
 func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage, l localizer) ([]domain.OutgoingMessage, error) {
 	if s == nil || s.search == nil {
@@ -216,6 +219,16 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage, 
 		return s.historyActionMessages(ctx, msg, domain.MatchActionDislike, l)
 	case domain.CommandMatchHistoryReport:
 		return s.historyActionMessages(ctx, msg, domain.MatchActionReport, l)
+	case domain.CommandMatchLikes:
+		return s.likesListMessages(ctx, msg, l)
+	case domain.CommandMatchLikesView:
+		return s.likesViewMessages(ctx, msg, l)
+	case domain.CommandMatchLikesLike:
+		return s.likesActionMessages(ctx, msg, domain.MatchActionLike, l)
+	case domain.CommandMatchLikesDislike:
+		return s.likesActionMessages(ctx, msg, domain.MatchActionDislike, l)
+	case domain.CommandMatchLikesReport:
+		return s.likesActionMessages(ctx, msg, domain.MatchActionReport, l)
 	case domain.CommandMatchViewLike:
 		return s.matchViewActionMessages(ctx, msg, domain.MatchActionLike, l)
 	case domain.CommandMatchViewDislike:
@@ -428,6 +441,124 @@ func (s *service) historyActionMessages(ctx context.Context, msg domain.Incoming
 	return messages, errors.Join(historyErr, matchErr)
 }
 
+func (s *service) likesListMessages(ctx context.Context, msg domain.IncomingMessage, l localizer) ([]domain.OutgoingMessage, error) {
+	offset := s.parseHistoryOffset(msg.Arguments)
+	return s.likesListMessagesWithOffset(ctx, msg, l, offset)
+}
+
+func (s *service) likesListMessagesWithOffset(ctx context.Context, msg domain.IncomingMessage, l localizer, offset int) ([]domain.OutgoingMessage, error) {
+	hasProfile, err := s.viewerHasProfile(ctx, msg.User.ID)
+	if err != nil {
+		if isBannedError(err) {
+			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.userBannedText(l)}}, err
+		}
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, err
+	}
+	if !hasProfile {
+		return []domain.OutgoingMessage{
+			{
+				ChatID:         msg.ChatID,
+				Text:           s.searchProfileMissingText(l),
+				InlineKeyboard: s.profileCreateInlineKeyboardWithAdmin(ctx, msg, l),
+			},
+		}, nil
+	}
+
+	list, err := s.search.ReceivedLikes(ctx, msg.User.ID, likesPageSize, offset)
+	if err != nil {
+		return s.searchErrorResponse(ctx, msg, l, err), err
+	}
+
+	if list.Total > 0 && list.Limit > 0 && len(list.Items) == 0 && list.Offset >= list.Total {
+		lastOffset := (list.Total - 1) / list.Limit * list.Limit
+		if lastOffset < 0 {
+			lastOffset = 0
+		}
+		if lastOffset != list.Offset {
+			list, err = s.search.ReceivedLikes(ctx, msg.User.ID, list.Limit, lastOffset)
+			if err != nil {
+				return s.searchErrorResponse(ctx, msg, l, err), err
+			}
+		}
+	}
+
+	text := s.likesListText(l, list)
+	keyboard := s.likesInlineKeyboard(l, list)
+	return []domain.OutgoingMessage{
+		{
+			ChatID:         msg.ChatID,
+			Text:           text,
+			InlineKeyboard: keyboard,
+		},
+	}, nil
+}
+
+func (s *service) likesViewMessages(ctx context.Context, msg domain.IncomingMessage, l localizer) ([]domain.OutgoingMessage, error) {
+	targetID, offset, ok := s.parseHistoryTarget(msg.Arguments)
+	if !ok {
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.matchProfileNotFoundText(l)}}, nil
+	}
+
+	hasProfile, err := s.viewerHasProfile(ctx, msg.User.ID)
+	if err != nil {
+		if isBannedError(err) {
+			return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.userBannedText(l)}}, err
+		}
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, err
+	}
+	if !hasProfile {
+		return []domain.OutgoingMessage{
+			{
+				ChatID:         msg.ChatID,
+				Text:           s.profileViewRequiresProfileText(l),
+				InlineKeyboard: s.profileCreateInlineKeyboardWithAdmin(ctx, msg, l),
+			},
+		}, nil
+	}
+
+	profile, found, err := s.profiles.GetProfile(ctx, targetID)
+	if err != nil {
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.matchProfileNotFoundText(l)}}, err
+	}
+	if !found {
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.matchProfileNotFoundText(l)}}, nil
+	}
+
+	return s.likesProfileMessages(msg.ChatID, profile, offset, l), nil
+}
+
+func (s *service) likesActionMessages(ctx context.Context, msg domain.IncomingMessage, action domain.MatchAction, l localizer) ([]domain.OutgoingMessage, error) {
+	targetID, offset, ok := s.parseHistoryTarget(msg.Arguments)
+	if !ok {
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, nil
+	}
+
+	actionResult, err := s.search.RecordAction(ctx, msg.User.ID, targetID, action)
+	if err != nil {
+		return []domain.OutgoingMessage{{ChatID: msg.ChatID, Text: s.searchActionFailedText(l)}}, err
+	}
+
+	listMessages, listErr := s.likesListMessagesWithOffset(ctx, msg, l, offset)
+	if action != domain.MatchActionLike {
+		return listMessages, listErr
+	}
+
+	if actionResult.Matched {
+		currentMatchMessages, targetMatchMessages, matchErr := s.mutualMatchMessages(ctx, msg, targetID, l)
+		messages := append(currentMatchMessages, listMessages...)
+		if len(targetMatchMessages) > 0 {
+			messages = append(messages, targetMatchMessages...)
+		}
+		return messages, errors.Join(listErr, matchErr)
+	}
+
+	likeNotifications, likeErr := s.notifyPendingLikesForUser(ctx, targetID)
+	if len(likeNotifications) > 0 {
+		listMessages = append(listMessages, likeNotifications...)
+	}
+	return listMessages, errors.Join(listErr, likeErr)
+}
+
 func (s *service) matchViewActionMessages(ctx context.Context, msg domain.IncomingMessage, action domain.MatchAction, l localizer) ([]domain.OutgoingMessage, error) {
 	targetID, ok := s.parseTargetID(msg.Arguments)
 	if !ok {
@@ -482,6 +613,16 @@ func (s *service) historyProfileMessages(chatID int64, item domain.MatchHistoryI
 		s.profilePreviewCard(l, item.Profile),
 		s.historyActionsText(l, item.Action),
 		s.historyActionsInlineKeyboard(l, item.Profile.UserID, offset, item.Action),
+	)
+}
+
+func (s *service) likesProfileMessages(chatID int64, profile domain.Profile, offset int, l localizer) []domain.OutgoingMessage {
+	return s.profileAlbumMessagesWithText(
+		chatID,
+		profile,
+		s.profilePreviewCard(l, profile),
+		s.matchActionsText(l),
+		s.likesActionsInlineKeyboard(l, profile.UserID, offset),
 	)
 }
 

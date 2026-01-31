@@ -26,6 +26,13 @@ type MatchHistoryList struct {
 	Offset int
 }
 
+type MatchLikesList struct {
+	Items  []Profile
+	Total  int
+	Limit  int
+	Offset int
+}
+
 type MatchActionResult struct {
 	Matched bool
 }

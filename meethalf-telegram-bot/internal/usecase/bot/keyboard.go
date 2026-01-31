@@ -74,6 +74,12 @@ func (s *service) profileStartInlineKeyboard(l localizer, text, callbackData str
 		},
 		{
 			{
+				Text:         l.button(btnLikesInbox),
+				CallbackData: domain.CommandMatchLikes,
+			},
+		},
+		{
+			{
 				Text:         text,
 				CallbackData: callbackData,
 			},
@@ -1053,6 +1059,47 @@ func (s *service) historyInlineKeyboard(l localizer, list domain.MatchHistoryLis
 	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: rows})
 }
 
+func (s *service) likesInlineKeyboard(l localizer, list domain.MatchLikesList) *domain.InlineKeyboard {
+	rows := make([][]domain.InlineButton, 0, len(list.Items)+2)
+	for i, profile := range list.Items {
+		index := list.Offset + i + 1
+		target := strconv.FormatInt(profile.UserID, 10)
+		args := target + ":" + strconv.Itoa(list.Offset)
+		rows = append(rows, []domain.InlineButton{
+			{
+				Text:         s.historyItemButtonLabel(l, profile, index),
+				CallbackData: domain.CommandMatchLikesView + ":" + args,
+			},
+		})
+	}
+
+	hasPrev := list.Offset > 0
+	hasNext := list.Limit > 0 && (list.Offset+list.Limit) < list.Total
+	if hasPrev || hasNext {
+		row := []domain.InlineButton{}
+		if hasPrev {
+			prevOffset := list.Offset - list.Limit
+			if prevOffset < 0 {
+				prevOffset = 0
+			}
+			row = append(row, domain.InlineButton{
+				Text:         l.button(btnSearchHistoryPrev),
+				CallbackData: domain.CommandMatchLikes + ":" + strconv.Itoa(prevOffset),
+			})
+		}
+		if hasNext {
+			nextOffset := list.Offset + list.Limit
+			row = append(row, domain.InlineButton{
+				Text:         l.button(btnSearchHistoryNext),
+				CallbackData: domain.CommandMatchLikes + ":" + strconv.Itoa(nextOffset),
+			})
+		}
+		rows = append(rows, row)
+	}
+
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: rows})
+}
+
 func (s *service) historyActionsInlineKeyboard(l localizer, targetID int64, offset int, action domain.MatchAction) *domain.InlineKeyboard {
 	target := strconv.FormatInt(targetID, 10)
 	offsetValue := strconv.Itoa(offset)
@@ -1082,6 +1129,35 @@ func (s *service) historyActionsInlineKeyboard(l localizer, targetID int64, offs
 				{
 					Text:         l.button(btnSearchHistoryBack),
 					CallbackData: domain.CommandMatchHistory + ":" + offsetValue,
+				},
+			},
+		},
+	})
+}
+
+func (s *service) likesActionsInlineKeyboard(l localizer, targetID int64, offset int) *domain.InlineKeyboard {
+	target := strconv.FormatInt(targetID, 10)
+	offsetValue := strconv.Itoa(offset)
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
+		Buttons: [][]domain.InlineButton{
+			{
+				{
+					Text:         matchDislikeButtonText,
+					CallbackData: domain.CommandMatchLikesDislike + ":" + target + ":" + offsetValue,
+				},
+				{
+					Text:         matchLikeButtonText,
+					CallbackData: domain.CommandMatchLikesLike + ":" + target + ":" + offsetValue,
+				},
+			},
+			{
+				{
+					Text:         l.button(btnReport),
+					CallbackData: domain.CommandMatchLikesReport + ":" + target + ":" + offsetValue,
+				},
+				{
+					Text:         l.button(btnLikesBack),
+					CallbackData: domain.CommandMatchLikes + ":" + offsetValue,
 				},
 			},
 		},

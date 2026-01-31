@@ -49,6 +49,7 @@ type Usecase interface {
 	Next(ctx context.Context, viewerID int64) (domain.MatchCandidate, error)
 	Previous(ctx context.Context, viewerID int64) (domain.MatchCandidate, error)
 	History(ctx context.Context, viewerID int64, limit, offset int) (HistoryList, error)
+	ReceivedLikes(ctx context.Context, userID int64, limit, offset int) (LikesList, error)
 	ResetChoices(ctx context.Context, viewerID int64) error
 	RecordAction(ctx context.Context, viewerID, targetID int64, action domain.MatchAction) (domain.MatchActionResult, error)
 	PendingLikes(ctx context.Context, userID int64) ([]domain.Profile, error)
@@ -61,6 +62,7 @@ type Repository interface {
 	GetHistoryCandidate(ctx context.Context, viewerID int64, sessionVersion int64, position int) (domain.Profile, bool, error)
 	SaveHistoryCandidate(ctx context.Context, viewerID int64, sessionVersion int64, position int, candidateID int64) error
 	ListHistory(ctx context.Context, viewerID int64, limit, offset int) ([]domain.MatchHistoryItem, int, error)
+	ListReceivedLikes(ctx context.Context, userID int64, limit, offset int) ([]domain.Profile, int, error)
 	ResetChoices(ctx context.Context, viewerID int64) error
 	FindCandidate(ctx context.Context, params domain.CandidateParams) (domain.Profile, bool, error)
 	FindAICandidate(ctx context.Context, params domain.AICandidateParams) (domain.Profile, bool, error)
@@ -72,6 +74,13 @@ type Repository interface {
 
 type HistoryList struct {
 	Items  []domain.MatchHistoryItem
+	Total  int
+	Limit  int
+	Offset int
+}
+
+type LikesList struct {
+	Items  []domain.Profile
 	Total  int
 	Limit  int
 	Offset int
@@ -267,6 +276,47 @@ func (s *service) History(ctx context.Context, viewerID int64, limit, offset int
 	}
 
 	return HistoryList{
+		Items:  items,
+		Total:  total,
+		Limit:  normalizedLimit,
+		Offset: normalizedOffset,
+	}, nil
+}
+
+func (s *service) ReceivedLikes(ctx context.Context, userID int64, limit, offset int) (LikesList, error) {
+	if s == nil || s.repo == nil {
+		return LikesList{}, errors.New("matching repository is not configured")
+	}
+	if err := ctx.Err(); err != nil {
+		return LikesList{}, err
+	}
+	if userID <= 0 {
+		return LikesList{}, ErrInvalidUserID
+	}
+
+	normalizedLimit := limit
+	if normalizedLimit <= 0 {
+		normalizedLimit = defaultHistoryLimit
+	}
+	if normalizedLimit > maxHistoryLimit {
+		normalizedLimit = maxHistoryLimit
+	}
+
+	normalizedOffset := offset
+	if normalizedOffset < 0 {
+		normalizedOffset = 0
+	}
+
+	if _, err := s.viewerProfile(ctx, userID); err != nil {
+		return LikesList{}, err
+	}
+
+	items, total, err := s.repo.ListReceivedLikes(ctx, userID, normalizedLimit, normalizedOffset)
+	if err != nil {
+		return LikesList{}, err
+	}
+
+	return LikesList{
 		Items:  items,
 		Total:  total,
 		Limit:  normalizedLimit,

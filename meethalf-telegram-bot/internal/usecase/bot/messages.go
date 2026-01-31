@@ -462,6 +462,29 @@ func (s *service) searchHistoryText(l localizer, list domain.MatchHistoryList) s
 	return strings.Join(lines, "\n")
 }
 
+func (s *service) likesListText(l localizer, list domain.MatchLikesList) string {
+	if len(list.Items) == 0 {
+		if list.Total == 0 {
+			return l.message(msgLikesListEmpty)
+		}
+		return l.message(msgLikesListEmptyPage, list.Total)
+	}
+
+	start := list.Offset + 1
+	end := list.Offset + len(list.Items)
+	if list.Total > 0 && end > list.Total {
+		end = list.Total
+	}
+
+	lines := make([]string, 0, len(list.Items)+1)
+	lines = append(lines, l.message(msgLikesListPage, list.Total, start, end))
+	for i, profile := range list.Items {
+		lines = append(lines, s.likesItemLine(l, list.Offset+i+1, profile))
+	}
+
+	return strings.Join(lines, "\n")
+}
+
 func (s *service) matchActionsText(l localizer) string {
 	return l.message(msgMatchActions)
 }
@@ -522,6 +545,34 @@ func (s *service) historyItemLine(l localizer, index int, item domain.MatchHisto
 	}
 
 	return l.message(msgSearchHistoryLine, index, label, l.historyActionLabel(item.Action))
+}
+
+func (s *service) likesItemLine(l localizer, index int, profile domain.Profile) string {
+	name := strings.TrimSpace(profile.Name)
+	if name == "" {
+		name = l.message(msgSearchHistoryUserFallback, profile.UserID)
+	}
+
+	age := s.ageFromBirthDate(profile.BirthDate, time.Now().UTC())
+	if age == 0 {
+		age = profile.Age
+	}
+
+	details := make([]string, 0, 2)
+	if age > 0 {
+		details = append(details, l.message(msgAgeShort, age))
+	}
+	city := strings.TrimSpace(profile.City)
+	if city != "" {
+		details = append(details, l.cityLabel(city))
+	}
+
+	label := name
+	if len(details) > 0 {
+		label = l.message(msgSearchHistoryLabel, name, strings.Join(details, ", "))
+	}
+
+	return l.message(msgLikesListLine, index, label)
 }
 
 func (s *service) historyActionLabel(action domain.MatchAction) string {

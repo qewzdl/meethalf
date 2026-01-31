@@ -279,6 +279,8 @@ const (
 	msgLoadingSearchHistory             messageKey = "loading_search_history"
 	msgLoadingSearchHistoryProfile      messageKey = "loading_search_history_profile"
 	msgLoadingSearchHistoryAction       messageKey = "loading_search_history_action"
+	msgLoadingLikesList                 messageKey = "loading_likes_list"
+	msgLoadingLikesProfile              messageKey = "loading_likes_profile"
 	msgLoadingAdminUsers                messageKey = "loading_admin_users"
 	msgLoadingAdminBan                  messageKey = "loading_admin_ban"
 	msgLoadingAdminUnban                messageKey = "loading_admin_unban"
@@ -326,6 +328,10 @@ const (
 	msgSearchHistoryPage                messageKey = "search_history_page"
 	msgSearchHistoryEmptyPage           messageKey = "search_history_empty_page"
 	msgSearchHistoryAction              messageKey = "search_history_action"
+	msgLikesListEmpty                   messageKey = "likes_list_empty"
+	msgLikesListEmptyPage               messageKey = "likes_list_empty_page"
+	msgLikesListPage                    messageKey = "likes_list_page"
+	msgLikesListLine                    messageKey = "likes_list_line"
 	msgMatchActions                     messageKey = "match_actions"
 	msgMatchActionSaved                 messageKey = "match_action_saved"
 	msgMatchProfileNotFound             messageKey = "match_profile_not_found"
@@ -449,6 +455,8 @@ const (
 	btnSearchHistoryPrev      buttonKey = "search_history_prev"
 	btnSearchHistoryNext      buttonKey = "search_history_next"
 	btnSearchHistoryBack      buttonKey = "search_history_back"
+	btnLikesInbox             buttonKey = "likes_inbox"
+	btnLikesBack              buttonKey = "likes_back"
 	btnAdminMenu              buttonKey = "admin_menu"
 	btnModeratorMenu          buttonKey = "moderator_menu"
 	btnAdminUsers             buttonKey = "admin_users"
@@ -651,6 +659,8 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLoadingSearchHistory:             "Loading your history...",
 		msgLoadingSearchHistoryProfile:      "Opening a history profile...",
 		msgLoadingSearchHistoryAction:       "Saving your decision...",
+		msgLoadingLikesList:                 "Loading your likes...",
+		msgLoadingLikesProfile:              "Opening the profile...",
 		msgLoadingAdminUsers:                "Loading users...",
 		msgLoadingAdminBan:                  "Applying ban...",
 		msgLoadingAdminUnban:                "Lifting ban...",
@@ -698,6 +708,10 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgSearchHistoryPage:                "History: %d total. Showing %d–%d.",
 		msgSearchHistoryEmptyPage:           "History: %d total. Nothing on this page.",
 		msgSearchHistoryAction:              "Current decision: %s.\nWhat would you like to do?",
+		msgLikesListEmpty:                   "No likes yet.",
+		msgLikesListEmptyPage:               "Likes: %d total. Nothing on this page.",
+		msgLikesListPage:                    "Likes: %d total. Showing %d–%d.",
+		msgLikesListLine:                    "%d. %s",
 		msgMatchActions:                     "What would you like to do?",
 		msgMatchActionSaved:                 "Decision saved.",
 		msgMatchProfileNotFound:             "Profile not found.",
@@ -896,6 +910,8 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLoadingSearchHistory:             "Загружаем историю...",
 		msgLoadingSearchHistoryProfile:      "Открываем профиль из истории...",
 		msgLoadingSearchHistoryAction:       "Сохраняем ваше решение...",
+		msgLoadingLikesList:                 "Загружаем лайки...",
+		msgLoadingLikesProfile:              "Открываем профиль...",
 		msgLoadingAdminUsers:                "Загружаем пользователей...",
 		msgLoadingAdminBan:                  "Баним пользователя...",
 		msgLoadingAdminUnban:                "Снимаем бан...",
@@ -943,6 +959,10 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgSearchHistoryPage:                "История: всего %d. Показаны %d–%d.",
 		msgSearchHistoryEmptyPage:           "История: всего %d. На этой странице пусто.",
 		msgSearchHistoryAction:              "Текущее решение: %s.\nЧто хотите сделать?",
+		msgLikesListEmpty:                   "Пока нет лайков.",
+		msgLikesListEmptyPage:               "Лайки: всего %d. На этой странице пусто.",
+		msgLikesListPage:                    "Лайки: всего %d. Показаны %d–%d.",
+		msgLikesListLine:                    "%d. %s",
 		msgMatchActions:                     "Что хотите сделать?",
 		msgMatchActionSaved:                 "Решение сохранено.",
 		msgMatchProfileNotFound:             "Профиль не найден.",
@@ -1068,6 +1088,8 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnSearchHistoryPrev:      "Prev",
 		btnSearchHistoryNext:      "Next",
 		btnSearchHistoryBack:      "Back to list",
+		btnLikesInbox:             "❤️ People who liked me ❤️",
+		btnLikesBack:              "Back to likes",
 		btnAdminMenu:              "Admin dashboard",
 		btnModeratorMenu:          "Moderator dashboard",
 		btnAdminUsers:             "All users",
@@ -1142,10 +1164,12 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnEditCancel:             "Отменить редактирование",
 		btnSearchAccuracyCancel:   "К выбору пола",
 		btnSearchRefresh:          "Обновить подборку",
-		btnSearchHistory:          "Моя история",
+		btnSearchHistory:          "Просмотренные анкеты",
 		btnSearchHistoryPrev:      "Предыдущие",
 		btnSearchHistoryNext:      "Следующие",
 		btnSearchHistoryBack:      "К списку истории",
+		btnLikesInbox:             "❤️ Кто лайкнул меня ❤️",
+		btnLikesBack:              "Назад к лайкам",
 		btnAdminMenu:              "Админ-меню",
 		btnModeratorMenu:          "Меню модератора",
 		btnAdminUsers:             "Все пользователи",

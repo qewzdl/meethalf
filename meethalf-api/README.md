@@ -40,6 +40,7 @@ curl -X POST http://localhost:8080/api/v1/search/action \
 # {"matched":false}
 curl http://localhost:8080/api/v1/search/history/1?limit=20&offset=0
 curl http://localhost:8080/api/v1/likes/1
+curl http://localhost:8080/api/v1/likes/1/received?limit=20&offset=0
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0
 curl http://localhost:8080/api/v1/admin/users/1
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&banned=true
@@ -73,6 +74,8 @@ the extracted preferences and keywords. It respects the same age eligibility rul
 `/api/v1/search/action` responds with `matched=true` when the like action forms a mutual match.
 `GET /api/v1/search/history/{user_id}` returns the cumulative search history across sessions (latest view per profile,
 latest first) with actions, position, and pagination via `limit`/`offset` query parameters.
+`GET /api/v1/likes/{user_id}` returns unnotified inbound likes and marks them as notified.
+`GET /api/v1/likes/{user_id}/received` returns the current list of inbound likes awaiting a response, with pagination.
 `/api/v1/admin/users` returns a paginated list of users (profiles) with `username`, `is_hidden`, `is_banned`,
 `is_shadow_banned`, and `is_moderator` flags.
 `GET /api/v1/admin/users/{user_ref}` returns a single user summary by id or username (with or without `@`).
@@ -157,6 +160,7 @@ curl -X POST http://localhost:8080/api/v1/search/action \
 # {"matched":false}
 curl http://localhost:8080/api/v1/search/history/1?limit=20&offset=0
 curl http://localhost:8080/api/v1/likes/1
+curl http://localhost:8080/api/v1/likes/1/received?limit=20&offset=0
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0
 curl http://localhost:8080/api/v1/admin/users/1
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&banned=true

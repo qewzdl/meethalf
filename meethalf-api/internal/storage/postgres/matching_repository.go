@@ -284,6 +284,78 @@ func (r *MatchingRepository) ListHistory(ctx context.Context, viewerID int64, li
 	return items, total, nil
 }
 
+func (r *MatchingRepository) ListReceivedLikes(ctx context.Context, userID int64, limit, offset int) ([]domain.Profile, int, error) {
+	if r == nil || r.db == nil {
+		return nil, 0, errors.New("postgres matching repository is not configured")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	countQuery := fmt.Sprintf(
+		`SELECT COUNT(*)
+		 FROM %s i
+		 JOIN %s p ON p.user_id = i.viewer_id
+		 WHERE i.target_id = $1 AND i.action = $2
+		   AND p.is_banned = FALSE
+		   AND p.is_shadow_banned = FALSE
+		   AND NOT EXISTS (
+				SELECT 1 FROM %s r
+				WHERE r.viewer_id = $1 AND r.target_id = i.viewer_id
+		   )`,
+		r.interactionsTable,
+		profileTable(r.schema),
+		r.interactionsTable,
+	)
+
+	var total int
+	if err := r.db.QueryRowContext(ctx, countQuery, userID, domain.MatchActionLike).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	if total == 0 {
+		return []domain.Profile{}, 0, nil
+	}
+
+	query := fmt.Sprintf(
+		`SELECT p.user_id, p.name, p.gender, p.birth_date, p.age, p.country, p.city, p.description, p.emoji_code, p.photos,
+		        p.is_hidden, p.is_banned, p.is_shadow_banned, p.created_at, p.updated_at
+		 FROM %s i
+		 JOIN %s p ON p.user_id = i.viewer_id
+		 WHERE i.target_id = $1 AND i.action = $2
+		   AND p.is_banned = FALSE
+		   AND p.is_shadow_banned = FALSE
+		   AND NOT EXISTS (
+				SELECT 1 FROM %s r
+				WHERE r.viewer_id = $1 AND r.target_id = i.viewer_id
+		   )
+		 ORDER BY i.created_at DESC, i.viewer_id DESC
+		 LIMIT $3 OFFSET $4`,
+		r.interactionsTable,
+		profileTable(r.schema),
+		r.interactionsTable,
+	)
+
+	rows, err := r.db.QueryContext(ctx, query, userID, domain.MatchActionLike, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	likes := make([]domain.Profile, 0)
+	for rows.Next() {
+		profile, err := r.scanProfile(rows.Scan)
+		if err != nil {
+			return nil, 0, err
+		}
+		likes = append(likes, profile)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return likes, total, nil
+}
+
 func (r *MatchingRepository) ResetChoices(ctx context.Context, viewerID int64) error {
 	if r == nil || r.db == nil {
 		return errors.New("postgres matching repository is not configured")

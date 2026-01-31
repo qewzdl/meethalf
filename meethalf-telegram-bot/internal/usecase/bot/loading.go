@@ -100,6 +100,16 @@ func (s *service) loadingForCommand(ctx context.Context, l localizer, msg domain
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchHistoryAction)}, true
 	case domain.CommandMatchHistoryReport:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchHistoryAction)}, true
+	case domain.CommandMatchLikes:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingLikesList)}, true
+	case domain.CommandMatchLikesView:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingLikesProfile)}, true
+	case domain.CommandMatchLikesLike:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchHistoryAction)}, true
+	case domain.CommandMatchLikesDislike:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchHistoryAction)}, true
+	case domain.CommandMatchLikesReport:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingSearchHistoryAction)}, true
 	case domain.CommandAdminUsers:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminUsers)}, true
 	case domain.CommandAdminBannedUsers:
