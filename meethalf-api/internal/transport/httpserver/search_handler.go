@@ -365,18 +365,19 @@ func searchHTTPError(err error) (int, string) {
 
 func toProfileResponse(profile domain.Profile) profileResponse {
 	return profileResponse{
-		UserID:      profile.UserID,
-		Name:        profile.Name,
-		Gender:      string(profile.Gender),
-		BirthDate:   formatBirthDate(profile.BirthDate),
-		Age:         profile.Age,
-		Country:     string(profile.Country),
-		City:        profile.City,
-		Description: profile.Description,
-		EmojiCode:   string(profile.EmojiCode),
-		Photos:      profile.Photos,
-		IsHidden:    profile.IsHidden,
-		CreatedAt:   profile.CreatedAt,
-		UpdatedAt:   profile.UpdatedAt,
+		UserID:                    profile.UserID,
+		Name:                      profile.Name,
+		Gender:                    string(profile.Gender),
+		BirthDate:                 formatBirthDate(profile.BirthDate),
+		Age:                       profile.Age,
+		Country:                   string(profile.Country),
+		City:                      profile.City,
+		Description:               profile.Description,
+		EmojiCode:                 string(profile.EmojiCode),
+		Photos:                    profile.Photos,
+		IsHidden:                  profile.IsHidden,
+		LikesNotificationsEnabled: profile.LikesNotificationsEnabled,
+		CreatedAt:                 profile.CreatedAt,
+		UpdatedAt:                 profile.UpdatedAt,
 	}
 }

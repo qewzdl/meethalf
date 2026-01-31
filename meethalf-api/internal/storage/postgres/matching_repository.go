@@ -59,7 +59,7 @@ func (r *MatchingRepository) GetProfile(ctx context.Context, userID int64) (doma
 	}
 
 	query := fmt.Sprintf(
-		`SELECT user_id, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, is_banned, is_shadow_banned, created_at, updated_at
+		`SELECT user_id, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, likes_notifications_enabled, is_banned, is_shadow_banned, created_at, updated_at
 		 FROM %s
 		 WHERE user_id = $1`,
 		profileTable(r.schema),
@@ -169,7 +169,7 @@ func (r *MatchingRepository) GetHistoryCandidate(ctx context.Context, viewerID i
 	}
 
 	query := fmt.Sprintf(
-		`SELECT p.user_id, p.name, p.gender, p.birth_date, p.age, p.country, p.city, p.description, p.emoji_code, p.photos, p.is_hidden, p.is_banned, p.is_shadow_banned, p.created_at, p.updated_at
+		`SELECT p.user_id, p.name, p.gender, p.birth_date, p.age, p.country, p.city, p.description, p.emoji_code, p.photos, p.is_hidden, p.likes_notifications_enabled, p.is_banned, p.is_shadow_banned, p.created_at, p.updated_at
 		 FROM %s h
 		 JOIN %s p ON p.user_id = h.candidate_id
 		 WHERE h.viewer_id = $1 AND h.session_version = $2 AND h.position = $3
@@ -240,14 +240,14 @@ func (r *MatchingRepository) ListHistory(ctx context.Context, viewerID int64, li
 	query := fmt.Sprintf(
 		`SELECT latest.position, latest.action,
 		        latest.user_id, latest.name, latest.gender, latest.birth_date, latest.age, latest.country, latest.city,
-		        latest.description, latest.emoji_code, latest.photos, latest.is_hidden, latest.is_banned, latest.is_shadow_banned, latest.created_at, latest.updated_at
+		        latest.description, latest.emoji_code, latest.photos, latest.is_hidden, latest.likes_notifications_enabled, latest.is_banned, latest.is_shadow_banned, latest.created_at, latest.updated_at
 		 FROM (
 			 SELECT DISTINCT ON (h.candidate_id)
 			        h.position,
 			        COALESCE(i.action, '') AS action,
 			        h.created_at AS last_seen,
 			        p.user_id, p.name, p.gender, p.birth_date, p.age, p.country, p.city, p.description, p.emoji_code,
-			        p.photos, p.is_hidden, p.is_banned, p.is_shadow_banned, p.created_at, p.updated_at
+			        p.photos, p.is_hidden, p.likes_notifications_enabled, p.is_banned, p.is_shadow_banned, p.created_at, p.updated_at
 			 FROM %s h
 			 JOIN %s p ON p.user_id = h.candidate_id
 			 LEFT JOIN %s i ON i.viewer_id = h.viewer_id AND i.target_id = h.candidate_id
@@ -318,7 +318,7 @@ func (r *MatchingRepository) ListReceivedLikes(ctx context.Context, userID int64
 
 	query := fmt.Sprintf(
 		`SELECT p.user_id, p.name, p.gender, p.birth_date, p.age, p.country, p.city, p.description, p.emoji_code, p.photos,
-		        p.is_hidden, p.is_banned, p.is_shadow_banned, p.created_at, p.updated_at
+		        p.is_hidden, p.likes_notifications_enabled, p.is_banned, p.is_shadow_banned, p.created_at, p.updated_at
 		 FROM %s i
 		 JOIN %s p ON p.user_id = i.viewer_id
 		 WHERE i.target_id = $1 AND i.action = $2 AND i.responded_at IS NULL
@@ -427,7 +427,7 @@ func (r *MatchingRepository) FindCandidate(ctx context.Context, params domain.Ca
 		`(CASE WHEN p.emoji_code = $8 THEN 1 ELSE 0 END)`
 
 	query := fmt.Sprintf(
-		`SELECT user_id, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, is_banned, is_shadow_banned, created_at, updated_at
+		`SELECT user_id, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, likes_notifications_enabled, is_banned, is_shadow_banned, created_at, updated_at
 		 FROM %s p
 		 WHERE p.user_id <> $1
 		   AND p.is_hidden = FALSE
@@ -511,7 +511,7 @@ func (r *MatchingRepository) FindAICandidate(ctx context.Context, params domain.
 		`(CASE WHEN $7 <> '' AND p.emoji_code = $7 THEN 1 ELSE 0 END)`
 
 	query := fmt.Sprintf(
-		`SELECT user_id, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, is_banned, is_shadow_banned, created_at, updated_at
+		`SELECT user_id, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, likes_notifications_enabled, is_banned, is_shadow_banned, created_at, updated_at
 		 FROM %s p
 		 WHERE p.user_id <> $1
 		   AND p.is_hidden = FALSE
@@ -621,7 +621,7 @@ func (r *MatchingRepository) ListPendingLikes(ctx context.Context, userID int64)
 	}
 
 	query := fmt.Sprintf(
-		`SELECT p.user_id, p.name, p.gender, p.birth_date, p.age, p.country, p.city, p.description, p.emoji_code, p.photos, p.is_hidden, p.is_banned, p.is_shadow_banned, p.created_at, p.updated_at
+		`SELECT p.user_id, p.name, p.gender, p.birth_date, p.age, p.country, p.city, p.description, p.emoji_code, p.photos, p.is_hidden, p.likes_notifications_enabled, p.is_banned, p.is_shadow_banned, p.created_at, p.updated_at
 		 FROM %s i
 		 JOIN %s p ON p.user_id = i.viewer_id
 		 WHERE i.target_id = $1 AND i.action = $2 AND i.notified_at IS NULL AND i.responded_at IS NULL
@@ -746,6 +746,7 @@ func (r *MatchingRepository) scanHistoryItem(scan func(dest ...any) error) (doma
 		&stored.EmojiCode,
 		photosScanner,
 		&stored.IsHidden,
+		&stored.LikesNotificationsEnabled,
 		&stored.IsBanned,
 		&stored.IsShadowBanned,
 		&stored.CreatedAt,
@@ -792,6 +793,7 @@ func (r *MatchingRepository) scanProfile(scan func(dest ...any) error) (domain.P
 		&stored.EmojiCode,
 		photosScanner,
 		&stored.IsHidden,
+		&stored.LikesNotificationsEnabled,
 		&stored.IsBanned,
 		&stored.IsShadowBanned,
 		&stored.CreatedAt,

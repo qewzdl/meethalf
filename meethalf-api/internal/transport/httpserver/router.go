@@ -24,6 +24,7 @@ func NewRouter(handlers *Handlers, limiter ratelimit.Limiter) *gin.Engine {
 	profileGroup.DELETE("/:user_id", handlers.Profile.Delete)
 	profileGroup.POST("", handlers.Profile.Upsert)
 	profileGroup.PATCH("/:user_id/visibility", handlers.Profile.UpdateVisibility)
+	profileGroup.PATCH("/:user_id/like-notifications", handlers.Profile.UpdateLikesNotifications)
 
 	searchGroup := v1.Group("/search")
 	searchGroup.POST("/start", handlers.Search.Start)

@@ -352,10 +352,23 @@ func (s *service) profileVisibilityUpdateFailedText(l localizer) string {
 	return l.message(msgProfileVisibilityUpdateFailed)
 }
 
-func (s *service) profileSettingsTextWithVisibility(l localizer, isHidden bool, searchAccuracyEnabled bool) string {
+func (s *service) likeNotificationsUpdateFailedText(l localizer) string {
+	return l.message(msgLikesNotificationsUpdateFailed)
+}
+
+func (s *service) likeNotificationsEnabledText(l localizer) string {
+	return l.message(msgLikesNotificationsEnabled)
+}
+
+func (s *service) likeNotificationsDisabledText(l localizer) string {
+	return l.message(msgLikesNotificationsDisabled)
+}
+
+func (s *service) profileSettingsTextWithVisibility(l localizer, isHidden bool, searchAccuracyEnabled bool, likesNotificationsEnabled bool) string {
 	status := s.profileVisibilityStatus(l, isHidden)
 	searchStatus := s.searchAccuracyStatus(l, searchAccuracyEnabled)
-	return l.message(msgProfileSettingsWithVisibility, status, searchStatus)
+	notificationsStatus := s.likeNotificationsStatus(l, likesNotificationsEnabled)
+	return l.message(msgProfileSettingsWithVisibility, status, searchStatus, notificationsStatus)
 }
 
 func (s *service) profileVisibilityStatus(l localizer, isHidden bool) string {
@@ -366,6 +379,13 @@ func (s *service) profileVisibilityStatus(l localizer, isHidden bool) string {
 }
 
 func (s *service) searchAccuracyStatus(l localizer, enabled bool) string {
+	if enabled {
+		return l.label(labelStatusEnabled)
+	}
+	return l.label(labelStatusDisabled)
+}
+
+func (s *service) likeNotificationsStatus(l localizer, enabled bool) string {
 	if enabled {
 		return l.label(labelStatusEnabled)
 	}

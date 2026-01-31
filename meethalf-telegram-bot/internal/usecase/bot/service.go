@@ -47,6 +47,7 @@ type ProfileService interface {
 	GetProfile(ctx context.Context, userID int64) (domain.Profile, bool, error)
 	DeleteProfile(ctx context.Context, userID int64) (bool, error)
 	SetProfileVisibility(ctx context.Context, userID int64, isHidden bool) (bool, error)
+	SetProfileLikeNotifications(ctx context.Context, userID int64, enabled bool) (bool, error)
 }
 
 type SearchService interface {
@@ -353,8 +354,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 			}
 			if found {
 				searchAccuracyEnabled := s.sessionSearchAccuracyEnabled(ctx, msg.User.ID)
-				response.Text = s.profileSettingsTextWithVisibility(l, profile.IsHidden, searchAccuracyEnabled)
-				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled)
+				response.Text = s.profileSettingsTextWithVisibility(l, profile.IsHidden, searchAccuracyEnabled, profile.LikesNotificationsEnabled)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled, profile.LikesNotificationsEnabled)
 			} else {
 				response.Text = l.message(msgProfileNotFoundCreateButton)
 				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
@@ -373,7 +374,7 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 			}
 			if found {
 				searchAccuracyEnabled := s.sessionSearchAccuracyEnabled(ctx, msg.User.ID)
-				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled, profile.LikesNotificationsEnabled)
 			} else {
 				response.Text = l.message(msgProfileNotFoundCreateButton)
 				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
@@ -392,7 +393,26 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 			}
 			if found {
 				searchAccuracyEnabled := s.sessionSearchAccuracyEnabled(ctx, msg.User.ID)
-				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled, profile.LikesNotificationsEnabled)
+			} else {
+				response.Text = l.message(msgProfileNotFoundCreateButton)
+				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
+			}
+			messages[0] = response
+		case domain.CommandProfileLikeNotifications:
+			profile, found, err := s.profiles.GetProfile(ctx, msg.User.ID)
+			if err != nil {
+				if isBannedError(err) {
+					response.Text = s.userBannedText(l)
+					response.InlineKeyboard = nil
+					messages[0] = response
+				}
+				replyErr = errors.Join(replyErr, err)
+				break
+			}
+			if found {
+				searchAccuracyEnabled := s.sessionSearchAccuracyEnabled(ctx, msg.User.ID)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled, profile.LikesNotificationsEnabled)
 			} else {
 				response.Text = l.message(msgProfileNotFoundCreateButton)
 				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
@@ -411,7 +431,7 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 			}
 			if found {
 				searchAccuracyEnabled := s.sessionSearchAccuracyEnabled(ctx, msg.User.ID)
-				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled, profile.LikesNotificationsEnabled)
 			} else {
 				response.Text = l.message(msgProfileNotFoundCreateButton)
 				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
@@ -433,7 +453,7 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 			}
 			if found {
 				searchAccuracyEnabled := s.sessionSearchAccuracyEnabled(ctx, msg.User.ID)
-				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled)
+				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled, profile.LikesNotificationsEnabled)
 			} else {
 				response.Text = l.message(msgProfileNotFoundCreateButton)
 				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)

@@ -140,21 +140,22 @@ func (c *ProfileClient) GetProfile(ctx context.Context, userID int64) (domain.Pr
 	}
 
 	return domain.Profile{
-		UserID:      payload.UserID,
-		Username:    payload.Username,
-		Name:        payload.Name,
-		Gender:      payload.Gender,
-		BirthDate:   birthDate,
-		Age:         payload.Age,
-		Country:     payload.Country,
-		City:        payload.City,
-		Description: payload.Description,
-		EmojiCode:   payload.EmojiCode,
-		Photos:      payload.Photos,
-		IsHidden:    payload.IsHidden,
-		IsModerator: payload.IsModerator,
-		CreatedAt:   payload.CreatedAt,
-		UpdatedAt:   payload.UpdatedAt,
+		UserID:                    payload.UserID,
+		Username:                  payload.Username,
+		Name:                      payload.Name,
+		Gender:                    payload.Gender,
+		BirthDate:                 birthDate,
+		Age:                       payload.Age,
+		Country:                   payload.Country,
+		City:                      payload.City,
+		Description:               payload.Description,
+		EmojiCode:                 payload.EmojiCode,
+		Photos:                    payload.Photos,
+		IsHidden:                  payload.IsHidden,
+		LikesNotificationsEnabled: payload.LikesNotificationsEnabled,
+		IsModerator:               payload.IsModerator,
+		CreatedAt:                 payload.CreatedAt,
+		UpdatedAt:                 payload.UpdatedAt,
 	}, true, nil
 }
 
@@ -244,6 +245,52 @@ func (c *ProfileClient) SetProfileVisibility(ctx context.Context, userID int64, 
 	return false, c.apiError(resp)
 }
 
+func (c *ProfileClient) SetProfileLikeNotifications(ctx context.Context, userID int64, enabled bool) (bool, error) {
+	if c == nil || c.client == nil {
+		return false, errors.New("profile client is not configured")
+	}
+
+	if c.baseURL == "" {
+		return false, errors.New("profile client base url is empty")
+	}
+
+	if userID <= 0 {
+		return false, errors.New("user id is required")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+
+	payload, err := json.Marshal(profileLikesNotificationsRequest{LikesNotificationsEnabled: enabled})
+	if err != nil {
+		return false, err
+	}
+
+	url := fmt.Sprintf("%s/api/v1/profiles/%d/like-notifications", c.baseURL, userID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, url, bytes.NewReader(payload))
+	if err != nil {
+		return false, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return false, nil
+	}
+
+	if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
+		return true, nil
+	}
+
+	return false, c.apiError(resp)
+}
+
 func (c *ProfileClient) apiError(resp *http.Response) error {
 	message := c.extractError(resp)
 	if message == "" {
@@ -281,25 +328,30 @@ type profileRequest struct {
 }
 
 type profileResponse struct {
-	UserID      int64                   `json:"user_id"`
-	Username    string                  `json:"username"`
-	Name        string                  `json:"name"`
-	Gender      domain.Gender           `json:"gender"`
-	BirthDate   string                  `json:"birth_date"`
-	Age         int                     `json:"age"`
-	Country     domain.Country          `json:"country"`
-	City        string                  `json:"city"`
-	Description string                  `json:"description"`
-	EmojiCode   domain.ProfileEmojiCode `json:"emoji_code"`
-	Photos      []string                `json:"photos"`
-	IsHidden    bool                    `json:"is_hidden"`
-	IsModerator bool                    `json:"is_moderator"`
-	CreatedAt   time.Time               `json:"created_at"`
-	UpdatedAt   time.Time               `json:"updated_at"`
+	UserID                    int64                   `json:"user_id"`
+	Username                  string                  `json:"username"`
+	Name                      string                  `json:"name"`
+	Gender                    domain.Gender           `json:"gender"`
+	BirthDate                 string                  `json:"birth_date"`
+	Age                       int                     `json:"age"`
+	Country                   domain.Country          `json:"country"`
+	City                      string                  `json:"city"`
+	Description               string                  `json:"description"`
+	EmojiCode                 domain.ProfileEmojiCode `json:"emoji_code"`
+	Photos                    []string                `json:"photos"`
+	IsHidden                  bool                    `json:"is_hidden"`
+	LikesNotificationsEnabled bool                    `json:"likes_notifications_enabled"`
+	IsModerator               bool                    `json:"is_moderator"`
+	CreatedAt                 time.Time               `json:"created_at"`
+	UpdatedAt                 time.Time               `json:"updated_at"`
 }
 
 type profileVisibilityRequest struct {
 	IsHidden bool `json:"is_hidden"`
+}
+
+type profileLikesNotificationsRequest struct {
+	LikesNotificationsEnabled bool `json:"likes_notifications_enabled"`
 }
 
 type errorResponse struct {

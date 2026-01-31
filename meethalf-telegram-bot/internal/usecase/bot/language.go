@@ -118,8 +118,8 @@ func (s *service) profileLanguageMessage(ctx context.Context, msg domain.Incomin
 
 	if found {
 		searchAccuracyEnabled := s.sessionSearchAccuracyEnabled(ctx, msg.User.ID)
-		text := updatedLocalizer.message(msgLanguageUpdated) + "\n" + s.profileSettingsTextWithVisibility(updatedLocalizer, profile.IsHidden, searchAccuracyEnabled)
-		return text, s.profileSettingsInlineKeyboard(updatedLocalizer, profile.IsHidden, searchAccuracyEnabled), err
+		text := updatedLocalizer.message(msgLanguageUpdated) + "\n" + s.profileSettingsTextWithVisibility(updatedLocalizer, profile.IsHidden, searchAccuracyEnabled, profile.LikesNotificationsEnabled)
+		return text, s.profileSettingsInlineKeyboard(updatedLocalizer, profile.IsHidden, searchAccuracyEnabled, profile.LikesNotificationsEnabled), err
 	}
 
 	text := updatedLocalizer.message(msgLanguageUpdated) + "\n" + updatedLocalizer.message(msgProfileNotFoundCreateButton)

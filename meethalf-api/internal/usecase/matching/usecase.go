@@ -411,8 +411,12 @@ func (s *service) PendingLikes(ctx context.Context, userID int64) ([]domain.Prof
 		return nil, ErrInvalidUserID
 	}
 
-	if _, err := s.viewerProfile(ctx, userID); err != nil {
+	viewer, err := s.viewerProfile(ctx, userID)
+	if err != nil {
 		return nil, err
+	}
+	if !viewer.LikesNotificationsEnabled {
+		return []domain.Profile{}, nil
 	}
 
 	likes, likerIDs, err := s.repo.ListPendingLikes(ctx, userID)

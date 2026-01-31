@@ -272,6 +272,7 @@ const (
 	msgLoadingEditEmoji                 messageKey = "loading_edit_emoji"
 	msgLoadingEditPhotos                messageKey = "loading_edit_photos"
 	msgLoadingProfileVisibility         messageKey = "loading_profile_visibility"
+	msgLoadingProfileLikeNotifications  messageKey = "loading_profile_like_notifications"
 	msgLoadingSearchStart               messageKey = "loading_search_start"
 	msgLoadingSearchNext                messageKey = "loading_search_next"
 	msgLoadingSearchPrev                messageKey = "loading_search_prev"
@@ -310,6 +311,9 @@ const (
 	msgProfileHidden                    messageKey = "profile_hidden"
 	msgProfileVisible                   messageKey = "profile_visible"
 	msgProfileVisibilityUpdateFailed    messageKey = "profile_visibility_update_failed"
+	msgLikesNotificationsEnabled        messageKey = "likes_notifications_enabled"
+	msgLikesNotificationsDisabled       messageKey = "likes_notifications_disabled"
+	msgLikesNotificationsUpdateFailed   messageKey = "likes_notifications_update_failed"
 	msgSearchGenderPrompt               messageKey = "search_gender_prompt"
 	msgSearchAccuracyPrompt             messageKey = "search_accuracy_prompt"
 	msgSearchAccuracyEnabled            messageKey = "search_accuracy_enabled"
@@ -442,84 +446,88 @@ const (
 )
 
 const (
-	btnCancel                 buttonKey = "cancel"
-	btnAgeConfirmYes          buttonKey = "age_confirm_yes"
-	btnAgeConfirmNo           buttonKey = "age_confirm_no"
-	btnProfileSetupBack       buttonKey = "profile_setup_back"
-	btnProfileDeleteCancel    buttonKey = "profile_delete_cancel"
-	btnBackToProfile          buttonKey = "back_to_profile"
-	btnEditCancel             buttonKey = "edit_cancel"
-	btnSearchAccuracyCancel   buttonKey = "search_accuracy_cancel"
-	btnSearchRefresh          buttonKey = "search_refresh"
-	btnSearchHistory          buttonKey = "search_history"
-	btnSearchHistoryPrev      buttonKey = "search_history_prev"
-	btnSearchHistoryNext      buttonKey = "search_history_next"
-	btnSearchHistoryBack      buttonKey = "search_history_back"
-	btnLikesInbox             buttonKey = "likes_inbox"
-	btnLikesBack              buttonKey = "likes_back"
-	btnAdminMenu              buttonKey = "admin_menu"
-	btnModeratorMenu          buttonKey = "moderator_menu"
-	btnAdminUsers             buttonKey = "admin_users"
-	btnAdminBan               buttonKey = "admin_ban"
-	btnAdminUnban             buttonKey = "admin_unban"
-	btnAdminShadowBan         buttonKey = "admin_shadow_ban"
-	btnAdminShadowUnban       buttonKey = "admin_shadow_unban"
-	btnAdminHiddenUsers       buttonKey = "admin_hidden_users"
-	btnAdminHideProfile       buttonKey = "admin_hide_profile"
-	btnAdminShowProfile       buttonKey = "admin_show_profile"
-	btnAdminModerator         buttonKey = "admin_moderator"
-	btnAdminUnmoderator       buttonKey = "admin_unmoderator"
-	btnAdminResetChoices      buttonKey = "admin_reset_choices"
-	btnAdminResetStart        buttonKey = "admin_reset_start"
-	btnAdminBannedUsers       buttonKey = "admin_banned_users"
-	btnAdminShadowBannedUsers buttonKey = "admin_shadow_banned_users"
-	btnAdminModerators        buttonKey = "admin_moderators"
-	btnAdminReports           buttonKey = "admin_reports"
-	btnAdminClearReports      buttonKey = "admin_clear_reports"
-	btnAdminUsersPrev         buttonKey = "admin_users_prev"
-	btnAdminUsersNext         buttonKey = "admin_users_next"
-	btnAdminBackToMenu        buttonKey = "admin_back_to_menu"
-	btnStartSearch            buttonKey = "start_search"
-	btnStartSearchAI          buttonKey = "start_search_ai"
-	btnSearchAIRepeat         buttonKey = "search_ai_repeat"
-	btnProfile                buttonKey = "profile"
-	btnCreateProfile          buttonKey = "create_profile"
-	btnSettings               buttonKey = "settings"
-	btnPreviewProfile         buttonKey = "preview_profile"
-	btnEditProfile            buttonKey = "edit_profile"
-	btnDeleteProfile          buttonKey = "delete_profile"
-	btnDeleteConfirm          buttonKey = "delete_confirm"
-	btnProfileEditName        buttonKey = "profile_edit_name"
-	btnProfileEditGender      buttonKey = "profile_edit_gender"
-	btnProfileEditBirthDate   buttonKey = "profile_edit_birth_date"
-	btnProfileEditCountry     buttonKey = "profile_edit_country"
-	btnProfileEditCity        buttonKey = "profile_edit_city"
-	btnProfileEditDescription buttonKey = "profile_edit_description"
-	btnProfileEditEmoji       buttonKey = "profile_edit_emoji"
-	btnProfileEditPhotos      buttonKey = "profile_edit_photos"
-	btnTelegramName           buttonKey = "telegram_name"
-	btnAlbumDone              buttonKey = "album_done"
-	btnGenderMale             buttonKey = "gender_male"
-	btnGenderFemale           buttonKey = "gender_female"
-	btnGenderOther            buttonKey = "gender_other"
-	btnCountryRussia          buttonKey = "country_russia"
-	btnCountryKazakhstan      buttonKey = "country_kazakhstan"
-	btnCountryBelarus         buttonKey = "country_belarus"
-	btnSearchMen              buttonKey = "search_men"
-	btnSearchWomen            buttonKey = "search_women"
-	btnSearchOther            buttonKey = "search_other"
-	btnSearchAny              buttonKey = "search_any"
-	btnReport                 buttonKey = "report"
-	btnBackToPreviousProfile  buttonKey = "back_to_previous_profile"
-	btnViewProfile            buttonKey = "view_profile"
-	btnHideFromSearch         buttonKey = "hide_from_search"
-	btnShowInSearch           buttonKey = "show_in_search"
-	btnLanguage               buttonKey = "language"
-	btnAdvancedSearchEnable   buttonKey = "advanced_search_enable"
-	btnAdvancedSearchDisable  buttonKey = "advanced_search_disable"
-	btnBackToSettings         buttonKey = "back_to_settings"
-	btnLanguageEnglish        buttonKey = "language_english"
-	btnLanguageRussian        buttonKey = "language_russian"
+	btnCancel                    buttonKey = "cancel"
+	btnAgeConfirmYes             buttonKey = "age_confirm_yes"
+	btnAgeConfirmNo              buttonKey = "age_confirm_no"
+	btnProfileSetupBack          buttonKey = "profile_setup_back"
+	btnProfileDeleteCancel       buttonKey = "profile_delete_cancel"
+	btnBackToProfile             buttonKey = "back_to_profile"
+	btnEditCancel                buttonKey = "edit_cancel"
+	btnSearchAccuracyCancel      buttonKey = "search_accuracy_cancel"
+	btnSearchRefresh             buttonKey = "search_refresh"
+	btnSearchHistory             buttonKey = "search_history"
+	btnSearchHistoryPrev         buttonKey = "search_history_prev"
+	btnSearchHistoryNext         buttonKey = "search_history_next"
+	btnSearchHistoryBack         buttonKey = "search_history_back"
+	btnLikesInbox                buttonKey = "likes_inbox"
+	btnLikesBack                 buttonKey = "likes_back"
+	btnAdminMenu                 buttonKey = "admin_menu"
+	btnModeratorMenu             buttonKey = "moderator_menu"
+	btnAdminUsers                buttonKey = "admin_users"
+	btnAdminBan                  buttonKey = "admin_ban"
+	btnAdminUnban                buttonKey = "admin_unban"
+	btnAdminShadowBan            buttonKey = "admin_shadow_ban"
+	btnAdminShadowUnban          buttonKey = "admin_shadow_unban"
+	btnAdminHiddenUsers          buttonKey = "admin_hidden_users"
+	btnAdminHideProfile          buttonKey = "admin_hide_profile"
+	btnAdminShowProfile          buttonKey = "admin_show_profile"
+	btnAdminModerator            buttonKey = "admin_moderator"
+	btnAdminUnmoderator          buttonKey = "admin_unmoderator"
+	btnAdminResetChoices         buttonKey = "admin_reset_choices"
+	btnAdminResetStart           buttonKey = "admin_reset_start"
+	btnAdminBannedUsers          buttonKey = "admin_banned_users"
+	btnAdminShadowBannedUsers    buttonKey = "admin_shadow_banned_users"
+	btnAdminModerators           buttonKey = "admin_moderators"
+	btnAdminReports              buttonKey = "admin_reports"
+	btnAdminClearReports         buttonKey = "admin_clear_reports"
+	btnAdminUsersPrev            buttonKey = "admin_users_prev"
+	btnAdminUsersNext            buttonKey = "admin_users_next"
+	btnAdminBackToMenu           buttonKey = "admin_back_to_menu"
+	btnStartSearch               buttonKey = "start_search"
+	btnStartSearchAI             buttonKey = "start_search_ai"
+	btnSearchAIRepeat            buttonKey = "search_ai_repeat"
+	btnProfile                   buttonKey = "profile"
+	btnCreateProfile             buttonKey = "create_profile"
+	btnSettings                  buttonKey = "settings"
+	btnPreviewProfile            buttonKey = "preview_profile"
+	btnEditProfile               buttonKey = "edit_profile"
+	btnDeleteProfile             buttonKey = "delete_profile"
+	btnDeleteConfirm             buttonKey = "delete_confirm"
+	btnProfileEditName           buttonKey = "profile_edit_name"
+	btnProfileEditGender         buttonKey = "profile_edit_gender"
+	btnProfileEditBirthDate      buttonKey = "profile_edit_birth_date"
+	btnProfileEditCountry        buttonKey = "profile_edit_country"
+	btnProfileEditCity           buttonKey = "profile_edit_city"
+	btnProfileEditDescription    buttonKey = "profile_edit_description"
+	btnProfileEditEmoji          buttonKey = "profile_edit_emoji"
+	btnProfileEditPhotos         buttonKey = "profile_edit_photos"
+	btnTelegramName              buttonKey = "telegram_name"
+	btnAlbumDone                 buttonKey = "album_done"
+	btnGenderMale                buttonKey = "gender_male"
+	btnGenderFemale              buttonKey = "gender_female"
+	btnGenderOther               buttonKey = "gender_other"
+	btnCountryRussia             buttonKey = "country_russia"
+	btnCountryKazakhstan         buttonKey = "country_kazakhstan"
+	btnCountryBelarus            buttonKey = "country_belarus"
+	btnSearchMen                 buttonKey = "search_men"
+	btnSearchWomen               buttonKey = "search_women"
+	btnSearchOther               buttonKey = "search_other"
+	btnSearchAny                 buttonKey = "search_any"
+	btnReport                    buttonKey = "report"
+	btnBackToPreviousProfile     buttonKey = "back_to_previous_profile"
+	btnViewProfile               buttonKey = "view_profile"
+	btnHideFromSearch            buttonKey = "hide_from_search"
+	btnShowInSearch              buttonKey = "show_in_search"
+	btnLanguage                  buttonKey = "language"
+	btnAdvancedSearchEnable      buttonKey = "advanced_search_enable"
+	btnAdvancedSearchDisable     buttonKey = "advanced_search_disable"
+	btnLikesNotificationsEnable  buttonKey = "likes_notifications_enable"
+	btnLikesNotificationsDisable buttonKey = "likes_notifications_disable"
+	btnAdvancedSearchStatus      buttonKey = "advanced_search_status"
+	btnLikesNotificationsStatus  buttonKey = "likes_notifications_status"
+	btnBackToSettings            buttonKey = "back_to_settings"
+	btnLanguageEnglish           buttonKey = "language_english"
+	btnLanguageRussian           buttonKey = "language_russian"
 )
 
 const (
@@ -652,6 +660,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLoadingEditEmoji:                 "Opening emoji selector...",
 		msgLoadingEditPhotos:                "Opening photo editor...",
 		msgLoadingProfileVisibility:         "Updating search visibility...",
+		msgLoadingProfileLikeNotifications:  "Updating like notifications...",
 		msgLoadingSearchStart:               "Looking for matches...",
 		msgLoadingSearchNext:                "Finding the next profile...",
 		msgLoadingSearchPrev:                "Opening the previous profile...",
@@ -690,6 +699,9 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgProfileHidden:                    "Your profile is now hidden from search.",
 		msgProfileVisible:                   "Your profile is visible in search again.",
 		msgProfileVisibilityUpdateFailed:    "Couldn't update search visibility. Please try again soon.",
+		msgLikesNotificationsEnabled:        "Like notifications are on.",
+		msgLikesNotificationsDisabled:       "Like notifications are off.",
+		msgLikesNotificationsUpdateFailed:   "Couldn't update like notifications. Please try again soon.",
 		msgSearchGenderPrompt:               "Who are you looking for? Choose a gender.",
 		msgSearchAccuracyPrompt:             "Choose match accuracy (0-4).\n0 — wider search with more variety.\n4 — stricter search with closer matches.",
 		msgSearchAccuracyEnabled:            "Advanced search is on.",
@@ -729,8 +741,8 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgEmojiPrompt:                      "Pick the emoji that best describes you.",
 		msgPhotosPrompt:                     "Send 1–4 photos for your album. Tap Done when you're finished.",
 		msgProfileEditMenu:                  "What would you like to update?",
-		msgProfileSettings:                  "Profile settings. Use the buttons below to manage visibility, advanced search, or delete your profile.",
-		msgProfileSettingsWithVisibility:    "Profile settings.\nSearch visibility: %s.\nAdvanced search: %s.\nUse the buttons below to manage visibility, advanced search, language, or delete your profile.",
+		msgProfileSettings:                  "Profile settings. Use the buttons below to manage visibility, advanced search, like notifications, language, or delete your profile.",
+		msgProfileSettingsWithVisibility:    "Profile settings.\nSearch visibility: %s.\nAdvanced search: %s.\nLike notifications: %s.\nUse the buttons below to manage visibility, advanced search, like notifications, language, or delete your profile.",
 		msgProfileActions:                   "Tap below to preview or edit your profile.",
 		msgProfilePreviewActions:            "Tap below to go back or edit your profile.",
 		msgEditNamePrompt:                   "Enter the new name.",
@@ -818,7 +830,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLanguagePrompt:                   "Choose your language.",
 		msgLanguageUpdated:                  "Language updated. Enjoy!",
 		msgLanguageUnsupported:              "That language isn't supported. Please choose an available option.",
-		msgProfileSettingsLanguageHint:      "Profile settings. Use the buttons below to manage visibility, advanced search, language, or delete your profile.",
+		msgProfileSettingsLanguageHint:      "Profile settings. Use the buttons below to manage visibility, advanced search, like notifications, language, or delete your profile.",
 	},
 	domain.LanguageRussian: {
 		msgDefaultHelp:                      "Meethalf помогает находить людей по интересам и настроению. Расскажите, кого хотите встретить, и мы сделаем остальное.",
@@ -903,6 +915,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLoadingEditEmoji:                 "Открываем выбор эмодзи...",
 		msgLoadingEditPhotos:                "Открываем управление фото...",
 		msgLoadingProfileVisibility:         "Обновляем видимость в поиске...",
+		msgLoadingProfileLikeNotifications:  "Обновляем уведомления о лайках...",
 		msgLoadingSearchStart:               "Ищем интересные профили...",
 		msgLoadingSearchNext:                "Ищем следующий профиль...",
 		msgLoadingSearchPrev:                "Открываем предыдущий профиль...",
@@ -941,6 +954,9 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgProfileHidden:                    "Профиль скрыт из поиска.",
 		msgProfileVisible:                   "Профиль снова виден в поиске.",
 		msgProfileVisibilityUpdateFailed:    "Не удалось обновить видимость в поиске. Попробуйте позже.",
+		msgLikesNotificationsEnabled:        "Уведомления о лайках включены.",
+		msgLikesNotificationsDisabled:       "Уведомления о лайках выключены.",
+		msgLikesNotificationsUpdateFailed:   "Не удалось обновить уведомления о лайках. Попробуйте позже.",
 		msgSearchGenderPrompt:               "Кого вы ищете? Выберите пол.",
 		msgSearchAccuracyPrompt:             "Выберите точность подбора (0-4).\n0 — шире и больше случайных профилей.\n4 — строже и ближе по совпадению.",
 		msgSearchAccuracyEnabled:            "Расширенный поиск включён.",
@@ -980,8 +996,8 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgEmojiPrompt:                      "Выберите эмодзи, который вас описывает.",
 		msgPhotosPrompt:                     "Пришлите 1–4 фото для альбома. Когда закончите — «Готово».",
 		msgProfileEditMenu:                  "Что хотите обновить в профиле?",
-		msgProfileSettings:                  "Параметры профиля. Кнопками ниже можно управлять видимостью, расширенным поиском или удалить профиль.",
-		msgProfileSettingsWithVisibility:    "Параметры профиля.\nВидимость в поиске: %s.\nРасширенный поиск: %s.\nКнопками ниже можно управлять видимостью, расширенным поиском, языком или удалить профиль.",
+		msgProfileSettings:                  "Параметры профиля. Кнопками ниже можно управлять видимостью, расширенным поиском, уведомлениями о лайках, языком или удалить профиль.",
+		msgProfileSettingsWithVisibility:    "Параметры профиля.\nВидимость в поиске: %s.\nРасширенный поиск: %s.\nУведомления о лайках: %s.\nКнопками ниже можно управлять видимостью, расширенным поиском, уведомлениями о лайках, языком или удалить профиль.",
 		msgProfileActions:                   "Кнопками ниже можно посмотреть предпросмотр или отредактировать профиль.",
 		msgProfilePreviewActions:            "Кнопками ниже можно вернуться к профилю или отредактировать его.",
 		msgEditNamePrompt:                   "Введите новое имя.",
@@ -1069,170 +1085,178 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLanguagePrompt:                   "Выберите язык.",
 		msgLanguageUpdated:                  "Язык обновлён. Готово!",
 		msgLanguageUnsupported:              "Этот язык не поддерживается. Выберите один из доступных.",
-		msgProfileSettingsLanguageHint:      "Параметры профиля. Кнопками ниже можно управлять видимостью, расширенным поиском, языком или удалить профиль.",
+		msgProfileSettingsLanguageHint:      "Параметры профиля. Кнопками ниже можно управлять видимостью, расширенным поиском, уведомлениями о лайках, языком или удалить профиль.",
 	},
 }
 
 var buttonCatalog = map[domain.Language]map[buttonKey]string{
 	domain.LanguageEnglish: {
-		btnCancel:                 "Back to main menu",
-		btnAgeConfirmYes:          "Yes, I'm 16+",
-		btnAgeConfirmNo:           "No, I'm under 16",
-		btnProfileSetupBack:       "Back a step",
-		btnProfileDeleteCancel:    "Keep my profile",
-		btnBackToProfile:          "Back to my profile",
-		btnEditCancel:             "Cancel edit",
-		btnSearchAccuracyCancel:   "Back to gender",
-		btnSearchRefresh:          "Refresh matches",
-		btnSearchHistory:          "My history",
-		btnSearchHistoryPrev:      "Prev",
-		btnSearchHistoryNext:      "Next",
-		btnSearchHistoryBack:      "Back to list",
-		btnLikesInbox:             "❤️ People who liked me ❤️",
-		btnLikesBack:              "Back to likes",
-		btnAdminMenu:              "Admin dashboard",
-		btnModeratorMenu:          "Moderator dashboard",
-		btnAdminUsers:             "All users",
-		btnAdminBan:               "Ban a user",
-		btnAdminUnban:             "Lift ban",
-		btnAdminShadowBan:         "Shadow ban",
-		btnAdminShadowUnban:       "Lift shadow ban",
-		btnAdminHiddenUsers:       "Hidden profiles",
-		btnAdminHideProfile:       "Hide profile",
-		btnAdminShowProfile:       "Show profile",
-		btnAdminModerator:         "Grant moderator",
-		btnAdminUnmoderator:       "Revoke moderator",
-		btnAdminResetChoices:      "Reset matches",
-		btnAdminResetStart:        "Reset 16+ check",
-		btnAdminBannedUsers:       "Banned list",
-		btnAdminShadowBannedUsers: "Shadow banned list",
-		btnAdminModerators:        "Moderator list",
-		btnAdminReports:           "Reports",
-		btnAdminClearReports:      "Clear reports",
-		btnAdminUsersPrev:         "Prev",
-		btnAdminUsersNext:         "Next",
-		btnAdminBackToMenu:        "Back to admin menu",
-		btnStartSearch:            "✨ Start matching ✨",
-		btnStartSearchAI:          "⚡️ Search with AI ⚡️",
-		btnSearchAIRepeat:         "Try again",
-		btnProfile:                "My profile",
-		btnCreateProfile:          "Create profile",
-		btnSettings:               "Preferences",
-		btnPreviewProfile:         "Preview profile",
-		btnEditProfile:            "Edit profile",
-		btnDeleteProfile:          "Delete profile",
-		btnDeleteConfirm:          "Yes, delete it",
-		btnProfileEditName:        "Display name",
-		btnProfileEditGender:      "My gender",
-		btnProfileEditBirthDate:   "Date of birth",
-		btnProfileEditCountry:     "My country",
-		btnProfileEditCity:        "My city",
-		btnProfileEditDescription: "About me",
-		btnProfileEditEmoji:       "My emoji",
-		btnProfileEditPhotos:      "My photos",
-		btnTelegramName:           "Use my Telegram name",
-		btnAlbumDone:              "All done",
-		btnGenderMale:             "Man",
-		btnGenderFemale:           "Woman",
-		btnGenderOther:            "Other",
-		btnCountryRussia:          "Russia 🇷🇺",
-		btnCountryKazakhstan:      "Kazakhstan 🇰🇿",
-		btnCountryBelarus:         "Belarus 🇧🇾",
-		btnSearchMen:              "Men 👨",
-		btnSearchWomen:            "Women 👩",
-		btnSearchOther:            "Other",
-		btnSearchAny:              "Anyone",
-		btnReport:                 "Report 🚩",
-		btnBackToPreviousProfile:  "Previous profile",
-		btnViewProfile:            "Open profile",
-		btnHideFromSearch:         "Hide my profile",
-		btnShowInSearch:           "Show my profile",
-		btnLanguage:               "Language",
-		btnAdvancedSearchEnable:   "Advanced search: on",
-		btnAdvancedSearchDisable:  "Advanced search: off",
-		btnBackToSettings:         "Back to preferences",
-		btnLanguageEnglish:        "English 🇺🇸",
-		btnLanguageRussian:        "Русский 🇷🇺",
+		btnCancel:                    "Back to main menu",
+		btnAgeConfirmYes:             "Yes, I'm 16+",
+		btnAgeConfirmNo:              "No, I'm under 16",
+		btnProfileSetupBack:          "Back a step",
+		btnProfileDeleteCancel:       "Keep my profile",
+		btnBackToProfile:             "Back to my profile",
+		btnEditCancel:                "Cancel edit",
+		btnSearchAccuracyCancel:      "Back to gender",
+		btnSearchRefresh:             "Refresh matches",
+		btnSearchHistory:             "My history",
+		btnSearchHistoryPrev:         "Prev",
+		btnSearchHistoryNext:         "Next",
+		btnSearchHistoryBack:         "Back to list",
+		btnLikesInbox:                "❤️ People who liked me ❤️",
+		btnLikesBack:                 "Back to likes",
+		btnAdminMenu:                 "Admin dashboard",
+		btnModeratorMenu:             "Moderator dashboard",
+		btnAdminUsers:                "All users",
+		btnAdminBan:                  "Ban a user",
+		btnAdminUnban:                "Lift ban",
+		btnAdminShadowBan:            "Shadow ban",
+		btnAdminShadowUnban:          "Lift shadow ban",
+		btnAdminHiddenUsers:          "Hidden profiles",
+		btnAdminHideProfile:          "Hide profile",
+		btnAdminShowProfile:          "Show profile",
+		btnAdminModerator:            "Grant moderator",
+		btnAdminUnmoderator:          "Revoke moderator",
+		btnAdminResetChoices:         "Reset matches",
+		btnAdminResetStart:           "Reset 16+ check",
+		btnAdminBannedUsers:          "Banned list",
+		btnAdminShadowBannedUsers:    "Shadow banned list",
+		btnAdminModerators:           "Moderator list",
+		btnAdminReports:              "Reports",
+		btnAdminClearReports:         "Clear reports",
+		btnAdminUsersPrev:            "Prev",
+		btnAdminUsersNext:            "Next",
+		btnAdminBackToMenu:           "Back to admin menu",
+		btnStartSearch:               "✨ Start matching ✨",
+		btnStartSearchAI:             "⚡️ Search with AI ⚡️",
+		btnSearchAIRepeat:            "Try again",
+		btnProfile:                   "My profile",
+		btnCreateProfile:             "Create profile",
+		btnSettings:                  "Preferences",
+		btnPreviewProfile:            "Preview profile",
+		btnEditProfile:               "Edit profile",
+		btnDeleteProfile:             "Delete profile",
+		btnDeleteConfirm:             "Yes, delete it",
+		btnProfileEditName:           "Display name",
+		btnProfileEditGender:         "My gender",
+		btnProfileEditBirthDate:      "Date of birth",
+		btnProfileEditCountry:        "My country",
+		btnProfileEditCity:           "My city",
+		btnProfileEditDescription:    "About me",
+		btnProfileEditEmoji:          "My emoji",
+		btnProfileEditPhotos:         "My photos",
+		btnTelegramName:              "Use my Telegram name",
+		btnAlbumDone:                 "All done",
+		btnGenderMale:                "Man",
+		btnGenderFemale:              "Woman",
+		btnGenderOther:               "Other",
+		btnCountryRussia:             "Russia 🇷🇺",
+		btnCountryKazakhstan:         "Kazakhstan 🇰🇿",
+		btnCountryBelarus:            "Belarus 🇧🇾",
+		btnSearchMen:                 "Men 👨",
+		btnSearchWomen:               "Women 👩",
+		btnSearchOther:               "Other",
+		btnSearchAny:                 "Anyone",
+		btnReport:                    "Report 🚩",
+		btnBackToPreviousProfile:     "Previous profile",
+		btnViewProfile:               "Open profile",
+		btnHideFromSearch:            "Hide my profile",
+		btnShowInSearch:              "Show my profile",
+		btnLanguage:                  "Language",
+		btnAdvancedSearchEnable:      "Advanced search: on",
+		btnAdvancedSearchDisable:     "Advanced search: off",
+		btnLikesNotificationsEnable:  "Like notifications: on",
+		btnLikesNotificationsDisable: "Like notifications: off",
+		btnAdvancedSearchStatus:      "Advanced search: %s",
+		btnLikesNotificationsStatus:  "Like notifications: %s",
+		btnBackToSettings:            "Back to preferences",
+		btnLanguageEnglish:           "English 🇺🇸",
+		btnLanguageRussian:           "Русский 🇷🇺",
 	},
 	domain.LanguageRussian: {
-		btnCancel:                 "В главное меню",
-		btnAgeConfirmYes:          "Да, мне 16+",
-		btnAgeConfirmNo:           "Нет, мне нет 16",
-		btnProfileSetupBack:       "Шаг назад",
-		btnProfileDeleteCancel:    "Оставить мой профиль",
-		btnBackToProfile:          "К моему профилю",
-		btnEditCancel:             "Отменить редактирование",
-		btnSearchAccuracyCancel:   "К выбору пола",
-		btnSearchRefresh:          "Обновить подборку",
-		btnSearchHistory:          "Просмотренные анкеты",
-		btnSearchHistoryPrev:      "Предыдущие",
-		btnSearchHistoryNext:      "Следующие",
-		btnSearchHistoryBack:      "К списку истории",
-		btnLikesInbox:             "❤️ Кто лайкнул меня ❤️",
-		btnLikesBack:              "Назад к лайкам",
-		btnAdminMenu:              "Админ-меню",
-		btnModeratorMenu:          "Меню модератора",
-		btnAdminUsers:             "Все пользователи",
-		btnAdminBan:               "Забанить",
-		btnAdminUnban:             "Разбанить",
-		btnAdminShadowBan:         "Шадоу-бан",
-		btnAdminShadowUnban:       "Снять шадоу-бан",
-		btnAdminHiddenUsers:       "Скрытые профили",
-		btnAdminHideProfile:       "Скрыть профиль",
-		btnAdminShowProfile:       "Открыть профиль",
-		btnAdminModerator:         "Назначить модератором",
-		btnAdminUnmoderator:       "Снять роль модератора",
-		btnAdminResetChoices:      "Сбросить решения по матчам",
-		btnAdminResetStart:        "Сбросить проверку 16+",
-		btnAdminBannedUsers:       "Бан-лист",
-		btnAdminShadowBannedUsers: "Список шадоу-банов",
-		btnAdminModerators:        "Список модераторов",
-		btnAdminReports:           "Репорты",
-		btnAdminClearReports:      "Очистить репорты",
-		btnAdminUsersPrev:         "Предыдущие",
-		btnAdminUsersNext:         "Следующие",
-		btnAdminBackToMenu:        "Назад в админ-меню",
-		btnStartSearch:            "✨ Начать знакомиться ✨",
-		btnStartSearchAI:          "⚡️ Искать с ИИ ⚡️",
-		btnSearchAIRepeat:         "Попробовать ещё раз",
-		btnProfile:                "Мой профиль",
-		btnCreateProfile:          "Создать профиль",
-		btnSettings:               "Параметры",
-		btnPreviewProfile:         "Предпросмотр",
-		btnEditProfile:            "Редактировать мой профиль",
-		btnDeleteProfile:          "Удалить мой профиль",
-		btnDeleteConfirm:          "Да, удалить профиль",
-		btnProfileEditName:        "Имя в профиле",
-		btnProfileEditGender:      "Пол/гендер",
-		btnProfileEditBirthDate:   "День рождения",
-		btnProfileEditCountry:     "Моя страна",
-		btnProfileEditCity:        "Мой город",
-		btnProfileEditDescription: "О себе",
-		btnProfileEditEmoji:       "Мой эмодзи",
-		btnProfileEditPhotos:      "Мои фото",
-		btnTelegramName:           "Взять имя из Telegram",
-		btnAlbumDone:              "Готово ✅",
-		btnGenderMale:             "Мужчина",
-		btnGenderFemale:           "Женщина",
-		btnGenderOther:            "Другое",
-		btnCountryRussia:          "Россия 🇷🇺",
-		btnCountryKazakhstan:      "Казахстан 🇰🇿",
-		btnCountryBelarus:         "Беларусь 🇧🇾",
-		btnSearchMen:              "Парни 👨",
-		btnSearchWomen:            "Девушки 👩",
-		btnSearchOther:            "Другое",
-		btnSearchAny:              "Любые",
-		btnReport:                 "Пожаловаться 🚩",
-		btnBackToPreviousProfile:  "Предыдущий профиль",
-		btnViewProfile:            "Открыть профиль",
-		btnHideFromSearch:         "Скрыть профиль",
-		btnShowInSearch:           "Показывать профиль",
-		btnLanguage:               "Язык",
-		btnAdvancedSearchEnable:   "Расширенный поиск: вкл.",
-		btnAdvancedSearchDisable:  "Расширенный поиск: выкл.",
-		btnBackToSettings:         "Назад к параметрам",
-		btnLanguageEnglish:        "English 🇺🇸",
-		btnLanguageRussian:        "Русский 🇷🇺",
+		btnCancel:                    "В главное меню",
+		btnAgeConfirmYes:             "Да, мне 16+",
+		btnAgeConfirmNo:              "Нет, мне нет 16",
+		btnProfileSetupBack:          "Шаг назад",
+		btnProfileDeleteCancel:       "Оставить мой профиль",
+		btnBackToProfile:             "К моему профилю",
+		btnEditCancel:                "Отменить редактирование",
+		btnSearchAccuracyCancel:      "К выбору пола",
+		btnSearchRefresh:             "Обновить подборку",
+		btnSearchHistory:             "Просмотренные анкеты",
+		btnSearchHistoryPrev:         "Предыдущие",
+		btnSearchHistoryNext:         "Следующие",
+		btnSearchHistoryBack:         "К списку истории",
+		btnLikesInbox:                "❤️ Кто лайкнул меня ❤️",
+		btnLikesBack:                 "Назад к лайкам",
+		btnAdminMenu:                 "Админ-меню",
+		btnModeratorMenu:             "Меню модератора",
+		btnAdminUsers:                "Все пользователи",
+		btnAdminBan:                  "Забанить",
+		btnAdminUnban:                "Разбанить",
+		btnAdminShadowBan:            "Шадоу-бан",
+		btnAdminShadowUnban:          "Снять шадоу-бан",
+		btnAdminHiddenUsers:          "Скрытые профили",
+		btnAdminHideProfile:          "Скрыть профиль",
+		btnAdminShowProfile:          "Открыть профиль",
+		btnAdminModerator:            "Назначить модератором",
+		btnAdminUnmoderator:          "Снять роль модератора",
+		btnAdminResetChoices:         "Сбросить решения по матчам",
+		btnAdminResetStart:           "Сбросить проверку 16+",
+		btnAdminBannedUsers:          "Бан-лист",
+		btnAdminShadowBannedUsers:    "Список шадоу-банов",
+		btnAdminModerators:           "Список модераторов",
+		btnAdminReports:              "Репорты",
+		btnAdminClearReports:         "Очистить репорты",
+		btnAdminUsersPrev:            "Предыдущие",
+		btnAdminUsersNext:            "Следующие",
+		btnAdminBackToMenu:           "Назад в админ-меню",
+		btnStartSearch:               "✨ Начать знакомиться ✨",
+		btnStartSearchAI:             "⚡️ Искать с ИИ ⚡️",
+		btnSearchAIRepeat:            "Попробовать ещё раз",
+		btnProfile:                   "Мой профиль",
+		btnCreateProfile:             "Создать профиль",
+		btnSettings:                  "Параметры",
+		btnPreviewProfile:            "Предпросмотр",
+		btnEditProfile:               "Редактировать мой профиль",
+		btnDeleteProfile:             "Удалить мой профиль",
+		btnDeleteConfirm:             "Да, удалить профиль",
+		btnProfileEditName:           "Имя в профиле",
+		btnProfileEditGender:         "Пол/гендер",
+		btnProfileEditBirthDate:      "День рождения",
+		btnProfileEditCountry:        "Моя страна",
+		btnProfileEditCity:           "Мой город",
+		btnProfileEditDescription:    "О себе",
+		btnProfileEditEmoji:          "Мой эмодзи",
+		btnProfileEditPhotos:         "Мои фото",
+		btnTelegramName:              "Взять имя из Telegram",
+		btnAlbumDone:                 "Готово ✅",
+		btnGenderMale:                "Мужчина",
+		btnGenderFemale:              "Женщина",
+		btnGenderOther:               "Другое",
+		btnCountryRussia:             "Россия 🇷🇺",
+		btnCountryKazakhstan:         "Казахстан 🇰🇿",
+		btnCountryBelarus:            "Беларусь 🇧🇾",
+		btnSearchMen:                 "Парни 👨",
+		btnSearchWomen:               "Девушки 👩",
+		btnSearchOther:               "Другое",
+		btnSearchAny:                 "Любые",
+		btnReport:                    "Пожаловаться 🚩",
+		btnBackToPreviousProfile:     "Предыдущий профиль",
+		btnViewProfile:               "Открыть профиль",
+		btnHideFromSearch:            "Скрыть профиль",
+		btnShowInSearch:              "Показывать профиль",
+		btnLanguage:                  "Язык",
+		btnAdvancedSearchEnable:      "Расширенный поиск: активно",
+		btnAdvancedSearchDisable:     "Расширенный поиск: неактивно",
+		btnLikesNotificationsEnable:  "Уведомления о лайках: активно",
+		btnLikesNotificationsDisable: "Уведомления о лайках: неактивно",
+		btnAdvancedSearchStatus:      "Расширенный поиск: %s",
+		btnLikesNotificationsStatus:  "Уведомления о лайках: %s",
+		btnBackToSettings:            "Назад к параметрам",
+		btnLanguageEnglish:           "English 🇺🇸",
+		btnLanguageRussian:           "Русский 🇷🇺",
 	},
 }
 
@@ -1310,8 +1334,8 @@ var labelCatalog = map[domain.Language]map[labelKey]string{
 		labelStatusModerator:    "Модератор",
 		labelStatusHidden:       "невидим",
 		labelStatusVisible:      "видимый",
-		labelStatusEnabled:      "активен",
-		labelStatusDisabled:     "отключён",
+		labelStatusEnabled:      "активно",
+		labelStatusDisabled:     "неактивно",
 		labelName:               "Имя/ник",
 		labelEmoji:              "Эмодзи-настроение",
 		labelGender:             "Пол/гендер",

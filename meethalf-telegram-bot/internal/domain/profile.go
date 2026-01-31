@@ -83,19 +83,20 @@ type ProfileDraft struct {
 }
 
 type Profile struct {
-	UserID      int64
-	Username    string
-	Name        string
-	Gender      Gender
-	BirthDate   time.Time
-	Age         int
-	Country     Country
-	City        string
-	Description string
-	EmojiCode   ProfileEmojiCode
-	Photos      []string
-	IsHidden    bool
-	IsModerator bool
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	UserID                    int64
+	Username                  string
+	Name                      string
+	Gender                    Gender
+	BirthDate                 time.Time
+	Age                       int
+	Country                   Country
+	City                      string
+	Description               string
+	EmojiCode                 ProfileEmojiCode
+	Photos                    []string
+	IsHidden                  bool
+	LikesNotificationsEnabled bool
+	IsModerator               bool
+	CreatedAt                 time.Time
+	UpdatedAt                 time.Time
 }

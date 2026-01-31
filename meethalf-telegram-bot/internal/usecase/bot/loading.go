@@ -60,6 +60,8 @@ func (s *service) loadingForCommand(ctx context.Context, l localizer, msg domain
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingEditPhotos)}, true
 	case domain.CommandProfileVisibility:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingProfileVisibility)}, true
+	case domain.CommandProfileLikeNotifications:
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingProfileLikeNotifications)}, true
 	case domain.CommandProfileDeleteConfirm:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgDeletingProfile)}, true
 	case domain.CommandSearchAccuracy:

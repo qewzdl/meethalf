@@ -16,11 +16,14 @@ curl http://localhost:8080/api/v1/health/readiness
 curl http://localhost:8080/api/v1/health
 curl -X POST http://localhost:8080/api/v1/profiles \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1,"username":"janedoe","name":"Jane Doe","gender":"female","birth_date":"24.12.2006","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"],"is_hidden":false}'
+  -d '{"user_id":1,"username":"janedoe","name":"Jane Doe","gender":"female","birth_date":"24.12.2006","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"],"is_hidden":false,"likes_notifications_enabled":true}'
 curl http://localhost:8080/api/v1/profiles/1
 curl -X PATCH http://localhost:8080/api/v1/profiles/1/visibility \
   -H "Content-Type: application/json" \
   -d '{"is_hidden":true}'
+curl -X PATCH http://localhost:8080/api/v1/profiles/1/like-notifications \
+  -H "Content-Type: application/json" \
+  -d '{"likes_notifications_enabled":false}'
 curl -X DELETE http://localhost:8080/api/v1/profiles/1
 curl -X POST http://localhost:8080/api/v1/search/start \
   -H "Content-Type: application/json" \
@@ -62,7 +65,8 @@ curl -X POST http://localhost:8080/api/v1/admin/users/1/choices/reset
 
 `birth_date` uses the `DD.MM.YYYY` format (for example, `24.12.2006`); age is derived automatically and must be between 16 and 120. `country` must be one of `russia`, `kazakhstan`,
 or `belarus`; `city` must be in the supported list for the selected country. `emoji_code` must be one of the supported
-profile emoji codes listed below. Set `is_hidden=true` to hide a profile from search results.
+profile emoji codes listed below. Set `is_hidden=true` to hide a profile from search results. `likes_notifications_enabled`
+defaults to `true` and controls whether inbound like notifications are delivered.
 Profile responses include `is_moderator` to indicate moderation role; it is managed through the admin endpoints.
 Search and likes endpoints require an existing profile. `gender` can be `male`, `female`, `other`, or `unspecified` (any),
 and `accuracy` is a 0-4 scale where 0 is wider/random and 4 is stricter. If no candidates match the selected accuracy,
@@ -75,6 +79,7 @@ the extracted preferences and keywords. It respects the same age eligibility rul
 `GET /api/v1/search/history/{user_id}` returns the cumulative search history across sessions (latest view per profile,
 latest first) with actions, position, and pagination via `limit`/`offset` query parameters.
 `GET /api/v1/likes/{user_id}` returns unnotified inbound likes (excluding already answered likes) and marks them as notified.
+When `likes_notifications_enabled=false`, it returns an empty list and does not mark likes as notified.
 `GET /api/v1/likes/{user_id}/received` returns the current list of inbound likes awaiting a response (removed after like/dislike/report), with pagination.
 `/api/v1/admin/users` returns a paginated list of users (profiles) with `username`, `is_hidden`, `is_banned`,
 `is_shadow_banned`, and `is_moderator` flags.
@@ -136,11 +141,14 @@ curl http://localhost:8080/api/v1/health/readiness
 curl http://localhost:8080/api/v1/health
 curl -X POST http://localhost:8080/api/v1/profiles \
   -H "Content-Type: application/json" \
-  -d '{"user_id":1,"username":"janedoe","name":"Jane Doe","gender":"female","birth_date":"24.12.2006","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"],"is_hidden":false}'
+  -d '{"user_id":1,"username":"janedoe","name":"Jane Doe","gender":"female","birth_date":"24.12.2006","country":"russia","city":"Moscow","description":"Hello from Meethalf","emoji_code":"LDR","photos":["photo-1","photo-2"],"is_hidden":false,"likes_notifications_enabled":true}'
 curl http://localhost:8080/api/v1/profiles/1
 curl -X PATCH http://localhost:8080/api/v1/profiles/1/visibility \
   -H "Content-Type: application/json" \
   -d '{"is_hidden":true}'
+curl -X PATCH http://localhost:8080/api/v1/profiles/1/like-notifications \
+  -H "Content-Type: application/json" \
+  -d '{"likes_notifications_enabled":false}'
 curl -X DELETE http://localhost:8080/api/v1/profiles/1
 curl -X POST http://localhost:8080/api/v1/search/start \
   -H "Content-Type: application/json" \

@@ -27,39 +27,45 @@ func NewProfileHandler(uc profile.Usecase) *ProfileHandler {
 }
 
 type profileRequest struct {
-	UserID      int64    `json:"user_id"`
-	Username    string   `json:"username"`
-	Name        string   `json:"name"`
-	Gender      string   `json:"gender"`
-	BirthDate   string   `json:"birth_date"`
-	Country     string   `json:"country"`
-	City        string   `json:"city"`
-	Description string   `json:"description"`
-	EmojiCode   string   `json:"emoji_code"`
-	Photos      []string `json:"photos"`
-	IsHidden    bool     `json:"is_hidden"`
+	UserID                    int64    `json:"user_id"`
+	Username                  string   `json:"username"`
+	Name                      string   `json:"name"`
+	Gender                    string   `json:"gender"`
+	BirthDate                 string   `json:"birth_date"`
+	Country                   string   `json:"country"`
+	City                      string   `json:"city"`
+	Description               string   `json:"description"`
+	EmojiCode                 string   `json:"emoji_code"`
+	Photos                    []string `json:"photos"`
+	IsHidden                  bool     `json:"is_hidden"`
+	LikesNotificationsEnabled *bool    `json:"likes_notifications_enabled"`
 }
 
 type profileResponse struct {
-	UserID      int64     `json:"user_id"`
-	Username    string    `json:"username"`
-	Name        string    `json:"name"`
-	Gender      string    `json:"gender"`
-	BirthDate   string    `json:"birth_date"`
-	Age         int       `json:"age"`
-	Country     string    `json:"country"`
-	City        string    `json:"city"`
-	Description string    `json:"description"`
-	EmojiCode   string    `json:"emoji_code"`
-	Photos      []string  `json:"photos"`
-	IsHidden    bool      `json:"is_hidden"`
-	IsModerator bool      `json:"is_moderator"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	UserID                    int64     `json:"user_id"`
+	Username                  string    `json:"username"`
+	Name                      string    `json:"name"`
+	Gender                    string    `json:"gender"`
+	BirthDate                 string    `json:"birth_date"`
+	Age                       int       `json:"age"`
+	Country                   string    `json:"country"`
+	City                      string    `json:"city"`
+	Description               string    `json:"description"`
+	EmojiCode                 string    `json:"emoji_code"`
+	Photos                    []string  `json:"photos"`
+	IsHidden                  bool      `json:"is_hidden"`
+	LikesNotificationsEnabled bool      `json:"likes_notifications_enabled"`
+	IsModerator               bool      `json:"is_moderator"`
+	CreatedAt                 time.Time `json:"created_at"`
+	UpdatedAt                 time.Time `json:"updated_at"`
 }
 
 type profileVisibilityRequest struct {
 	IsHidden *bool `json:"is_hidden"`
+}
+
+type profileLikesNotificationsRequest struct {
+	LikesNotificationsEnabled *bool `json:"likes_notifications_enabled"`
 }
 
 func (h *ProfileHandler) Upsert(c *gin.Context) {
@@ -80,18 +86,37 @@ func (h *ProfileHandler) Upsert(c *gin.Context) {
 		return
 	}
 
+	likesNotificationsEnabled := true
+	if req.LikesNotificationsEnabled != nil {
+		likesNotificationsEnabled = *req.LikesNotificationsEnabled
+	} else if req.UserID > 0 {
+		stored, err := h.uc.GetByUserID(c.Request.Context(), req.UserID)
+		if err != nil {
+			if errors.Is(err, profile.ErrProfileNotFound) {
+				likesNotificationsEnabled = true
+			} else {
+				code, message := profileHTTPError(err)
+				respondError(c, code, message)
+				return
+			}
+		} else {
+			likesNotificationsEnabled = stored.LikesNotificationsEnabled
+		}
+	}
+
 	stored, err := h.uc.Upsert(c.Request.Context(), domain.Profile{
-		UserID:      req.UserID,
-		Username:    req.Username,
-		Name:        req.Name,
-		Gender:      domain.Gender(req.Gender),
-		BirthDate:   birthDate,
-		Country:     domain.Country(req.Country),
-		City:        req.City,
-		Description: req.Description,
-		EmojiCode:   domain.ProfileEmojiCode(req.EmojiCode),
-		Photos:      req.Photos,
-		IsHidden:    req.IsHidden,
+		UserID:                    req.UserID,
+		Username:                  req.Username,
+		Name:                      req.Name,
+		Gender:                    domain.Gender(req.Gender),
+		BirthDate:                 birthDate,
+		Country:                   domain.Country(req.Country),
+		City:                      req.City,
+		Description:               req.Description,
+		EmojiCode:                 domain.ProfileEmojiCode(req.EmojiCode),
+		Photos:                    req.Photos,
+		IsHidden:                  req.IsHidden,
+		LikesNotificationsEnabled: likesNotificationsEnabled,
 	})
 	if err != nil {
 		code, message := profileHTTPError(err)
@@ -100,21 +125,22 @@ func (h *ProfileHandler) Upsert(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, profileResponse{
-		UserID:      stored.UserID,
-		Username:    stored.Username,
-		Name:        stored.Name,
-		Gender:      string(stored.Gender),
-		BirthDate:   formatBirthDate(stored.BirthDate),
-		Age:         stored.Age,
-		Country:     string(stored.Country),
-		City:        stored.City,
-		Description: stored.Description,
-		EmojiCode:   string(stored.EmojiCode),
-		Photos:      stored.Photos,
-		IsHidden:    stored.IsHidden,
-		IsModerator: stored.IsModerator,
-		CreatedAt:   stored.CreatedAt,
-		UpdatedAt:   stored.UpdatedAt,
+		UserID:                    stored.UserID,
+		Username:                  stored.Username,
+		Name:                      stored.Name,
+		Gender:                    string(stored.Gender),
+		BirthDate:                 formatBirthDate(stored.BirthDate),
+		Age:                       stored.Age,
+		Country:                   string(stored.Country),
+		City:                      stored.City,
+		Description:               stored.Description,
+		EmojiCode:                 string(stored.EmojiCode),
+		Photos:                    stored.Photos,
+		IsHidden:                  stored.IsHidden,
+		LikesNotificationsEnabled: stored.LikesNotificationsEnabled,
+		IsModerator:               stored.IsModerator,
+		CreatedAt:                 stored.CreatedAt,
+		UpdatedAt:                 stored.UpdatedAt,
 	})
 }
 
@@ -138,21 +164,22 @@ func (h *ProfileHandler) Get(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, profileResponse{
-		UserID:      stored.UserID,
-		Username:    stored.Username,
-		Name:        stored.Name,
-		Gender:      string(stored.Gender),
-		BirthDate:   formatBirthDate(stored.BirthDate),
-		Age:         stored.Age,
-		Country:     string(stored.Country),
-		City:        stored.City,
-		Description: stored.Description,
-		EmojiCode:   string(stored.EmojiCode),
-		Photos:      stored.Photos,
-		IsHidden:    stored.IsHidden,
-		IsModerator: stored.IsModerator,
-		CreatedAt:   stored.CreatedAt,
-		UpdatedAt:   stored.UpdatedAt,
+		UserID:                    stored.UserID,
+		Username:                  stored.Username,
+		Name:                      stored.Name,
+		Gender:                    string(stored.Gender),
+		BirthDate:                 formatBirthDate(stored.BirthDate),
+		Age:                       stored.Age,
+		Country:                   string(stored.Country),
+		City:                      stored.City,
+		Description:               stored.Description,
+		EmojiCode:                 string(stored.EmojiCode),
+		Photos:                    stored.Photos,
+		IsHidden:                  stored.IsHidden,
+		LikesNotificationsEnabled: stored.LikesNotificationsEnabled,
+		IsModerator:               stored.IsModerator,
+		CreatedAt:                 stored.CreatedAt,
+		UpdatedAt:                 stored.UpdatedAt,
 	})
 }
 
@@ -200,6 +227,37 @@ func (h *ProfileHandler) UpdateVisibility(c *gin.Context) {
 	}
 
 	if err := h.uc.UpdateVisibility(c.Request.Context(), userID, *req.IsHidden); err != nil {
+		code, message := profileHTTPError(err)
+		respondError(c, code, message)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func (h *ProfileHandler) UpdateLikesNotifications(c *gin.Context) {
+	if h == nil || h.uc == nil {
+		respondError(c, http.StatusInternalServerError, "profile handler is not configured")
+		return
+	}
+
+	userID, err := strconv.ParseInt(c.Param("user_id"), 10, 64)
+	if err != nil || userID <= 0 {
+		respondError(c, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	var req profileLikesNotificationsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.LikesNotificationsEnabled == nil {
+		respondError(c, http.StatusBadRequest, "likes_notifications_enabled is required")
+		return
+	}
+
+	if err := h.uc.UpdateLikesNotifications(c.Request.Context(), userID, *req.LikesNotificationsEnabled); err != nil {
 		code, message := profileHTTPError(err)
 		respondError(c, code, message)
 		return

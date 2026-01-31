@@ -578,7 +578,7 @@ func (s *service) profilePreviewInlineKeyboard(l localizer) *domain.InlineKeyboa
 	})
 }
 
-func (s *service) profileSettingsInlineKeyboard(l localizer, isHidden bool, searchAccuracyEnabled bool) *domain.InlineKeyboard {
+func (s *service) profileSettingsInlineKeyboard(l localizer, isHidden bool, searchAccuracyEnabled bool, likesNotificationsEnabled bool) *domain.InlineKeyboard {
 	visibilityText := l.button(btnHideFromSearch)
 	visibilityAction := profileVisibilityHideAction
 	if isHidden {
@@ -586,11 +586,16 @@ func (s *service) profileSettingsInlineKeyboard(l localizer, isHidden bool, sear
 		visibilityAction = profileVisibilityShowAction
 	}
 
-	searchAccuracyText := l.button(btnAdvancedSearchEnable)
+	searchAccuracyText := l.button(btnAdvancedSearchStatus, s.searchAccuracyStatus(l, searchAccuracyEnabled))
 	searchAccuracyAction := searchAccuracyEnableAction
 	if searchAccuracyEnabled {
-		searchAccuracyText = l.button(btnAdvancedSearchDisable)
 		searchAccuracyAction = searchAccuracyDisableAction
+	}
+
+	notificationsText := l.button(btnLikesNotificationsStatus, s.likeNotificationsStatus(l, likesNotificationsEnabled))
+	notificationsAction := likeNotificationsEnableAction
+	if likesNotificationsEnabled {
+		notificationsAction = likeNotificationsDisableAction
 	}
 
 	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
@@ -605,6 +610,12 @@ func (s *service) profileSettingsInlineKeyboard(l localizer, isHidden bool, sear
 				{
 					Text:         searchAccuracyText,
 					CallbackData: domain.CommandProfileSearchAccuracy + ":" + searchAccuracyAction,
+				},
+			},
+			{
+				{
+					Text:         notificationsText,
+					CallbackData: domain.CommandProfileLikeNotifications + ":" + notificationsAction,
 				},
 			},
 			{

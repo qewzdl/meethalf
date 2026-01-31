@@ -66,6 +66,8 @@ func (s *service) handleCommand(ctx context.Context, msg domain.IncomingMessage,
 		return s.profileSettingsText(l), nil
 	case domain.CommandProfileSearchAccuracy:
 		return s.updateSearchAccuracySetting(ctx, msg, l)
+	case domain.CommandProfileLikeNotifications:
+		return s.updateLikeNotificationsSetting(ctx, msg, l)
 	case domain.CommandProfileVisibility:
 		return s.updateProfileVisibility(ctx, msg, l)
 	case domain.CommandProfileDelete:

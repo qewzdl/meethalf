@@ -60,8 +60,8 @@ func (r *ProfileRepository) Upsert(ctx context.Context, profile domain.Profile) 
 
 	now := time.Now().UTC()
 	query := fmt.Sprintf(
-		`INSERT INTO %s (user_id, username, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		`INSERT INTO %s (user_id, username, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, likes_notifications_enabled, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 		 ON CONFLICT (user_id) DO UPDATE SET
 			username = EXCLUDED.username,
 			name = EXCLUDED.name,
@@ -74,6 +74,7 @@ func (r *ProfileRepository) Upsert(ctx context.Context, profile domain.Profile) 
 			emoji_code = EXCLUDED.emoji_code,
 			photos = EXCLUDED.photos,
 			is_hidden = EXCLUDED.is_hidden,
+			likes_notifications_enabled = EXCLUDED.likes_notifications_enabled,
 			updated_at = EXCLUDED.updated_at
 		 RETURNING created_at, updated_at, is_banned, is_shadow_banned, is_moderator`,
 		r.table,
@@ -99,6 +100,7 @@ func (r *ProfileRepository) Upsert(ctx context.Context, profile domain.Profile) 
 		profile.EmojiCode,
 		profile.Photos,
 		profile.IsHidden,
+		profile.LikesNotificationsEnabled,
 		now,
 		now,
 	).Scan(&createdAt, &updatedAt, &isBanned, &isShadowBanned, &isModerator); err != nil {
@@ -123,7 +125,7 @@ func (r *ProfileRepository) GetByUserID(ctx context.Context, userID int64) (doma
 	}
 
 	query := fmt.Sprintf(
-		`SELECT user_id, username, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, is_banned, is_shadow_banned, is_moderator, created_at, updated_at
+		`SELECT user_id, username, name, gender, birth_date, age, country, city, description, emoji_code, photos, is_hidden, likes_notifications_enabled, is_banned, is_shadow_banned, is_moderator, created_at, updated_at
 		 FROM %s
 		 WHERE user_id = $1`,
 		r.table,
@@ -152,6 +154,7 @@ func (r *ProfileRepository) GetByUserID(ctx context.Context, userID int64) (doma
 		&stored.EmojiCode,
 		photosScanner,
 		&stored.IsHidden,
+		&stored.LikesNotificationsEnabled,
 		&stored.IsBanned,
 		&stored.IsShadowBanned,
 		&stored.IsModerator,
@@ -220,6 +223,38 @@ func (r *ProfileRepository) UpdateVisibility(ctx context.Context, userID int64, 
 	)
 
 	result, err := r.db.ExecContext(ctx, query, isHidden, time.Now().UTC(), userID)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func (r *ProfileRepository) UpdateLikesNotifications(ctx context.Context, userID int64, enabled bool) error {
+	if r == nil || r.db == nil {
+		return errors.New("postgres profile repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	query := fmt.Sprintf(
+		`UPDATE %s
+		 SET likes_notifications_enabled = $1, updated_at = $2
+		 WHERE user_id = $3`,
+		r.table,
+	)
+
+	result, err := r.db.ExecContext(ctx, query, enabled, time.Now().UTC(), userID)
 	if err != nil {
 		return err
 	}
@@ -574,6 +609,7 @@ func (r *ProfileRepository) ensureTable(ctx context.Context) error {
 			emoji_code TEXT NOT NULL DEFAULT '',
 			photos TEXT[] NOT NULL DEFAULT '{}',
 			is_hidden BOOLEAN NOT NULL DEFAULT FALSE,
+			likes_notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,
 			is_banned BOOLEAN NOT NULL DEFAULT FALSE,
 			is_shadow_banned BOOLEAN NOT NULL DEFAULT FALSE,
 			is_moderator BOOLEAN NOT NULL DEFAULT FALSE,
@@ -601,6 +637,7 @@ func (r *ProfileRepository) ensureColumns(ctx context.Context) error {
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS city TEXT NOT NULL DEFAULT ''", r.table),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS emoji_code TEXT NOT NULL DEFAULT ''", r.table),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN NOT NULL DEFAULT FALSE", r.table),
+		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS likes_notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE", r.table),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS is_banned BOOLEAN NOT NULL DEFAULT FALSE", r.table),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS is_shadow_banned BOOLEAN NOT NULL DEFAULT FALSE", r.table),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS is_moderator BOOLEAN NOT NULL DEFAULT FALSE", r.table),

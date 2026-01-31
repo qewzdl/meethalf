@@ -111,7 +111,8 @@ entire card is replaced. This keeps the chat tidy and makes each step feel like 
 
 The inline `Preferences` button appears only when a profile already exists and opens profile settings. The menu includes a `Delete profile`
 button that opens a confirmation step, a `Language` button to switch between English and Russian, an
-`Advanced search` toggle (off by default) that controls whether the bot asks for match accuracy, and a
+`Advanced search` toggle (off by default) that controls whether the bot asks for match accuracy, a
+`Like notifications` toggle that controls whether you receive incoming like alerts, and a
 `Hide my profile` / `Show my profile` toggle that controls whether your profile appears in search results. If the
 profile does not exist, Preferences returns a not-found message and shows the `Create profile` button instead of delete.
 Confirming removes the profile via the Meethalf API, and cancel keeps the profile unchanged.
@@ -134,7 +135,7 @@ eligibility: users aged 16-17 see only 16-17 profiles, and users aged 18+ never 
 that it shows profile cards with action buttons:
 
 - 👎 - skip and show the next profile
-- ❤️ - send a like; the recipient gets a like notification (immediately when possible) with a button to open your profile
+- ❤️ - send a like; the recipient gets a like notification (immediately when possible) with a button to open your profile unless they disabled like notifications
 - Report 🚩 - report and show the next profile
 - Previous profile - open the previous profile when available
 - My history - open the list of viewed profiles across sessions (with current decisions) and change them
@@ -145,7 +146,7 @@ When viewing a liked profile in history, the heart button turns into a 💔 butt
 The main menu also includes a `Likes` button that opens a paginated list of people who liked you. Tap a name to open the
 profile card and react (like, pass, or report). Profiles stay in the list until you respond; responding removes them.
 
-When you receive likes, the bot sends a notification right away when it has your chat session; otherwise it shows
+When you receive likes, the bot sends a notification right away when it has your chat session if like notifications are enabled; otherwise it shows
 notifications on `/start` with a button to view the sender profile. Mutual likes trigger a match message that shares each
 user's nickname (Telegram `@username` when available, falling back to the profile name). Viewing other profiles (search
 results and likes) requires an existing profile; otherwise the bot prompts you to create one.

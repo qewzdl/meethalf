@@ -532,18 +532,19 @@ func profileFromResponse(payload profileResponse) (domain.Profile, error) {
 	}
 
 	return domain.Profile{
-		UserID:      payload.UserID,
-		Name:        payload.Name,
-		Gender:      payload.Gender,
-		BirthDate:   birthDate,
-		Age:         payload.Age,
-		Country:     payload.Country,
-		City:        payload.City,
-		Description: payload.Description,
-		EmojiCode:   payload.EmojiCode,
-		Photos:      payload.Photos,
-		IsHidden:    payload.IsHidden,
-		CreatedAt:   payload.CreatedAt,
-		UpdatedAt:   payload.UpdatedAt,
+		UserID:                    payload.UserID,
+		Name:                      payload.Name,
+		Gender:                    payload.Gender,
+		BirthDate:                 birthDate,
+		Age:                       payload.Age,
+		Country:                   payload.Country,
+		City:                      payload.City,
+		Description:               payload.Description,
+		EmojiCode:                 payload.EmojiCode,
+		Photos:                    payload.Photos,
+		IsHidden:                  payload.IsHidden,
+		LikesNotificationsEnabled: payload.LikesNotificationsEnabled,
+		CreatedAt:                 payload.CreatedAt,
+		UpdatedAt:                 payload.UpdatedAt,
 	}, nil
 }
