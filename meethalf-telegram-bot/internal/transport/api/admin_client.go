@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -334,6 +335,56 @@ func (c *AdminClient) ClearUserReportsByUsername(ctx context.Context, username s
 	return c.postAdminAction(ctx, ref, "reports/clear")
 }
 
+func (c *AdminClient) CreateAd(ctx context.Context, text, photoID string) (domain.Advertisement, error) {
+	if c == nil || c.client == nil {
+		return domain.Advertisement{}, errors.New("admin client is not configured")
+	}
+	if c.baseURL == "" {
+		return domain.Advertisement{}, errors.New("admin client base url is empty")
+	}
+	if err := ctx.Err(); err != nil {
+		return domain.Advertisement{}, err
+	}
+
+	payload := adminAdRequest{
+		Text:    strings.TrimSpace(text),
+		PhotoID: strings.TrimSpace(photoID),
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return domain.Advertisement{}, err
+	}
+
+	endpoint := fmt.Sprintf("%s/api/v1/admin/ads", c.baseURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return domain.Advertisement{}, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return domain.Advertisement{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return domain.Advertisement{}, c.apiError(resp)
+	}
+
+	var response adminAdResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return domain.Advertisement{}, err
+	}
+
+	return domain.Advertisement{
+		ID:        response.ID,
+		Text:      response.Text,
+		PhotoID:   response.PhotoID,
+		CreatedAt: response.CreatedAt,
+	}, nil
+}
+
 func (c *AdminClient) getAdminUser(ctx context.Context, userRef string) (domain.UserSummary, error) {
 	if c == nil || c.client == nil {
 		return domain.UserSummary{}, errors.New("admin client is not configured")
@@ -478,6 +529,18 @@ type adminReportedUserResponse struct {
 	ReportCount    int       `json:"report_count"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+type adminAdRequest struct {
+	Text    string `json:"text"`
+	PhotoID string `json:"photo_id"`
+}
+
+type adminAdResponse struct {
+	ID        int64     `json:"id"`
+	Text      string    `json:"text"`
+	PhotoID   string    `json:"photo_id"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func normalizeAdminUsernameRef(username string) (string, error) {

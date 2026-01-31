@@ -61,6 +61,9 @@ curl -X POST http://localhost:8080/api/v1/admin/users/1/moderator
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unmoderator
 curl -X POST http://localhost:8080/api/v1/admin/users/1/reports/clear
 curl -X POST http://localhost:8080/api/v1/admin/users/1/choices/reset
+curl -X POST http://localhost:8080/api/v1/admin/ads \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Launch promo: 20% off premium this week.","photo_id":"telegram-file-id"}'
 ```
 
 `birth_date` uses the `DD.MM.YYYY` format (for example, `24.12.2006`); age is derived automatically and must be between 16 and 120. `country` must be one of `russia`, `kazakhstan`,
@@ -98,6 +101,7 @@ paginated list of reported users with their report counts.
 `POST /api/v1/admin/users/{user_ref}/unmoderator` removes it.
 `POST /api/v1/admin/users/{user_ref}/reports/clear` removes the user from the reported list by clearing report actions.
 `POST /api/v1/admin/users/{user_ref}/choices/reset` clears all match choices and history for the selected user.
+`POST /api/v1/admin/ads` creates a new ad payload (text and/or `photo_id`) for admin broadcast workflows.
 Banned users cannot use profile or search endpoints. Shadow-banned profiles are excluded from search results and likes; they
 can still use profile and search endpoints.
 
@@ -186,6 +190,9 @@ curl -X POST http://localhost:8080/api/v1/admin/users/1/moderator
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unmoderator
 curl -X POST http://localhost:8080/api/v1/admin/users/1/reports/clear
 curl -X POST http://localhost:8080/api/v1/admin/users/1/choices/reset
+curl -X POST http://localhost:8080/api/v1/admin/ads \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Launch promo: 20% off premium this week.","photo_id":"telegram-file-id"}'
 ```
 
 Stop:
@@ -272,6 +279,7 @@ Rate limiting uses a token bucket per client IP; set `RATE_LIMIT_STORE=redis` to
 - internal/usecase/matching - matching and interactions logic
 - internal/usecase/profile - profile logic
 - internal/usecase/moderation - moderation and admin controls
+- internal/usecase/ads - admin ads payloads
 - internal/usecase/payments - payments logic (placeholder)
 - internal/usecase/analytics - analytics logic (placeholder)
 - internal/storage/postgres - Postgres repositories

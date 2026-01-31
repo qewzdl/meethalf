@@ -35,6 +35,8 @@ with pagination, plus `Ban a user` / `Lift ban` buttons that prompt for the prof
 decisions (`/reset_choices <user_id|@username>`). `Reset 16+ check` clears the first-start age confirmation
 (`/reset_start <user_id|@username>`). `Clear reports` removes a user from the reported list
 (`/clear_reports <user_id|@username>`).
+Admins can also `Post ad` to broadcast a text announcement with an optional photo to all users (button in the admin
+dashboard or `/post_ad <text>`; you can attach a photo with a caption).
 Moderators (profiles with `is_moderator=true` in the Meethalf API) see a `Moderator access enabled.` badge and a
 `Moderator dashboard` button, but only with `All users`, `Banned list`, `Shadow banned list`, `Hidden profiles`, and `Reports` lists plus
 `Ban a user` / `Lift ban`, `Shadow ban` / `Lift shadow ban`, `Hide profile` / `Show profile` (regular users only), and `Clear reports`.

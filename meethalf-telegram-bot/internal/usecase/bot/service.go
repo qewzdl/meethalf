@@ -86,6 +86,11 @@ type AdminService interface {
 	ResetUserChoicesByUsername(ctx context.Context, username string) error
 	ClearUserReports(ctx context.Context, userID int64) error
 	ClearUserReportsByUsername(ctx context.Context, username string) error
+	CreateAd(ctx context.Context, text, photoID string) (domain.Advertisement, error)
+}
+
+type BroadcastSender interface {
+	Send(ctx context.Context, msg domain.OutgoingMessage) (int, error)
 }
 
 type service struct {
@@ -97,11 +102,13 @@ type service struct {
 	profiles            ProfileService
 	search              SearchService
 	admin               AdminService
+	broadcastSender     BroadcastSender
 	adminUsernames      map[string]struct{}
 	setupCleanupMu      sync.Mutex
 	setupCleanup        map[int64]setupCleanupInfo
 	adminCleanupMu      sync.Mutex
 	adminCleanup        map[int64]adminCleanupInfo
+	adBroadcastQueue    chan adBroadcastJob
 }
 
 type setupCleanupInfo struct {
@@ -114,8 +121,8 @@ type adminCleanupInfo struct {
 	messageIDs []int
 }
 
-func New(sessions SessionRepository, drafts ProfileDraftRepository, deleteConfirmations ProfileDeletionConfirmationRepository, adminActions AdminActionRepository, ageConfirmations AgeConfirmationRepository, profiles ProfileService, search SearchService, admin AdminService, adminUsernames []string) Usecase {
-	return &service{
+func New(sessions SessionRepository, drafts ProfileDraftRepository, deleteConfirmations ProfileDeletionConfirmationRepository, adminActions AdminActionRepository, ageConfirmations AgeConfirmationRepository, profiles ProfileService, search SearchService, admin AdminService, broadcastSender BroadcastSender, adminUsernames []string) Usecase {
+	svc := &service{
 		sessions:            sessions,
 		drafts:              drafts,
 		deleteConfirmations: deleteConfirmations,
@@ -124,9 +131,12 @@ func New(sessions SessionRepository, drafts ProfileDraftRepository, deleteConfir
 		profiles:            profiles,
 		search:              search,
 		admin:               admin,
+		broadcastSender:     broadcastSender,
 		adminUsernames:      normalizeAdminUsernames(adminUsernames),
 		setupCleanup:        make(map[int64]setupCleanupInfo),
 	}
+	svc.startAdBroadcastWorker()
+	return svc
 }
 
 func (s *service) localizerForMessage(ctx context.Context, msg domain.IncomingMessage) localizer {
@@ -181,7 +191,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		msg.Command != domain.CommandAdminUnmoderator &&
 		msg.Command != domain.CommandAdminResetChoices &&
 		msg.Command != domain.CommandAdminResetStart &&
-		msg.Command != domain.CommandAdminClearReports {
+		msg.Command != domain.CommandAdminClearReports &&
+		msg.Command != domain.CommandAdminPostAd {
 		_ = s.clearAdminAction(ctx, msg.User.ID)
 	}
 	if msg.Command != "" && msg.Command != domain.CommandSearchAI {
@@ -262,6 +273,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		response.Text, response.InlineKeyboard, replyErr = s.adminResetStartMessage(ctx, msg, l)
 	case domain.CommandAdminClearReports:
 		response.Text, response.InlineKeyboard, replyErr = s.adminClearReportsMessage(ctx, msg, l)
+	case domain.CommandAdminPostAd:
+		response.Text, response.InlineKeyboard, replyErr = s.adminAdMessage(ctx, msg, l)
 	case domain.CommandProfileLanguage, domain.CommandLanguage:
 		response.Text, response.InlineKeyboard, replyErr = s.profileLanguageMessage(ctx, msg, l)
 	default:

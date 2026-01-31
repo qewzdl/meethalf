@@ -202,6 +202,12 @@ func (s *service) adminMenuInlineKeyboard(l localizer, role adminRole) *domain.I
 	})
 
 	if role.canManageModerators() {
+		rows = append(rows, []domain.InlineButton{
+			{
+				Text:         l.button(btnAdminPostAd),
+				CallbackData: domain.CommandAdminPostAd,
+			},
+		})
 		rows = append(rows,
 			[]domain.InlineButton{
 				{
@@ -221,6 +227,10 @@ func (s *service) adminMenuInlineKeyboard(l localizer, role adminRole) *domain.I
 	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: rows,
 	})
+}
+
+func (s *service) adminAdInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return s.adminBanInlineKeyboard(l)
 }
 
 func (s *service) adminBanInlineKeyboard(l localizer) *domain.InlineKeyboard {

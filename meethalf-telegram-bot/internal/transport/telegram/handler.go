@@ -393,6 +393,8 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandAdminResetStart
 		case domain.CommandAdminClearReports:
 			command = domain.CommandAdminClearReports
+		case domain.CommandAdminPostAd:
+			command = domain.CommandAdminPostAd
 		}
 	}
 

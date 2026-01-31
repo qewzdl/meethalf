@@ -55,6 +55,7 @@ const (
 	AdminActionResetChoices AdminActionType = "reset_choices"
 	AdminActionResetStart   AdminActionType = "reset_start"
 	AdminActionClearReports AdminActionType = "clear_reports"
+	AdminActionPostAd       AdminActionType = "post_ad"
 )
 
 type AdminActionState struct {

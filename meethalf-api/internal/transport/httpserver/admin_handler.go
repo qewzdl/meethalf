@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"meethalf-api/internal/domain"
+	"meethalf-api/internal/usecase/ads"
 	"meethalf-api/internal/usecase/matching"
 	"meethalf-api/internal/usecase/moderation"
 
@@ -18,12 +19,14 @@ import (
 type AdminHandler struct {
 	uc       moderation.Usecase
 	matching matching.Usecase
+	ads      ads.Usecase
 }
 
-func NewAdminHandler(uc moderation.Usecase, matchingUC matching.Usecase) *AdminHandler {
+func NewAdminHandler(uc moderation.Usecase, matchingUC matching.Usecase, adsUC ads.Usecase) *AdminHandler {
 	return &AdminHandler{
 		uc:       uc,
 		matching: matchingUC,
+		ads:      adsUC,
 	}
 }
 
@@ -64,6 +67,18 @@ type adminReportedUserResponse struct {
 	ReportCount    int       `json:"report_count"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+type adminAdRequest struct {
+	Text    string `json:"text"`
+	PhotoID string `json:"photo_id"`
+}
+
+type adminAdResponse struct {
+	ID        int64     `json:"id"`
+	Text      string    `json:"text"`
+	PhotoID   string    `json:"photo_id"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (h *AdminHandler) ListUsers(c *gin.Context) {
@@ -593,6 +608,40 @@ func (h *AdminHandler) ResetChoices(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func (h *AdminHandler) CreateAd(c *gin.Context) {
+	if h == nil || h.ads == nil {
+		respondError(c, http.StatusInternalServerError, "admin handler is not configured")
+		return
+	}
+
+	var req adminAdRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	ad, err := h.ads.Create(c.Request.Context(), domain.Advertisement{
+		Text:    req.Text,
+		PhotoID: req.PhotoID,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, ads.ErrInvalidAdContent), errors.Is(err, ads.ErrInvalidAdText):
+			respondError(c, http.StatusBadRequest, err.Error())
+		default:
+			respondError(c, http.StatusInternalServerError, "failed to create ad")
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, adminAdResponse{
+		ID:        ad.ID,
+		Text:      ad.Text,
+		PhotoID:   ad.PhotoID,
+		CreatedAt: ad.CreatedAt.UTC(),
+	})
 }
 
 func (h *AdminHandler) applyAdminClearReports(c *gin.Context, userID int64, username string) error {

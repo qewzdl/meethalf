@@ -70,6 +70,7 @@ const (
 	CommandAdminResetChoices        = "reset_choices"
 	CommandAdminResetStart          = "reset_start"
 	CommandAdminClearReports        = "clear_reports"
+	CommandAdminPostAd              = "post_ad"
 )
 
 type OutgoingMessageKind string

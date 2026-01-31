@@ -180,6 +180,18 @@ func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessa
 		msg.Command = domain.CommandAdminClearReports
 		msg.Arguments = s.adminUserIdentifierLabel(userID, username)
 		return msg, nil, false, nil
+	case domain.AdminActionPostAd:
+		text, photoIDs := s.adminAdPayload(msg)
+		if text == "" && len(photoIDs) == 0 {
+			response := domain.OutgoingMessage{
+				ChatID:         msg.ChatID,
+				Text:           s.adminAdUsageText(l),
+				InlineKeyboard: s.adminAdInlineKeyboard(l),
+			}
+			return msg, &response, true, nil
+		}
+		msg.Command = domain.CommandAdminPostAd
+		return msg, nil, false, nil
 	default:
 		_ = s.adminActions.Delete(ctx, msg.User.ID)
 		return msg, nil, false, nil

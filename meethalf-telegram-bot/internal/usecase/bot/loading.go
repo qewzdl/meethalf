@@ -179,6 +179,12 @@ func (s *service) loadingForCommand(ctx context.Context, l localizer, msg domain
 			return domain.OutgoingMessage{}, false
 		}
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminClearReports)}, true
+	case domain.CommandAdminPostAd:
+		text, photoIDs := s.adminAdPayload(msg)
+		if text == "" && len(photoIDs) == 0 {
+			return domain.OutgoingMessage{}, false
+		}
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminAd)}, true
 	default:
 		return domain.OutgoingMessage{}, false
 	}
@@ -209,6 +215,7 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 	case domain.AdminActionResetChoices:
 	case domain.AdminActionResetStart:
 	case domain.AdminActionClearReports:
+	case domain.AdminActionPostAd:
 	default:
 		return domain.OutgoingMessage{}, false, nil
 	}
@@ -219,8 +226,15 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 		return domain.OutgoingMessage{}, false, nil
 	}
 
-	if _, _, ok := s.parseAdminUserIdentifier(msg.Text); !ok {
-		return domain.OutgoingMessage{}, false, nil
+	if action.Action == domain.AdminActionPostAd {
+		text, photoIDs := s.adminAdPayload(msg)
+		if text == "" && len(photoIDs) == 0 {
+			return domain.OutgoingMessage{}, false, nil
+		}
+	} else {
+		if _, _, ok := s.parseAdminUserIdentifier(msg.Text); !ok {
+			return domain.OutgoingMessage{}, false, nil
+		}
 	}
 
 	loadingText := l.message(msgLoadingAdminBan)
@@ -245,6 +259,8 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 		loadingText = l.message(msgLoadingAdminResetStart)
 	case domain.AdminActionClearReports:
 		loadingText = l.message(msgLoadingAdminClearReports)
+	case domain.AdminActionPostAd:
+		loadingText = l.message(msgLoadingAdminAd)
 	}
 	return domain.OutgoingMessage{ChatID: msg.ChatID, Text: loadingText}, true, nil
 }

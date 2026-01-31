@@ -60,6 +60,8 @@ func (role adminRole) allowsAdminAction(action domain.AdminActionType) bool {
 		return role.canModerateUsers()
 	case domain.AdminActionModerator, domain.AdminActionUnmoderator:
 		return role.canManageModerators()
+	case domain.AdminActionPostAd:
+		return role == adminRoleAdmin
 	default:
 		return false
 	}

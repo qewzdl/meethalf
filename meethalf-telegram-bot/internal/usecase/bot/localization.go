@@ -257,6 +257,12 @@ const (
 	msgAdminClearReportsUsage           messageKey = "admin_clear_reports_usage"
 	msgAdminClearReportsFailed          messageKey = "admin_clear_reports_failed"
 	msgAdminClearReportsSuccess         messageKey = "admin_clear_reports_success"
+	msgAdminAdUsage                     messageKey = "admin_ad_usage"
+	msgAdminAdFailed                    messageKey = "admin_ad_failed"
+	msgAdminAdQueued                    messageKey = "admin_ad_queued"
+	msgAdminAdSummary                   messageKey = "admin_ad_summary"
+	msgAdminAdSummaryFailed             messageKey = "admin_ad_summary_failed"
+	msgAdminAdTooLong                   messageKey = "admin_ad_too_long"
 	msgUserBanned                       messageKey = "user_banned"
 	msgProfileCreated                   messageKey = "profile_created"
 	msgProfileUpdated                   messageKey = "profile_updated"
@@ -295,6 +301,7 @@ const (
 	msgLoadingAdminResetChoices         messageKey = "loading_admin_reset_choices"
 	msgLoadingAdminResetStart           messageKey = "loading_admin_reset_start"
 	msgLoadingAdminClearReports         messageKey = "loading_admin_clear_reports"
+	msgLoadingAdminAd                   messageKey = "loading_admin_ad"
 	msgLoadingAdminBannedUsers          messageKey = "loading_admin_banned_users"
 	msgLoadingAdminShadowBannedUsers    messageKey = "loading_admin_shadow_banned_users"
 	msgLoadingAdminModerators           messageKey = "loading_admin_moderators"
@@ -475,6 +482,7 @@ const (
 	btnAdminUnmoderator          buttonKey = "admin_unmoderator"
 	btnAdminResetChoices         buttonKey = "admin_reset_choices"
 	btnAdminResetStart           buttonKey = "admin_reset_start"
+	btnAdminPostAd               buttonKey = "admin_post_ad"
 	btnAdminBannedUsers          buttonKey = "admin_banned_users"
 	btnAdminShadowBannedUsers    buttonKey = "admin_shadow_banned_users"
 	btnAdminModerators           buttonKey = "admin_moderators"
@@ -645,6 +653,12 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgAdminClearReportsUsage:           "Send a user ID or @username to clear reports.",
 		msgAdminClearReportsFailed:          "Couldn't clear reports. Please try again soon.",
 		msgAdminClearReportsSuccess:         "Reports cleared for %s.",
+		msgAdminAdUsage:                     "Send the ad text and optional photo. You can attach a photo with a caption or send text only.",
+		msgAdminAdFailed:                    "Couldn't post the ad. Please try again soon.",
+		msgAdminAdQueued:                    "Ad broadcast started. I'll send a summary here when it's done.",
+		msgAdminAdSummary:                   "Ad broadcast complete. Recipients: %d. Sent: %d. Failed: %d. Skipped: %d.",
+		msgAdminAdSummaryFailed:             "Ad broadcast stopped with errors. Recipients: %d. Sent: %d. Failed: %d. Skipped: %d.",
+		msgAdminAdTooLong:                   "Ad text is too long. Max %d characters.",
 		msgUserBanned:                       "Your account is banned. Contact support if this is a mistake.",
 		msgProfileCreated:                   "Your profile is ready! 🎉",
 		msgProfileUpdated:                   "Profile updated — looking good!",
@@ -683,6 +697,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLoadingAdminResetChoices:         "Resetting match choices...",
 		msgLoadingAdminResetStart:           "Resetting the 16+ check...",
 		msgLoadingAdminClearReports:         "Clearing reports...",
+		msgLoadingAdminAd:                   "Starting ad broadcast...",
 		msgLoadingAdminBannedUsers:          "Loading banned users...",
 		msgLoadingAdminShadowBannedUsers:    "Loading shadow banned users...",
 		msgLoadingAdminModerators:           "Loading moderators...",
@@ -900,6 +915,12 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgAdminClearReportsUsage:           "Отправьте ID пользователя или @username, чтобы очистить жалобы.",
 		msgAdminClearReportsFailed:          "Не удалось очистить жалобы. Попробуйте позже.",
 		msgAdminClearReportsSuccess:         "Жалобы для %s очищены.",
+		msgAdminAdUsage:                     "Отправьте текст рекламы и, при необходимости, фото. Можно прислать фото с подписью или только текст.",
+		msgAdminAdFailed:                    "Не удалось отправить рекламу. Попробуйте позже.",
+		msgAdminAdQueued:                    "Рассылка рекламы запущена. Я пришлю сводку, когда закончу.",
+		msgAdminAdSummary:                   "Рассылка завершена. Получателей: %d. Отправлено: %d. Ошибок: %d. Пропущено: %d.",
+		msgAdminAdSummaryFailed:             "Рассылка завершена с ошибками. Получателей: %d. Отправлено: %d. Ошибок: %d. Пропущено: %d.",
+		msgAdminAdTooLong:                   "Текст рекламы слишком длинный. Максимум %d символов.",
 		msgUserBanned:                       "Ваш аккаунт заблокирован. Если это ошибка, свяжитесь с поддержкой.",
 		msgProfileCreated:                   "Профиль готов! 🎉",
 		msgProfileUpdated:                   "Профиль обновлён — отлично выглядит!",
@@ -938,6 +959,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLoadingAdminResetChoices:         "Сбрасываем решения...",
 		msgLoadingAdminResetStart:           "Сбрасываем проверку 16+...",
 		msgLoadingAdminClearReports:         "Очищаем жалобы...",
+		msgLoadingAdminAd:                   "Запускаем рассылку рекламы...",
 		msgLoadingAdminBannedUsers:          "Загружаем бан-лист...",
 		msgLoadingAdminShadowBannedUsers:    "Загружаем список шадоу-банов...",
 		msgLoadingAdminModerators:           "Загружаем модераторов...",
@@ -1120,6 +1142,7 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnAdminUnmoderator:          "Revoke moderator",
 		btnAdminResetChoices:         "Reset matches",
 		btnAdminResetStart:           "Reset 16+ check",
+		btnAdminPostAd:               "Post ad",
 		btnAdminBannedUsers:          "Banned list",
 		btnAdminShadowBannedUsers:    "Shadow banned list",
 		btnAdminModerators:           "Moderator list",
@@ -1204,6 +1227,7 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnAdminUnmoderator:          "Снять роль модератора",
 		btnAdminResetChoices:         "Сбросить решения по матчам",
 		btnAdminResetStart:           "Сбросить проверку 16+",
+		btnAdminPostAd:               "Разослать рекламу",
 		btnAdminBannedUsers:          "Бан-лист",
 		btnAdminShadowBannedUsers:    "Список шадоу-банов",
 		btnAdminModerators:           "Список модераторов",

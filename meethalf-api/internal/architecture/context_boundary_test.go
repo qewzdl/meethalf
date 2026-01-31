@@ -12,6 +12,7 @@ var boundedContexts = map[string]struct{}{
 	"matching":   {},
 	"profile":    {},
 	"moderation": {},
+	"ads":        {},
 	"payments":   {},
 	"analytics":  {},
 }

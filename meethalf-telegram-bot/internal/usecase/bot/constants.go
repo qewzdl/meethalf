@@ -6,8 +6,12 @@ const (
 	maxNameLength               = 64
 	maxCityLength               = 64
 	maxDescriptionLength        = 500
+	maxAdTextLength             = 4096
+	maxAdCaptionLength          = 1024
 	minPhotos                   = 1
 	maxPhotos                   = 4
+	adminAdBroadcastPageSize    = 200
+	adminAdBroadcastQueueSize   = 5
 	botCheckMinOperand          = 2
 	botCheckMaxOperand          = 9
 	botCheckMaxAttempts         = 3

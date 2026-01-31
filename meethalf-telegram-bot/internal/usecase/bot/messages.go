@@ -265,6 +265,30 @@ func (s *service) adminClearReportsSuccessText(l localizer, userRef string) stri
 	return l.message(msgAdminClearReportsSuccess, userRef)
 }
 
+func (s *service) adminAdUsageText(l localizer) string {
+	return l.message(msgAdminAdUsage)
+}
+
+func (s *service) adminAdFailedText(l localizer) string {
+	return l.message(msgAdminAdFailed)
+}
+
+func (s *service) adminAdQueuedText(l localizer) string {
+	return l.message(msgAdminAdQueued)
+}
+
+func (s *service) adminAdSummaryText(l localizer, total, sent, failed, skipped int) string {
+	return l.message(msgAdminAdSummary, total, sent, failed, skipped)
+}
+
+func (s *service) adminAdSummaryFailedText(l localizer, total, sent, failed, skipped int) string {
+	return l.message(msgAdminAdSummaryFailed, total, sent, failed, skipped)
+}
+
+func (s *service) adminAdTooLongText(l localizer, limit int) string {
+	return l.message(msgAdminAdTooLong, limit)
+}
+
 func (s *service) userBannedText(l localizer) string {
 	return l.message(msgUserBanned)
 }

@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"meethalf-api/internal/usecase/ads"
 	"meethalf-api/internal/usecase/health"
 	"meethalf-api/internal/usecase/matching"
 	"meethalf-api/internal/usecase/moderation"
@@ -14,11 +15,11 @@ type Handlers struct {
 	Admin   *AdminHandler
 }
 
-func NewHandlers(healthUC health.Usecase, profileUC profile.Usecase, matchingUC matching.Usecase, moderationUC moderation.Usecase) *Handlers {
+func NewHandlers(healthUC health.Usecase, profileUC profile.Usecase, matchingUC matching.Usecase, moderationUC moderation.Usecase, adsUC ads.Usecase) *Handlers {
 	return &Handlers{
 		Health:  NewHealthHandler(healthUC),
 		Profile: NewProfileHandler(profileUC),
 		Search:  NewSearchHandler(matchingUC),
-		Admin:   NewAdminHandler(moderationUC, matchingUC),
+		Admin:   NewAdminHandler(moderationUC, matchingUC, adsUC),
 	}
 }
