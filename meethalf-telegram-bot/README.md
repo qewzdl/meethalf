@@ -143,7 +143,7 @@ My history is also available from the main menu.
 When viewing a liked profile in history, the heart button turns into a 💔 button to revoke the like.
 
 The main menu also includes a `Likes` button that opens a paginated list of people who liked you. Tap a name to open the
-profile card and react (like, pass, or report). Profiles stay in the list until you respond.
+profile card and react (like, pass, or report). Profiles stay in the list until you respond; responding removes them.
 
 When you receive likes, the bot sends a notification right away when it has your chat session; otherwise it shows
 notifications on `/start` with a button to view the sender profile. Mutual likes trigger a match message that shares each

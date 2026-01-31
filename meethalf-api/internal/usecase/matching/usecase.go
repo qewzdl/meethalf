@@ -70,6 +70,7 @@ type Repository interface {
 	HasAction(ctx context.Context, viewerID, targetID int64, action domain.MatchAction) (bool, error)
 	ListPendingLikes(ctx context.Context, userID int64) ([]domain.Profile, []int64, error)
 	MarkLikesNotified(ctx context.Context, userID int64, likerIDs []int64) error
+	MarkLikesResponded(ctx context.Context, userID int64, likerIDs []int64) error
 }
 
 type HistoryList struct {
@@ -371,6 +372,9 @@ func (s *service) RecordAction(ctx context.Context, viewerID, targetID int64, ac
 	if err := s.repo.RecordAction(ctx, viewerID, targetID, normalized); err != nil {
 		return domain.MatchActionResult{}, err
 	}
+	if err := s.repo.MarkLikesResponded(ctx, viewerID, []int64{targetID}); err != nil {
+		return domain.MatchActionResult{}, err
+	}
 
 	if normalized != domain.MatchActionLike {
 		return domain.MatchActionResult{}, nil
@@ -386,6 +390,7 @@ func (s *service) RecordAction(ctx context.Context, viewerID, targetID int64, ac
 		notifyErr := errors.Join(
 			s.repo.MarkLikesNotified(ctx, viewerID, []int64{targetID}),
 			s.repo.MarkLikesNotified(ctx, targetID, []int64{viewerID}),
+			s.repo.MarkLikesResponded(ctx, targetID, []int64{viewerID}),
 		)
 		if notifyErr != nil {
 			return result, notifyErr

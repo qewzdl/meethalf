@@ -296,7 +296,7 @@ func (r *MatchingRepository) ListReceivedLikes(ctx context.Context, userID int64
 		`SELECT COUNT(*)
 		 FROM %s i
 		 JOIN %s p ON p.user_id = i.viewer_id
-		 WHERE i.target_id = $1 AND i.action = $2
+		 WHERE i.target_id = $1 AND i.action = $2 AND i.responded_at IS NULL
 		   AND p.is_banned = FALSE
 		   AND p.is_shadow_banned = FALSE
 		   AND NOT EXISTS (
@@ -321,7 +321,7 @@ func (r *MatchingRepository) ListReceivedLikes(ctx context.Context, userID int64
 		        p.is_hidden, p.is_banned, p.is_shadow_banned, p.created_at, p.updated_at
 		 FROM %s i
 		 JOIN %s p ON p.user_id = i.viewer_id
-		 WHERE i.target_id = $1 AND i.action = $2
+		 WHERE i.target_id = $1 AND i.action = $2 AND i.responded_at IS NULL
 		   AND p.is_banned = FALSE
 		   AND p.is_shadow_banned = FALSE
 		   AND NOT EXISTS (
@@ -377,6 +377,12 @@ func (r *MatchingRepository) ResetChoices(ctx context.Context, viewerID int64) e
 
 	interactionQuery := fmt.Sprintf(`DELETE FROM %s WHERE viewer_id = $1`, r.interactionsTable)
 	if _, err := tx.ExecContext(ctx, interactionQuery, viewerID); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	likesQuery := fmt.Sprintf(`UPDATE %s SET responded_at = NULL WHERE target_id = $1 AND action = $2`, r.interactionsTable)
+	if _, err := tx.ExecContext(ctx, likesQuery, viewerID, domain.MatchActionLike); err != nil {
 		_ = tx.Rollback()
 		return err
 	}
@@ -562,18 +568,23 @@ func (r *MatchingRepository) RecordAction(ctx context.Context, viewerID, targetI
 	if action != domain.MatchActionLike {
 		notifiedAt = now
 	}
+	var respondedAt interface{}
+	if action == domain.MatchActionLike {
+		respondedAt = nil
+	}
 
 	query := fmt.Sprintf(
-		`INSERT INTO %s (viewer_id, target_id, action, created_at, notified_at)
-		 VALUES ($1, $2, $3, $4, $5)
+		`INSERT INTO %s (viewer_id, target_id, action, created_at, notified_at, responded_at)
+		 VALUES ($1, $2, $3, $4, $5, $6)
 		 ON CONFLICT (viewer_id, target_id) DO UPDATE SET
 			action = EXCLUDED.action,
 			created_at = EXCLUDED.created_at,
-			notified_at = EXCLUDED.notified_at`,
+			notified_at = EXCLUDED.notified_at,
+			responded_at = EXCLUDED.responded_at`,
 		r.interactionsTable,
 	)
 
-	_, err := r.db.ExecContext(ctx, query, viewerID, targetID, action, now, notifiedAt)
+	_, err := r.db.ExecContext(ctx, query, viewerID, targetID, action, now, notifiedAt, respondedAt)
 	return err
 }
 
@@ -613,7 +624,7 @@ func (r *MatchingRepository) ListPendingLikes(ctx context.Context, userID int64)
 		`SELECT p.user_id, p.name, p.gender, p.birth_date, p.age, p.country, p.city, p.description, p.emoji_code, p.photos, p.is_hidden, p.is_banned, p.is_shadow_banned, p.created_at, p.updated_at
 		 FROM %s i
 		 JOIN %s p ON p.user_id = i.viewer_id
-		 WHERE i.target_id = $1 AND i.action = $2 AND i.notified_at IS NULL
+		 WHERE i.target_id = $1 AND i.action = $2 AND i.notified_at IS NULL AND i.responded_at IS NULL
 		   AND p.is_banned = FALSE
 		   AND p.is_shadow_banned = FALSE
 		 ORDER BY i.created_at ASC`,
@@ -666,7 +677,39 @@ func (r *MatchingRepository) MarkLikesNotified(ctx context.Context, userID int64
 	query := fmt.Sprintf(
 		`UPDATE %s
 		 SET notified_at = $1
-		 WHERE target_id = $2 AND action = $3 AND notified_at IS NULL
+		 WHERE target_id = $2 AND action = $3 AND notified_at IS NULL AND responded_at IS NULL
+		   AND viewer_id IN (%s)`,
+		r.interactionsTable,
+		strings.Join(placeholders, ", "),
+	)
+
+	_, err := r.db.ExecContext(ctx, query, args...)
+	return err
+}
+
+func (r *MatchingRepository) MarkLikesResponded(ctx context.Context, userID int64, likerIDs []int64) error {
+	if r == nil || r.db == nil {
+		return errors.New("postgres matching repository is not configured")
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if len(likerIDs) == 0 {
+		return nil
+	}
+
+	placeholders := make([]string, 0, len(likerIDs))
+	args := make([]any, 0, len(likerIDs)+3)
+	args = append(args, time.Now().UTC(), userID, domain.MatchActionLike)
+	for i, id := range likerIDs {
+		placeholders = append(placeholders, fmt.Sprintf("$%d", i+4))
+		args = append(args, id)
+	}
+
+	query := fmt.Sprintf(
+		`UPDATE %s
+		 SET responded_at = $1
+		 WHERE target_id = $2 AND action = $3 AND responded_at IS NULL
 		   AND viewer_id IN (%s)`,
 		r.interactionsTable,
 		strings.Join(placeholders, ", "),
@@ -801,6 +844,7 @@ func (r *MatchingRepository) ensureTables(ctx context.Context) error {
 				action TEXT NOT NULL,
 				created_at TIMESTAMPTZ NOT NULL,
 				notified_at TIMESTAMPTZ NULL,
+				responded_at TIMESTAMPTZ NULL,
 				PRIMARY KEY (viewer_id, target_id)
 			)`,
 			r.interactionsTable,
@@ -838,6 +882,8 @@ func (r *MatchingRepository) ensureColumns(ctx context.Context) error {
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS action TEXT NOT NULL DEFAULT ''", r.interactionsTable),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ", r.interactionsTable),
 		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS notified_at TIMESTAMPTZ", r.interactionsTable),
+		fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS responded_at TIMESTAMPTZ", r.interactionsTable),
+		fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s (target_id, action, responded_at)", quoteIdentifier("match_interactions_target_responded_idx"), r.interactionsTable),
 	}
 
 	for _, query := range queries {
