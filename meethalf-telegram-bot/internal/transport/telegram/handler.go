@@ -119,6 +119,9 @@ func (h *Handler) Handle(ctx context.Context, update tgbotapi.Update) {
 			}
 			h.deleteMessageRange(ctx, response.ChatID, response.CleanupFromMessageID, messageID)
 		}
+		if len(response.DeleteMessageIDs) > 0 {
+			h.deleteMessages(ctx, response.ChatID, response.DeleteMessageIDs, messageID)
+		}
 	}
 
 	if loadingMessageID != 0 {
@@ -472,6 +475,29 @@ func (h *Handler) deleteMessageRange(ctx context.Context, chatID int64, fromID, 
 	}
 	close(messageIDs)
 	wg.Wait()
+}
+
+func (h *Handler) deleteMessages(ctx context.Context, chatID int64, messageIDs []int, skipID int) {
+	if h == nil || h.sender == nil {
+		return
+	}
+	if chatID == 0 || len(messageIDs) == 0 {
+		return
+	}
+
+	seen := make(map[int]struct{}, len(messageIDs))
+	for _, messageID := range messageIDs {
+		if messageID <= 0 || messageID == skipID {
+			continue
+		}
+		if _, ok := seen[messageID]; ok {
+			continue
+		}
+		seen[messageID] = struct{}{}
+		if err := h.sender.Delete(ctx, chatID, messageID); err != nil && h.logger != nil {
+			h.logger.Printf("delete message error: chat_id=%d message_id=%d err=%v", chatID, messageID, err)
+		}
+	}
 }
 
 type callbackCleanupKey struct {

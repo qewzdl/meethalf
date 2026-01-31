@@ -429,3 +429,16 @@ func (s *service) nicknameFromSession(l localizer, session domain.Session, profi
 	}
 	return l.label(labelUnknown)
 }
+
+func adminActionCleanupIDs(msg domain.IncomingMessage) []int {
+	if msg.MessageID <= 0 {
+		return nil
+	}
+
+	ids := make([]int, 0, 2)
+	if msg.MessageID > 1 {
+		ids = append(ids, msg.MessageID-1)
+	}
+	ids = append(ids, msg.MessageID)
+	return ids
+}

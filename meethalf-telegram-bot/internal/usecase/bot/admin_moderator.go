@@ -36,6 +36,7 @@ func (s *service) adminModeratorMessage(ctx context.Context, msg domain.Incoming
 	text, err := s.performAdminModerator(ctx, userID, username, l)
 	if err == nil && shouldClear {
 		_ = s.clearAdminAction(ctx, msg.User.ID)
+		s.registerAdminActionCleanup(msg)
 	}
 
 	return text, s.adminMenuInlineKeyboard(l, role), err

@@ -110,4 +110,5 @@ type OutgoingMessage struct {
 	CallbackText         string
 	PhotoIDs             []string
 	CleanupFromMessageID int
+	DeleteMessageIDs     []int
 }

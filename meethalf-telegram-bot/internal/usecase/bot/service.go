@@ -99,11 +99,18 @@ type service struct {
 	adminUsernames      map[string]struct{}
 	setupCleanupMu      sync.Mutex
 	setupCleanup        map[int64]setupCleanupInfo
+	adminCleanupMu      sync.Mutex
+	adminCleanup        map[int64]adminCleanupInfo
 }
 
 type setupCleanupInfo struct {
 	chatID         int64
 	startMessageID int
+}
+
+type adminCleanupInfo struct {
+	chatID     int64
+	messageIDs []int
 }
 
 func New(sessions SessionRepository, drafts ProfileDraftRepository, deleteConfirmations ProfileDeletionConfirmationRepository, adminActions AdminActionRepository, ageConfirmations AgeConfirmationRepository, profiles ProfileService, search SearchService, admin AdminService, adminUsernames []string) Usecase {
@@ -445,6 +452,10 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		messages = append(messages, likesFollowUps...)
 	}
 
+	if cleanup := s.takeAdminActionCleanup(msg.User.ID, msg.ChatID); len(cleanup) > 0 && len(messages) > 0 {
+		messages[0].DeleteMessageIDs = append(messages[0].DeleteMessageIDs, cleanup...)
+	}
+
 	return messages, errors.Join(touchErr, replyErr, followUpErr, likesErr)
 }
 
@@ -695,4 +706,48 @@ func (s *service) takeProfileSetupCleanupStart(userID, chatID int64) int {
 	}
 
 	return info.startMessageID
+}
+
+func (s *service) registerAdminActionCleanup(msg domain.IncomingMessage) {
+	if s == nil || msg.User.ID == 0 || msg.ChatID == 0 {
+		return
+	}
+
+	messageIDs := adminActionCleanupIDs(msg)
+	if len(messageIDs) == 0 {
+		return
+	}
+
+	s.adminCleanupMu.Lock()
+	if s.adminCleanup == nil {
+		s.adminCleanup = make(map[int64]adminCleanupInfo)
+	}
+	ids := make([]int, len(messageIDs))
+	copy(ids, messageIDs)
+	s.adminCleanup[msg.User.ID] = adminCleanupInfo{
+		chatID:     msg.ChatID,
+		messageIDs: ids,
+	}
+	s.adminCleanupMu.Unlock()
+}
+
+func (s *service) takeAdminActionCleanup(userID, chatID int64) []int {
+	if s == nil || userID == 0 {
+		return nil
+	}
+
+	s.adminCleanupMu.Lock()
+	info, ok := s.adminCleanup[userID]
+	if ok {
+		delete(s.adminCleanup, userID)
+	}
+	s.adminCleanupMu.Unlock()
+	if !ok {
+		return nil
+	}
+	if info.chatID != 0 && chatID != 0 && info.chatID != chatID {
+		return nil
+	}
+
+	return info.messageIDs
 }

@@ -42,6 +42,7 @@ func (s *service) adminBanMessage(ctx context.Context, msg domain.IncomingMessag
 	text, err := s.performAdminBan(ctx, userID, username, l)
 	if err == nil && shouldClear {
 		_ = s.clearAdminAction(ctx, msg.User.ID)
+		s.registerAdminActionCleanup(msg)
 	}
 
 	return text, s.adminMenuInlineKeyboard(l, role), err
