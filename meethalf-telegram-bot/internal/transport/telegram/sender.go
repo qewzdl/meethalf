@@ -64,6 +64,10 @@ func (s *BotSender) Send(ctx context.Context, msg domain.OutgoingMessage) (int, 
 				for _, row := range msg.InlineKeyboard.Buttons {
 					buttons := make([]tgbotapi.InlineKeyboardButton, 0, len(row))
 					for _, button := range row {
+						if button.URL != "" {
+							buttons = append(buttons, tgbotapi.NewInlineKeyboardButtonURL(button.Text, button.URL))
+							continue
+						}
 						if button.CallbackData == "" {
 							continue
 						}
@@ -118,6 +122,10 @@ func (s *BotSender) Send(ctx context.Context, msg domain.OutgoingMessage) (int, 
 		for _, row := range msg.InlineKeyboard.Buttons {
 			buttons := make([]tgbotapi.InlineKeyboardButton, 0, len(row))
 			for _, button := range row {
+				if button.URL != "" {
+					buttons = append(buttons, tgbotapi.NewInlineKeyboardButtonURL(button.Text, button.URL))
+					continue
+				}
 				if button.CallbackData == "" {
 					continue
 				}

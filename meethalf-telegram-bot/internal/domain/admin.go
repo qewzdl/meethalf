@@ -56,6 +56,7 @@ const (
 	AdminActionResetStart   AdminActionType = "reset_start"
 	AdminActionClearReports AdminActionType = "clear_reports"
 	AdminActionPostAd       AdminActionType = "post_ad"
+	AdminActionPostAdButton AdminActionType = "post_ad_button"
 )
 
 type AdminActionState struct {
@@ -63,4 +64,7 @@ type AdminActionState struct {
 	ChatID      int64
 	Action      AdminActionType
 	RequestedAt time.Time
+	AdText      string
+	AdPhotoID   string
+	AdButtons   []AdButton
 }

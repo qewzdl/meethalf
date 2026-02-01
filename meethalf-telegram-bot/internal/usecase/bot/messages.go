@@ -277,6 +277,30 @@ func (s *service) adminAdQueuedText(l localizer) string {
 	return l.message(msgAdminAdQueued)
 }
 
+func (s *service) adminAdDraftStatusText(l localizer, hasText, hasPhoto bool, buttonCount int) string {
+	textStatus := l.label(labelNo)
+	if hasText {
+		textStatus = l.label(labelYes)
+	}
+	photoStatus := l.label(labelNo)
+	if hasPhoto {
+		photoStatus = l.label(labelYes)
+	}
+	return l.message(msgAdminAdDraftStatus, textStatus, photoStatus, buttonCount)
+}
+
+func (s *service) adminAdButtonUsageText(l localizer) string {
+	return l.message(msgAdminAdButtonUsage)
+}
+
+func (s *service) adminAdButtonAddedText(l localizer, total int) string {
+	return l.message(msgAdminAdButtonAdded, total)
+}
+
+func (s *service) adminAdPreviewSentText(l localizer) string {
+	return l.message(msgAdminAdPreviewSent)
+}
+
 func (s *service) adminAdSummaryText(l localizer, total, sent, failed, skipped int) string {
 	return l.message(msgAdminAdSummary, total, sent, failed, skipped)
 }

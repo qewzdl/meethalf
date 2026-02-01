@@ -229,8 +229,55 @@ func (s *service) adminMenuInlineKeyboard(l localizer, role adminRole) *domain.I
 	})
 }
 
-func (s *service) adminAdInlineKeyboard(l localizer) *domain.InlineKeyboard {
-	return s.adminBanInlineKeyboard(l)
+func (s *service) adminAdInlineKeyboard(l localizer, hasPhoto, hasButtons bool) *domain.InlineKeyboard {
+	rows := [][]domain.InlineButton{
+		{
+			{
+				Text:         l.button(btnAdminAdAddButton),
+				CallbackData: domain.CommandAdminAdAddButton,
+			},
+			{
+				Text:         l.button(btnAdminAdPreview),
+				CallbackData: domain.CommandAdminAdPreview,
+			},
+		},
+	}
+
+	if hasPhoto || hasButtons {
+		row := []domain.InlineButton{}
+		if hasPhoto {
+			row = append(row, domain.InlineButton{
+				Text:         l.button(btnAdminAdRemovePhoto),
+				CallbackData: domain.CommandAdminAdRemovePhoto,
+			})
+		}
+		if hasButtons {
+			row = append(row, domain.InlineButton{
+				Text:         l.button(btnAdminAdClearButtons),
+				CallbackData: domain.CommandAdminAdClearButtons,
+			})
+		}
+		if len(row) > 0 {
+			rows = append(rows, row)
+		}
+	}
+
+	rows = append(rows,
+		[]domain.InlineButton{
+			{
+				Text:         l.button(btnAdminAdSend),
+				CallbackData: domain.CommandAdminAdSend,
+			},
+		},
+		[]domain.InlineButton{
+			{
+				Text:         l.button(btnAdminBackToMenu),
+				CallbackData: domain.CommandAdminMenu,
+			},
+		},
+	)
+
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{Buttons: rows})
 }
 
 func (s *service) adminBanInlineKeyboard(l localizer) *domain.InlineKeyboard {

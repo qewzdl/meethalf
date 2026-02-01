@@ -395,6 +395,16 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandAdminClearReports
 		case domain.CommandAdminPostAd:
 			command = domain.CommandAdminPostAd
+		case domain.CommandAdminAdPreview:
+			command = domain.CommandAdminAdPreview
+		case domain.CommandAdminAdSend:
+			command = domain.CommandAdminAdSend
+		case domain.CommandAdminAdAddButton:
+			command = domain.CommandAdminAdAddButton
+		case domain.CommandAdminAdClearButtons:
+			command = domain.CommandAdminAdClearButtons
+		case domain.CommandAdminAdRemovePhoto:
+			command = domain.CommandAdminAdRemovePhoto
 		}
 	}
 

@@ -86,7 +86,7 @@ type AdminService interface {
 	ResetUserChoicesByUsername(ctx context.Context, username string) error
 	ClearUserReports(ctx context.Context, userID int64) error
 	ClearUserReportsByUsername(ctx context.Context, username string) error
-	CreateAd(ctx context.Context, text, photoID string) (domain.Advertisement, error)
+	CreateAd(ctx context.Context, text, photoID string, buttons []domain.AdButton) (domain.Advertisement, error)
 }
 
 type BroadcastSender interface {
@@ -192,7 +192,12 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		msg.Command != domain.CommandAdminResetChoices &&
 		msg.Command != domain.CommandAdminResetStart &&
 		msg.Command != domain.CommandAdminClearReports &&
-		msg.Command != domain.CommandAdminPostAd {
+		msg.Command != domain.CommandAdminPostAd &&
+		msg.Command != domain.CommandAdminAdPreview &&
+		msg.Command != domain.CommandAdminAdSend &&
+		msg.Command != domain.CommandAdminAdAddButton &&
+		msg.Command != domain.CommandAdminAdClearButtons &&
+		msg.Command != domain.CommandAdminAdRemovePhoto {
 		_ = s.clearAdminAction(ctx, msg.User.ID)
 	}
 	if msg.Command != "" && msg.Command != domain.CommandSearchAI {
@@ -275,6 +280,16 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		response.Text, response.InlineKeyboard, replyErr = s.adminClearReportsMessage(ctx, msg, l)
 	case domain.CommandAdminPostAd:
 		response.Text, response.InlineKeyboard, replyErr = s.adminAdMessage(ctx, msg, l)
+	case domain.CommandAdminAdPreview:
+		response.Text, response.InlineKeyboard, replyErr = s.adminAdPreviewMessage(ctx, msg, l)
+	case domain.CommandAdminAdSend:
+		response.Text, response.InlineKeyboard, replyErr = s.adminAdSendMessage(ctx, msg, l)
+	case domain.CommandAdminAdAddButton:
+		response.Text, response.InlineKeyboard, replyErr = s.adminAdAddButtonMessage(ctx, msg, l)
+	case domain.CommandAdminAdClearButtons:
+		response.Text, response.InlineKeyboard, replyErr = s.adminAdClearButtonsMessage(ctx, msg, l)
+	case domain.CommandAdminAdRemovePhoto:
+		response.Text, response.InlineKeyboard, replyErr = s.adminAdRemovePhotoMessage(ctx, msg, l)
 	case domain.CommandProfileLanguage, domain.CommandLanguage:
 		response.Text, response.InlineKeyboard, replyErr = s.profileLanguageMessage(ctx, msg, l)
 	default:

@@ -263,6 +263,10 @@ const (
 	msgAdminAdSummary                   messageKey = "admin_ad_summary"
 	msgAdminAdSummaryFailed             messageKey = "admin_ad_summary_failed"
 	msgAdminAdTooLong                   messageKey = "admin_ad_too_long"
+	msgAdminAdDraftStatus               messageKey = "admin_ad_draft_status"
+	msgAdminAdButtonUsage               messageKey = "admin_ad_button_usage"
+	msgAdminAdButtonAdded               messageKey = "admin_ad_button_added"
+	msgAdminAdPreviewSent               messageKey = "admin_ad_preview_sent"
 	msgUserBanned                       messageKey = "user_banned"
 	msgProfileCreated                   messageKey = "profile_created"
 	msgProfileUpdated                   messageKey = "profile_updated"
@@ -488,6 +492,11 @@ const (
 	btnAdminModerators           buttonKey = "admin_moderators"
 	btnAdminReports              buttonKey = "admin_reports"
 	btnAdminClearReports         buttonKey = "admin_clear_reports"
+	btnAdminAdAddButton          buttonKey = "admin_ad_add_button"
+	btnAdminAdClearButtons       buttonKey = "admin_ad_clear_buttons"
+	btnAdminAdRemovePhoto        buttonKey = "admin_ad_remove_photo"
+	btnAdminAdPreview            buttonKey = "admin_ad_preview"
+	btnAdminAdSend               buttonKey = "admin_ad_send"
 	btnAdminUsersPrev            buttonKey = "admin_users_prev"
 	btnAdminUsersNext            buttonKey = "admin_users_next"
 	btnAdminBackToMenu           buttonKey = "admin_back_to_menu"
@@ -568,6 +577,8 @@ const (
 	labelStatusVisible      labelKey = "status_visible"
 	labelStatusEnabled      labelKey = "status_enabled"
 	labelStatusDisabled     labelKey = "status_disabled"
+	labelYes                labelKey = "yes"
+	labelNo                 labelKey = "no"
 	labelName               labelKey = "label_name"
 	labelEmoji              labelKey = "label_emoji"
 	labelGender             labelKey = "label_gender"
@@ -653,12 +664,16 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgAdminClearReportsUsage:           "Send a user ID or @username to clear reports.",
 		msgAdminClearReportsFailed:          "Couldn't clear reports. Please try again soon.",
 		msgAdminClearReportsSuccess:         "Reports cleared for %s.",
-		msgAdminAdUsage:                     "Send the ad text and optional photo. You can attach a photo with a caption or send text only.",
+		msgAdminAdUsage:                     "Send the ad text and optional photo in any order. Use the buttons below to add links, preview, or send the broadcast.",
 		msgAdminAdFailed:                    "Couldn't post the ad. Please try again soon.",
 		msgAdminAdQueued:                    "Ad broadcast started. I'll send a summary here when it's done.",
 		msgAdminAdSummary:                   "Ad broadcast complete. Recipients: %d. Sent: %d. Failed: %d. Skipped: %d.",
 		msgAdminAdSummaryFailed:             "Ad broadcast stopped with errors. Recipients: %d. Sent: %d. Failed: %d. Skipped: %d.",
 		msgAdminAdTooLong:                   "Ad text is too long. Max %d characters.",
+		msgAdminAdDraftStatus:               "Ad draft updated.\nText: %s\nPhoto: %s\nButtons: %d.",
+		msgAdminAdButtonUsage:               "Send the button as: Label | https://example.com",
+		msgAdminAdButtonAdded:               "Button added. Total buttons: %d.",
+		msgAdminAdPreviewSent:               "Preview sent below.",
 		msgUserBanned:                       "Your account is banned. Contact support if this is a mistake.",
 		msgProfileCreated:                   "Your profile is ready! 🎉",
 		msgProfileUpdated:                   "Profile updated — looking good!",
@@ -915,12 +930,16 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgAdminClearReportsUsage:           "Отправьте ID пользователя или @username, чтобы очистить жалобы.",
 		msgAdminClearReportsFailed:          "Не удалось очистить жалобы. Попробуйте позже.",
 		msgAdminClearReportsSuccess:         "Жалобы для %s очищены.",
-		msgAdminAdUsage:                     "Отправьте текст рекламы и, при необходимости, фото. Можно прислать фото с подписью или только текст.",
+		msgAdminAdUsage:                     "Отправьте текст и/или фото в любом порядке. Кнопками ниже можно добавить ссылки, посмотреть предпросмотр и отправить рассылку.",
 		msgAdminAdFailed:                    "Не удалось отправить рекламу. Попробуйте позже.",
 		msgAdminAdQueued:                    "Рассылка рекламы запущена. Я пришлю сводку, когда закончу.",
 		msgAdminAdSummary:                   "Рассылка завершена. Получателей: %d. Отправлено: %d. Ошибок: %d. Пропущено: %d.",
 		msgAdminAdSummaryFailed:             "Рассылка завершена с ошибками. Получателей: %d. Отправлено: %d. Ошибок: %d. Пропущено: %d.",
 		msgAdminAdTooLong:                   "Текст рекламы слишком длинный. Максимум %d символов.",
+		msgAdminAdDraftStatus:               "Черновик рекламы обновлён.\nТекст: %s\nФото: %s\nКнопок: %d.",
+		msgAdminAdButtonUsage:               "Отправьте кнопку в формате: Текст | https://example.com",
+		msgAdminAdButtonAdded:               "Кнопка добавлена. Всего кнопок: %d.",
+		msgAdminAdPreviewSent:               "Предпросмотр отправлен ниже.",
 		msgUserBanned:                       "Ваш аккаунт заблокирован. Если это ошибка, свяжитесь с поддержкой.",
 		msgProfileCreated:                   "Профиль готов! 🎉",
 		msgProfileUpdated:                   "Профиль обновлён — отлично выглядит!",
@@ -1148,6 +1167,11 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnAdminModerators:           "Moderator list",
 		btnAdminReports:              "Reports",
 		btnAdminClearReports:         "Clear reports",
+		btnAdminAdAddButton:          "Add button",
+		btnAdminAdClearButtons:       "Clear buttons",
+		btnAdminAdRemovePhoto:        "Remove photo",
+		btnAdminAdPreview:            "Preview",
+		btnAdminAdSend:               "Send ad",
 		btnAdminUsersPrev:            "Prev",
 		btnAdminUsersNext:            "Next",
 		btnAdminBackToMenu:           "Back to admin menu",
@@ -1233,6 +1257,11 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnAdminModerators:           "Список модераторов",
 		btnAdminReports:              "Репорты",
 		btnAdminClearReports:         "Очистить репорты",
+		btnAdminAdAddButton:          "Добавить кнопку",
+		btnAdminAdClearButtons:       "Очистить кнопки",
+		btnAdminAdRemovePhoto:        "Убрать фото",
+		btnAdminAdPreview:            "Предпросмотр",
+		btnAdminAdSend:               "Отправить",
 		btnAdminUsersPrev:            "Предыдущие",
 		btnAdminUsersNext:            "Следующие",
 		btnAdminBackToMenu:           "Назад в админ-меню",
@@ -1315,6 +1344,8 @@ var labelCatalog = map[domain.Language]map[labelKey]string{
 		labelStatusVisible:      "shown",
 		labelStatusEnabled:      "active",
 		labelStatusDisabled:     "inactive",
+		labelYes:                "Yes",
+		labelNo:                 "No",
 		labelName:               "Display name",
 		labelEmoji:              "Emoji vibe",
 		labelGender:             "Gender identity",
@@ -1360,6 +1391,8 @@ var labelCatalog = map[domain.Language]map[labelKey]string{
 		labelStatusVisible:      "видимый",
 		labelStatusEnabled:      "активно",
 		labelStatusDisabled:     "неактивно",
+		labelYes:                "Да",
+		labelNo:                 "Нет",
 		labelName:               "Имя/ник",
 		labelEmoji:              "Эмодзи-настроение",
 		labelGender:             "Пол/гендер",

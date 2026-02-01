@@ -181,17 +181,90 @@ func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessa
 		msg.Arguments = s.adminUserIdentifierLabel(userID, username)
 		return msg, nil, false, nil
 	case domain.AdminActionPostAd:
-		text, photoIDs := s.adminAdPayload(msg)
-		if text == "" && len(photoIDs) == 0 {
+		text, photoIDs, buttons, payloadErr := s.adminAdPayload(msg)
+		if payloadErr != nil {
+			_, hasPhoto, buttonCount := adminAdDraftMeta(action)
 			response := domain.OutgoingMessage{
 				ChatID:         msg.ChatID,
 				Text:           s.adminAdUsageText(l),
-				InlineKeyboard: s.adminAdInlineKeyboard(l),
+				InlineKeyboard: s.adminAdInlineKeyboard(l, hasPhoto, buttonCount > 0),
 			}
 			return msg, &response, true, nil
 		}
-		msg.Command = domain.CommandAdminPostAd
-		return msg, nil, false, nil
+		if text != "" && len([]rune(text)) > maxAdTextLength {
+			_, hasPhoto, buttonCount := adminAdDraftMeta(action)
+			response := domain.OutgoingMessage{
+				ChatID:         msg.ChatID,
+				Text:           s.adminAdTooLongText(l, maxAdTextLength),
+				InlineKeyboard: s.adminAdInlineKeyboard(l, hasPhoto, buttonCount > 0),
+			}
+			return msg, &response, true, nil
+		}
+
+		updated := s.applyAdminAdDraftUpdate(&action, text, photoIDs, buttons)
+		if action.ChatID == 0 {
+			action.ChatID = msg.ChatID
+		}
+		action.Action = domain.AdminActionPostAd
+		if updated {
+			action.RequestedAt = s.now(msg.ReceivedAt)
+			if err := s.adminActions.Save(ctx, action); err != nil {
+				response := domain.OutgoingMessage{
+					ChatID:         msg.ChatID,
+					Text:           s.adminAdFailedText(l),
+					InlineKeyboard: s.adminMenuInlineKeyboard(l, role),
+				}
+				return msg, &response, true, err
+			}
+		}
+
+		hasText, hasPhoto, buttonCount := adminAdDraftMeta(action)
+		if !hasText && !hasPhoto {
+			response := domain.OutgoingMessage{
+				ChatID:         msg.ChatID,
+				Text:           s.adminAdUsageText(l),
+				InlineKeyboard: s.adminAdInlineKeyboard(l, hasPhoto, buttonCount > 0),
+			}
+			return msg, &response, true, nil
+		}
+		response := domain.OutgoingMessage{
+			ChatID:         msg.ChatID,
+			Text:           s.adminAdDraftStatusText(l, hasText, hasPhoto, buttonCount),
+			InlineKeyboard: s.adminAdInlineKeyboard(l, hasPhoto, buttonCount > 0),
+		}
+		return msg, &response, true, nil
+	case domain.AdminActionPostAdButton:
+		button, err := parseAdButtonInput(msg.Text)
+		if err != nil {
+			_, hasPhoto, buttonCount := adminAdDraftMeta(action)
+			response := domain.OutgoingMessage{
+				ChatID:         msg.ChatID,
+				Text:           s.adminAdButtonUsageText(l),
+				InlineKeyboard: s.adminAdInlineKeyboard(l, hasPhoto, buttonCount > 0),
+			}
+			return msg, &response, true, nil
+		}
+		action.AdButtons = append(action.AdButtons, button)
+		action.Action = domain.AdminActionPostAd
+		if action.ChatID == 0 {
+			action.ChatID = msg.ChatID
+		}
+		action.RequestedAt = s.now(msg.ReceivedAt)
+		if err := s.adminActions.Save(ctx, action); err != nil {
+			response := domain.OutgoingMessage{
+				ChatID:         msg.ChatID,
+				Text:           s.adminAdFailedText(l),
+				InlineKeyboard: s.adminMenuInlineKeyboard(l, role),
+			}
+			return msg, &response, true, err
+		}
+		hasText, hasPhoto, buttonCount := adminAdDraftMeta(action)
+		response := domain.OutgoingMessage{
+			ChatID:         msg.ChatID,
+			Text:           s.adminAdButtonAddedText(l, buttonCount) + "\n" + s.adminAdDraftStatusText(l, hasText, hasPhoto, buttonCount),
+			InlineKeyboard: s.adminAdInlineKeyboard(l, hasPhoto, buttonCount > 0),
+		}
+		return msg, &response, true, nil
 	default:
 		_ = s.adminActions.Delete(ctx, msg.User.ID)
 		return msg, nil, false, nil

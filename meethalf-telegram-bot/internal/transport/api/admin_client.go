@@ -335,7 +335,7 @@ func (c *AdminClient) ClearUserReportsByUsername(ctx context.Context, username s
 	return c.postAdminAction(ctx, ref, "reports/clear")
 }
 
-func (c *AdminClient) CreateAd(ctx context.Context, text, photoID string) (domain.Advertisement, error) {
+func (c *AdminClient) CreateAd(ctx context.Context, text, photoID string, buttons []domain.AdButton) (domain.Advertisement, error) {
 	if c == nil || c.client == nil {
 		return domain.Advertisement{}, errors.New("admin client is not configured")
 	}
@@ -349,6 +349,15 @@ func (c *AdminClient) CreateAd(ctx context.Context, text, photoID string) (domai
 	payload := adminAdRequest{
 		Text:    strings.TrimSpace(text),
 		PhotoID: strings.TrimSpace(photoID),
+	}
+	if len(buttons) > 0 {
+		payload.Buttons = make([]adminAdButton, 0, len(buttons))
+		for _, button := range buttons {
+			payload.Buttons = append(payload.Buttons, adminAdButton{
+				Text: button.Text,
+				URL:  button.URL,
+			})
+		}
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -377,10 +386,19 @@ func (c *AdminClient) CreateAd(ctx context.Context, text, photoID string) (domai
 		return domain.Advertisement{}, err
 	}
 
+	adButtons := make([]domain.AdButton, 0, len(response.Buttons))
+	for _, button := range response.Buttons {
+		adButtons = append(adButtons, domain.AdButton{
+			Text: button.Text,
+			URL:  button.URL,
+		})
+	}
+
 	return domain.Advertisement{
 		ID:        response.ID,
 		Text:      response.Text,
 		PhotoID:   response.PhotoID,
+		Buttons:   adButtons,
 		CreatedAt: response.CreatedAt,
 	}, nil
 }
@@ -531,16 +549,23 @@ type adminReportedUserResponse struct {
 	UpdatedAt      time.Time `json:"updated_at"`
 }
 
+type adminAdButton struct {
+	Text string `json:"text"`
+	URL  string `json:"url"`
+}
+
 type adminAdRequest struct {
-	Text    string `json:"text"`
-	PhotoID string `json:"photo_id"`
+	Text    string          `json:"text"`
+	PhotoID string          `json:"photo_id"`
+	Buttons []adminAdButton `json:"buttons,omitempty"`
 }
 
 type adminAdResponse struct {
-	ID        int64     `json:"id"`
-	Text      string    `json:"text"`
-	PhotoID   string    `json:"photo_id"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int64         `json:"id"`
+	Text      string        `json:"text"`
+	PhotoID   string        `json:"photo_id"`
+	Buttons   []adminAdButton `json:"buttons"`
+	CreatedAt time.Time     `json:"created_at"`
 }
 
 func normalizeAdminUsernameRef(username string) (string, error) {

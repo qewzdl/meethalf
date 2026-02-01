@@ -72,12 +72,20 @@ type adminReportedUserResponse struct {
 type adminAdRequest struct {
 	Text    string `json:"text"`
 	PhotoID string `json:"photo_id"`
+	Buttons []struct {
+		Text string `json:"text"`
+		URL  string `json:"url"`
+	} `json:"buttons"`
 }
 
 type adminAdResponse struct {
 	ID        int64     `json:"id"`
 	Text      string    `json:"text"`
 	PhotoID   string    `json:"photo_id"`
+	Buttons   []struct {
+		Text string `json:"text"`
+		URL  string `json:"url"`
+	} `json:"buttons"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -622,13 +630,27 @@ func (h *AdminHandler) CreateAd(c *gin.Context) {
 		return
 	}
 
+	buttons := make([]domain.AdButton, 0, len(req.Buttons))
+	for _, button := range req.Buttons {
+		buttons = append(buttons, domain.AdButton{
+			Text: button.Text,
+			URL:  button.URL,
+		})
+	}
+
 	ad, err := h.ads.Create(c.Request.Context(), domain.Advertisement{
 		Text:    req.Text,
 		PhotoID: req.PhotoID,
+		Buttons: buttons,
 	})
 	if err != nil {
 		switch {
-		case errors.Is(err, ads.ErrInvalidAdContent), errors.Is(err, ads.ErrInvalidAdText):
+		case errors.Is(err, ads.ErrInvalidAdContent),
+			errors.Is(err, ads.ErrInvalidAdText),
+			errors.Is(err, ads.ErrInvalidAdButtons),
+			errors.Is(err, ads.ErrTooManyAdButtons),
+			errors.Is(err, ads.ErrInvalidAdButton),
+			errors.Is(err, ads.ErrInvalidAdButtonURL):
 			respondError(c, http.StatusBadRequest, err.Error())
 		default:
 			respondError(c, http.StatusInternalServerError, "failed to create ad")
@@ -636,12 +658,29 @@ func (h *AdminHandler) CreateAd(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, adminAdResponse{
+	response := adminAdResponse{
 		ID:        ad.ID,
 		Text:      ad.Text,
 		PhotoID:   ad.PhotoID,
 		CreatedAt: ad.CreatedAt.UTC(),
-	})
+	}
+	if len(ad.Buttons) > 0 {
+		response.Buttons = make([]struct {
+			Text string `json:"text"`
+			URL  string `json:"url"`
+		}, 0, len(ad.Buttons))
+		for _, button := range ad.Buttons {
+			response.Buttons = append(response.Buttons, struct {
+				Text string `json:"text"`
+				URL  string `json:"url"`
+			}{
+				Text: button.Text,
+				URL:  button.URL,
+			})
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *AdminHandler) applyAdminClearReports(c *gin.Context, userID int64, username string) error {

@@ -180,10 +180,8 @@ func (s *service) loadingForCommand(ctx context.Context, l localizer, msg domain
 		}
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminClearReports)}, true
 	case domain.CommandAdminPostAd:
-		text, photoIDs := s.adminAdPayload(msg)
-		if text == "" && len(photoIDs) == 0 {
-			return domain.OutgoingMessage{}, false
-		}
+		return domain.OutgoingMessage{}, false
+	case domain.CommandAdminAdSend:
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminAd)}, true
 	default:
 		return domain.OutgoingMessage{}, false
@@ -216,6 +214,7 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 	case domain.AdminActionResetStart:
 	case domain.AdminActionClearReports:
 	case domain.AdminActionPostAd:
+	case domain.AdminActionPostAdButton:
 	default:
 		return domain.OutgoingMessage{}, false, nil
 	}
@@ -226,11 +225,8 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 		return domain.OutgoingMessage{}, false, nil
 	}
 
-	if action.Action == domain.AdminActionPostAd {
-		text, photoIDs := s.adminAdPayload(msg)
-		if text == "" && len(photoIDs) == 0 {
-			return domain.OutgoingMessage{}, false, nil
-		}
+	if action.Action == domain.AdminActionPostAd || action.Action == domain.AdminActionPostAdButton {
+		return domain.OutgoingMessage{}, false, nil
 	} else {
 		if _, _, ok := s.parseAdminUserIdentifier(msg.Text); !ok {
 			return domain.OutgoingMessage{}, false, nil

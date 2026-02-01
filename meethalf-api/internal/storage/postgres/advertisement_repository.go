@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -34,6 +35,9 @@ func NewAdvertisementRepository(db *sql.DB, schema string) (*AdvertisementReposi
 	if err := repo.ensureTable(context.Background()); err != nil {
 		return nil, err
 	}
+	if err := repo.ensureColumns(context.Background()); err != nil {
+		return nil, err
+	}
 
 	return repo, nil
 }
@@ -47,14 +51,22 @@ func (r *AdvertisementRepository) Create(ctx context.Context, ad domain.Advertis
 	}
 
 	now := time.Now().UTC()
+	buttonsPayload := []byte("[]")
+	if len(ad.Buttons) > 0 {
+		encoded, err := json.Marshal(ad.Buttons)
+		if err != nil {
+			return domain.Advertisement{}, err
+		}
+		buttonsPayload = encoded
+	}
 	query := fmt.Sprintf(
-		`INSERT INTO %s (text, photo_id, created_at)
-		 VALUES ($1, $2, $3)
+		`INSERT INTO %s (text, photo_id, buttons, created_at)
+		 VALUES ($1, $2, $3, $4)
 		 RETURNING id, created_at`,
 		r.table,
 	)
 
-	if err := r.db.QueryRowContext(ctx, query, ad.Text, ad.PhotoID, now).Scan(&ad.ID, &ad.CreatedAt); err != nil {
+	if err := r.db.QueryRowContext(ctx, query, ad.Text, ad.PhotoID, buttonsPayload, now).Scan(&ad.ID, &ad.CreatedAt); err != nil {
 		return domain.Advertisement{}, err
 	}
 
@@ -84,11 +96,22 @@ func (r *AdvertisementRepository) ensureTable(ctx context.Context) error {
 			id BIGSERIAL PRIMARY KEY,
 			text TEXT NOT NULL DEFAULT '',
 			photo_id TEXT NOT NULL DEFAULT '',
+			buttons JSONB NOT NULL DEFAULT '[]'::jsonb,
 			created_at TIMESTAMPTZ NOT NULL
 		)`,
 		r.table,
 	)
 
+	_, err := r.db.ExecContext(ctx, query)
+	return err
+}
+
+func (r *AdvertisementRepository) ensureColumns(ctx context.Context) error {
+	if r == nil || r.db == nil {
+		return errors.New("postgres advertisement repository is not configured")
+	}
+
+	query := fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS buttons JSONB NOT NULL DEFAULT '[]'::jsonb", r.table)
 	_, err := r.db.ExecContext(ctx, query)
 	return err
 }

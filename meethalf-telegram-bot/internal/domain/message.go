@@ -71,6 +71,11 @@ const (
 	CommandAdminResetStart          = "reset_start"
 	CommandAdminClearReports        = "clear_reports"
 	CommandAdminPostAd              = "post_ad"
+	CommandAdminAdPreview           = "admin_ad_preview"
+	CommandAdminAdSend              = "admin_ad_send"
+	CommandAdminAdAddButton         = "admin_ad_add_button"
+	CommandAdminAdClearButtons      = "admin_ad_clear_buttons"
+	CommandAdminAdRemovePhoto       = "admin_ad_remove_photo"
 )
 
 type OutgoingMessageKind string
@@ -95,6 +100,7 @@ type IncomingMessage struct {
 type InlineButton struct {
 	Text         string
 	CallbackData string
+	URL          string
 }
 
 type InlineKeyboard struct {
