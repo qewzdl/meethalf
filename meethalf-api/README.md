@@ -227,6 +227,24 @@ Defaults match docker-compose so you can run without a `.env` file in dev.
 For production, override the default passwords with strong values.
 To keep using the public schema, set `DB_SCHEMA=public`.
 
+## Backup and restore
+
+Requires `pg_dump` and `pg_restore` available in `PATH`. The backup command uses the `DB_*` environment values and
+exports the schema defined by `DB_SCHEMA` (set `DB_SCHEMA=public` to include the public schema). Restore runs with
+`--clean --if-exists`, so existing objects in the target schema are dropped before the import.
+
+Backup:
+
+```bash
+go run ./cmd/backup -out ./meethalf.dump
+```
+
+Restore:
+
+```bash
+go run ./cmd/restore -in ./meethalf.dump
+```
+
 ## Environment
 
 - APP_ENV (dev)
@@ -284,9 +302,12 @@ Rate limiting uses a token bucket per client IP; set `RATE_LIMIT_STORE=redis` to
 
 - cmd/api - entrypoint
 - cmd/db - database bootstrap command
+- cmd/backup - dump the database using pg_dump
+- cmd/restore - restore the database using pg_restore
 - internal/app - dependency wiring and run
 - internal/config - config
 - internal/domain - domain entities
+- internal/usecase/backup - backup orchestration
 - internal/usecase/database - database provisioning
 - internal/usecase/matching - matching and interactions logic
 - internal/usecase/profile - profile logic

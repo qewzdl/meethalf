@@ -177,6 +177,24 @@ Stop:
 docker compose down
 ```
 
+## Backup and restore
+
+Backups cover the Redis-backed session state (sessions, drafts, admin actions, age confirmations). Use
+`SESSION_STORE=redis` with `REDIS_ENABLED=true`; the commands will refuse to run in memory mode. Restore clears all
+existing `meethalf:` keys before importing the snapshot.
+
+Backup:
+
+```bash
+go run ./cmd/backup -out ./meethalf-bot.json
+```
+
+Restore:
+
+```bash
+go run ./cmd/restore -in ./meethalf-bot.json
+```
+
 ## Environment
 
 - APP_ENV (dev)
@@ -216,9 +234,13 @@ bot greeting; comma-separated values are accepted.
 ## Structure
 
 - cmd/bot - entrypoint
+- cmd/backup - dump Redis-backed bot state
+- cmd/restore - restore Redis-backed bot state
 - internal/app - dependency wiring and run
 - internal/config - config
 - internal/domain - domain entities
+- internal/domain/backup - backup snapshot entities
+- internal/usecase/backup - backup orchestration
 - internal/usecase/bot - bot usecase (command routing, profile flow, response builders)
 - internal/storage/memory - in-memory repositories
 - internal/storage/redis - Redis repositories
