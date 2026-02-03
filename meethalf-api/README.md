@@ -60,6 +60,7 @@ curl -X POST http://localhost:8080/api/v1/admin/users/1/shadow-ban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/shadow-unban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/hide
 curl -X POST http://localhost:8080/api/v1/admin/users/1/show
+curl -X POST http://localhost:8080/api/v1/admin/users/1/profile/delete
 curl -X POST http://localhost:8080/api/v1/admin/users/1/moderator
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unmoderator
 curl -X POST http://localhost:8080/api/v1/admin/users/1/reports/clear
@@ -102,6 +103,7 @@ paginated list of reported users with their report counts.
 `POST /api/v1/admin/users/{user_ref}/shadow-unban` removes it.
 `POST /api/v1/admin/users/{user_ref}/hide` hides the profile from search, and
 `POST /api/v1/admin/users/{user_ref}/show` makes it visible again.
+`POST /api/v1/admin/users/{user_ref}/profile/delete` removes the profile by id or username.
 `POST /api/v1/admin/users/{user_ref}/moderator` assigns the moderator role, and
 `POST /api/v1/admin/users/{user_ref}/unmoderator` removes it.
 `POST /api/v1/admin/users/{user_ref}/reports/clear` removes the user from the reported list by clearing report actions.
@@ -195,6 +197,7 @@ curl -X POST http://localhost:8080/api/v1/admin/users/1/shadow-ban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/shadow-unban
 curl -X POST http://localhost:8080/api/v1/admin/users/1/hide
 curl -X POST http://localhost:8080/api/v1/admin/users/1/show
+curl -X POST http://localhost:8080/api/v1/admin/users/1/profile/delete
 curl -X POST http://localhost:8080/api/v1/admin/users/1/moderator
 curl -X POST http://localhost:8080/api/v1/admin/users/1/unmoderator
 curl -X POST http://localhost:8080/api/v1/admin/users/1/reports/clear

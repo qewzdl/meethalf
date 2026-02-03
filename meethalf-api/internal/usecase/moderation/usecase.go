@@ -37,6 +37,8 @@ type Usecase interface {
 	RemoveModeratorByUsername(ctx context.Context, username string) error
 	ClearUserReports(ctx context.Context, userID int64) error
 	ClearUserReportsByUsername(ctx context.Context, username string) error
+	DeleteProfile(ctx context.Context, userID int64) error
+	DeleteProfileByUsername(ctx context.Context, username string) error
 }
 
 type Repository interface {
@@ -49,6 +51,7 @@ type Repository interface {
 	UpdateModeratorStatus(ctx context.Context, userID int64, isModerator bool) error
 	GetUserIDByUsername(ctx context.Context, username string) (int64, error)
 	ClearUserReports(ctx context.Context, userID int64) error
+	DeleteByUserID(ctx context.Context, userID int64) error
 }
 
 type UserList struct {
@@ -542,6 +545,46 @@ func (s *service) ClearUserReportsByUsername(ctx context.Context, username strin
 	}
 
 	return s.ClearUserReports(ctx, userID)
+}
+
+func (s *service) DeleteProfile(ctx context.Context, userID int64) error {
+	if s == nil || s.repo == nil {
+		return errors.New("moderation repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	if userID <= 0 {
+		return ErrInvalidUserID
+	}
+
+	if err := s.repo.DeleteByUserID(ctx, userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrUserNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) DeleteProfileByUsername(ctx context.Context, username string) error {
+	if s == nil || s.repo == nil {
+		return errors.New("moderation repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	userID, err := s.resolveUserIDByUsername(ctx, username)
+	if err != nil {
+		return err
+	}
+
+	return s.DeleteProfile(ctx, userID)
 }
 
 func (s *service) resolveUserIDByUsername(ctx context.Context, username string) (int64, error) {

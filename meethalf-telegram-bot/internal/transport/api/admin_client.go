@@ -271,6 +271,22 @@ func (c *AdminClient) ShowUserByUsername(ctx context.Context, username string) e
 	return c.postAdminAction(ctx, ref, "show")
 }
 
+func (c *AdminClient) DeleteProfile(ctx context.Context, userID int64) error {
+	if userID <= 0 {
+		return errors.New("user id is required")
+	}
+	return c.postAdminAction(ctx, fmt.Sprintf("%d", userID), "profile/delete")
+}
+
+func (c *AdminClient) DeleteProfileByUsername(ctx context.Context, username string) error {
+	ref, err := normalizeAdminUsernameRef(username)
+	if err != nil {
+		return err
+	}
+
+	return c.postAdminAction(ctx, ref, "profile/delete")
+}
+
 func (c *AdminClient) MakeModerator(ctx context.Context, userID int64) error {
 	if userID <= 0 {
 		return errors.New("user id is required")

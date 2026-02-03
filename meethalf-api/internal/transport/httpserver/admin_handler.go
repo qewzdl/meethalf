@@ -575,6 +575,25 @@ func (h *AdminHandler) ClearUserReports(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+func (h *AdminHandler) DeleteProfile(c *gin.Context) {
+	if h == nil || h.uc == nil {
+		respondError(c, http.StatusInternalServerError, "admin handler is not configured")
+		return
+	}
+
+	userID, username, ok := parseAdminUserReference(c.Param("user_ref"))
+	if !ok {
+		respondError(c, http.StatusBadRequest, "invalid user reference")
+		return
+	}
+
+	if err := h.applyAdminDeleteProfile(c, userID, username); err != nil {
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
 func (h *AdminHandler) ResetChoices(c *gin.Context) {
 	if h == nil || h.uc == nil || h.matching == nil {
 		respondError(c, http.StatusInternalServerError, "admin handler is not configured")
@@ -700,6 +719,30 @@ func (h *AdminHandler) applyAdminClearReports(c *gin.Context, userID int64, user
 			respondError(c, http.StatusNotFound, err.Error())
 		default:
 			respondError(c, http.StatusInternalServerError, "failed to clear reports")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (h *AdminHandler) applyAdminDeleteProfile(c *gin.Context, userID int64, username string) error {
+	var err error
+	if username != "" {
+		err = h.uc.DeleteProfileByUsername(c.Request.Context(), username)
+	} else {
+		err = h.uc.DeleteProfile(c.Request.Context(), userID)
+	}
+	if err != nil {
+		switch {
+		case errors.Is(err, moderation.ErrInvalidUserID):
+			respondError(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, moderation.ErrInvalidUsername):
+			respondError(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, moderation.ErrUserNotFound):
+			respondError(c, http.StatusNotFound, err.Error())
+		default:
+			respondError(c, http.StatusInternalServerError, "failed to delete user profile")
 		}
 		return err
 	}

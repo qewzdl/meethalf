@@ -115,6 +115,19 @@ func (s *service) applyAdminAction(ctx context.Context, msg domain.IncomingMessa
 		msg.Command = domain.CommandAdminShowProfile
 		msg.Arguments = s.adminUserIdentifierLabel(userID, username)
 		return msg, nil, false, nil
+	case domain.AdminActionDeleteProfile:
+		userID, username, ok := s.parseAdminUserIdentifier(msg.Text)
+		if !ok {
+			response := domain.OutgoingMessage{
+				ChatID:         msg.ChatID,
+				Text:           s.adminDeleteProfileUsageText(l),
+				InlineKeyboard: s.adminDeleteProfileInlineKeyboard(l),
+			}
+			return msg, &response, true, nil
+		}
+		msg.Command = domain.CommandAdminDeleteProfile
+		msg.Arguments = s.adminUserIdentifierLabel(userID, username)
+		return msg, nil, false, nil
 	case domain.AdminActionModerator:
 		userID, username, ok := s.parseAdminUserIdentifier(msg.Text)
 		if !ok {

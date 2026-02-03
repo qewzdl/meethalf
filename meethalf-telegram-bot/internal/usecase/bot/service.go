@@ -79,6 +79,8 @@ type AdminService interface {
 	HideUserByUsername(ctx context.Context, username string) error
 	ShowUser(ctx context.Context, userID int64) error
 	ShowUserByUsername(ctx context.Context, username string) error
+	DeleteProfile(ctx context.Context, userID int64) error
+	DeleteProfileByUsername(ctx context.Context, username string) error
 	MakeModerator(ctx context.Context, userID int64) error
 	MakeModeratorByUsername(ctx context.Context, username string) error
 	RemoveModerator(ctx context.Context, userID int64) error
@@ -188,6 +190,7 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		msg.Command != domain.CommandAdminShadowUnban &&
 		msg.Command != domain.CommandAdminHideProfile &&
 		msg.Command != domain.CommandAdminShowProfile &&
+		msg.Command != domain.CommandAdminDeleteProfile &&
 		msg.Command != domain.CommandAdminModerator &&
 		msg.Command != domain.CommandAdminUnmoderator &&
 		msg.Command != domain.CommandAdminResetChoices &&
@@ -269,6 +272,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		response.Text, response.InlineKeyboard, replyErr = s.adminHideProfileMessage(ctx, msg, l)
 	case domain.CommandAdminShowProfile:
 		response.Text, response.InlineKeyboard, replyErr = s.adminShowProfileMessage(ctx, msg, l)
+	case domain.CommandAdminDeleteProfile:
+		response.Text, response.InlineKeyboard, replyErr = s.adminDeleteProfileMessage(ctx, msg, l)
 	case domain.CommandAdminModerator:
 		response.Text, response.InlineKeyboard, replyErr = s.adminModeratorMessage(ctx, msg, l)
 	case domain.CommandAdminUnmoderator:

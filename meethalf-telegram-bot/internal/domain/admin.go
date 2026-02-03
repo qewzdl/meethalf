@@ -50,6 +50,7 @@ const (
 	AdminActionUnshadowBan  AdminActionType = "shadow_unban"
 	AdminActionHideProfile  AdminActionType = "hide_profile"
 	AdminActionShowProfile  AdminActionType = "show_profile"
+	AdminActionDeleteProfile AdminActionType = "delete_profile"
 	AdminActionModerator    AdminActionType = "moderator"
 	AdminActionUnmoderator  AdminActionType = "unmoderator"
 	AdminActionResetChoices AdminActionType = "reset_choices"

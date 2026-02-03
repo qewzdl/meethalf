@@ -388,6 +388,8 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandAdminHideProfile
 		case domain.CommandAdminShowProfile:
 			command = domain.CommandAdminShowProfile
+		case domain.CommandAdminDeleteProfile:
+			command = domain.CommandAdminDeleteProfile
 		case domain.CommandAdminModerator:
 			command = domain.CommandAdminModerator
 		case domain.CommandAdminUnmoderator:

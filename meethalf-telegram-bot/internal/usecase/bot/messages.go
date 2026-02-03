@@ -201,6 +201,18 @@ func (s *service) adminShowProfileSuccessText(l localizer, userRef string) strin
 	return l.message(msgAdminShowProfileSuccess, userRef)
 }
 
+func (s *service) adminDeleteProfileUsageText(l localizer) string {
+	return l.message(msgAdminDeleteProfileUsage)
+}
+
+func (s *service) adminDeleteProfileFailedText(l localizer) string {
+	return l.message(msgAdminDeleteProfileFailed)
+}
+
+func (s *service) adminDeleteProfileSuccessText(l localizer, userRef string) string {
+	return l.message(msgAdminDeleteProfileSuccess, userRef)
+}
+
 func (s *service) adminActionFailedText(l localizer) string {
 	return l.message(msgAdminActionFailed)
 }

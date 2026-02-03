@@ -257,6 +257,9 @@ const (
 	msgAdminShowProfileUsage            messageKey = "admin_show_profile_usage"
 	msgAdminShowProfileFailed           messageKey = "admin_show_profile_failed"
 	msgAdminShowProfileSuccess          messageKey = "admin_show_profile_success"
+	msgAdminDeleteProfileUsage          messageKey = "admin_delete_profile_usage"
+	msgAdminDeleteProfileFailed         messageKey = "admin_delete_profile_failed"
+	msgAdminDeleteProfileSuccess        messageKey = "admin_delete_profile_success"
 	msgAdminActionFailed                messageKey = "admin_action_failed"
 	msgAdminModeratorUsage              messageKey = "admin_moderator_usage"
 	msgAdminModeratorFailed             messageKey = "admin_moderator_failed"
@@ -316,6 +319,7 @@ const (
 	msgLoadingAdminHiddenUsers          messageKey = "loading_admin_hidden_users"
 	msgLoadingAdminHideProfile          messageKey = "loading_admin_hide_profile"
 	msgLoadingAdminShowProfile          messageKey = "loading_admin_show_profile"
+	msgLoadingAdminDeleteProfile        messageKey = "loading_admin_delete_profile"
 	msgLoadingAdminModerator            messageKey = "loading_admin_moderator"
 	msgLoadingAdminUnmoderator          messageKey = "loading_admin_unmoderator"
 	msgLoadingAdminResetChoices         messageKey = "loading_admin_reset_choices"
@@ -498,6 +502,7 @@ const (
 	btnAdminHiddenUsers          buttonKey = "admin_hidden_users"
 	btnAdminHideProfile          buttonKey = "admin_hide_profile"
 	btnAdminShowProfile          buttonKey = "admin_show_profile"
+	btnAdminDeleteProfile        buttonKey = "admin_delete_profile"
 	btnAdminModerator            buttonKey = "admin_moderator"
 	btnAdminUnmoderator          buttonKey = "admin_unmoderator"
 	btnAdminResetChoices         buttonKey = "admin_reset_choices"
@@ -664,6 +669,9 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgAdminShowProfileUsage:            "Send a user ID or @username to show the profile.",
 		msgAdminShowProfileFailed:           "Couldn't show the profile. Please try again soon.",
 		msgAdminShowProfileSuccess:          "Profile visible again for %s.",
+		msgAdminDeleteProfileUsage:          "Send a user ID or @username to delete the profile.",
+		msgAdminDeleteProfileFailed:         "Couldn't delete the profile. Please try again soon.",
+		msgAdminDeleteProfileSuccess:        "Profile deleted for %s.",
 		msgAdminActionFailed:                "Couldn't complete the admin action. Please try again soon.",
 		msgAdminModeratorUsage:              "Send a user ID or @username to grant moderator access.",
 		msgAdminModeratorFailed:             "Couldn't grant moderator access. Please try again soon.",
@@ -723,6 +731,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLoadingAdminHiddenUsers:          "Loading hidden profiles...",
 		msgLoadingAdminHideProfile:          "Hiding profile...",
 		msgLoadingAdminShowProfile:          "Showing profile...",
+		msgLoadingAdminDeleteProfile:        "Deleting profile...",
 		msgLoadingAdminModerator:            "Granting moderator access...",
 		msgLoadingAdminUnmoderator:          "Revoking moderator access...",
 		msgLoadingAdminResetChoices:         "Resetting match choices...",
@@ -930,6 +939,9 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgAdminShowProfileUsage:            "Отправьте ID пользователя или @username, чтобы открыть профиль.",
 		msgAdminShowProfileFailed:           "Не удалось открыть профиль. Попробуйте позже.",
 		msgAdminShowProfileSuccess:          "Профиль для %s снова открыт.",
+		msgAdminDeleteProfileUsage:          "Отправьте ID пользователя или @username, чтобы удалить профиль.",
+		msgAdminDeleteProfileFailed:          "Не удалось удалить профиль. Попробуйте позже.",
+		msgAdminDeleteProfileSuccess:          "Профиль удалён для %s.",
 		msgAdminActionFailed:                "Не удалось выполнить админ-действие. Попробуйте позже.",
 		msgAdminModeratorUsage:              "Отправьте ID пользователя или @username, чтобы выдать роль модератора.",
 		msgAdminModeratorFailed:             "Не удалось выдать роль модератора. Попробуйте позже.",
@@ -989,6 +1001,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLoadingAdminHiddenUsers:          "Загружаем скрытые профили...",
 		msgLoadingAdminHideProfile:          "Скрываем профиль...",
 		msgLoadingAdminShowProfile:          "Открываем профиль...",
+		msgLoadingAdminDeleteProfile:          "Удаляем профиль...",
 		msgLoadingAdminModerator:            "Выдаём роль модератора...",
 		msgLoadingAdminUnmoderator:          "Снимаем роль модератора...",
 		msgLoadingAdminResetChoices:         "Сбрасываем решения...",
@@ -1173,6 +1186,7 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnAdminHiddenUsers:          "Hidden profiles",
 		btnAdminHideProfile:          "Hide profile",
 		btnAdminShowProfile:          "Show profile",
+		btnAdminDeleteProfile:        "Delete profile",
 		btnAdminModerator:            "Grant moderator",
 		btnAdminUnmoderator:          "Revoke moderator",
 		btnAdminResetChoices:         "Reset matches",
@@ -1263,6 +1277,7 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnAdminHiddenUsers:          "Скрытые профили",
 		btnAdminHideProfile:          "Скрыть профиль",
 		btnAdminShowProfile:          "Открыть профиль",
+		btnAdminDeleteProfile:        "Удалить профиль",
 		btnAdminModerator:            "Назначить модератором",
 		btnAdminUnmoderator:          "Снять роль модератора",
 		btnAdminResetChoices:         "Сбросить решения по матчам",
@@ -1546,6 +1561,7 @@ var buttonEmojiOverrides = map[buttonKey]string{
 	btnAdminShadowUnban:          "🕵️",
 	btnAdminHideProfile:          "🙈",
 	btnAdminShowProfile:          "👀",
+	btnAdminDeleteProfile:        "🗑️",
 	btnAdminModerator:            "🛡️",
 	btnAdminUnmoderator:          "🚫",
 	btnAdminResetChoices:         "🔄",
