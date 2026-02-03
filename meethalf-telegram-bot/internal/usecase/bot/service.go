@@ -290,6 +290,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		response.Text, response.InlineKeyboard, replyErr = s.adminAdClearButtonsMessage(ctx, msg, l)
 	case domain.CommandAdminAdRemovePhoto:
 		response.Text, response.InlineKeyboard, replyErr = s.adminAdRemovePhotoMessage(ctx, msg, l)
+	case domain.CommandLanguageOnboarding:
+		response.Text, response.InlineKeyboard, replyErr = s.languageOnboardingSelectionMessage(ctx, msg, l)
 	case domain.CommandProfileLanguage, domain.CommandLanguage:
 		response.Text, response.InlineKeyboard, replyErr = s.profileLanguageMessage(ctx, msg, l)
 	default:
@@ -385,8 +387,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 				response.Text = s.profileSettingsTextWithVisibility(l, profile.IsHidden, searchAccuracyEnabled, profile.LikesNotificationsEnabled)
 				response.InlineKeyboard = s.profileSettingsInlineKeyboard(l, profile.IsHidden, searchAccuracyEnabled, profile.LikesNotificationsEnabled)
 			} else {
-				response.Text = l.message(msgProfileNotFoundCreateButton)
-				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
+				response.Text = s.profileSettingsText(l)
+				response.InlineKeyboard = s.profileSettingsGuestInlineKeyboard(l)
 			}
 			messages[0] = response
 		case domain.CommandProfileVisibility:

@@ -59,8 +59,8 @@ func (s *service) handleAgeConfirmationAction(ctx context.Context, msg domain.In
 		if saveErr := s.saveAgeConfirmation(ctx, msg); saveErr != nil {
 			return &domain.OutgoingMessage{ChatID: msg.ChatID, Text: s.ageConfirmationFailedText(l)}, true, saveErr
 		}
-		text, keyboard, err := s.startMessage(ctx, msg, l)
-		return &domain.OutgoingMessage{ChatID: msg.ChatID, Text: text, InlineKeyboard: keyboard}, true, err
+		text, keyboard := s.languageOnboardingMessage(l)
+		return &domain.OutgoingMessage{ChatID: msg.ChatID, Text: text, InlineKeyboard: keyboard}, true, nil
 	case domain.CommandAgeConfirmNo:
 		return &domain.OutgoingMessage{
 			ChatID:         msg.ChatID,

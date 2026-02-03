@@ -102,7 +102,7 @@ paginated list of reported users with their report counts.
 `POST /api/v1/admin/users/{user_ref}/reports/clear` removes the user from the reported list by clearing report actions.
 `POST /api/v1/admin/users/{user_ref}/choices/reset` clears all match choices and history for the selected user.
 `POST /api/v1/admin/ads` creates a new ad payload (text and/or `photo_id`) for admin broadcast workflows; optional
-`buttons` accept `{ "text": "...", "url": "https://..." }` objects.
+`buttons` accept `{ "text": "...", "url": "https://..." }` objects. Button labels are automatically prefixed with the 🔗 emoji so every broadcast button carries a consistent icon.
 Banned users cannot use profile or search endpoints. Shadow-banned profiles are excluded from search results and likes; they
 can still use profile and search endpoints.
 

@@ -84,6 +84,35 @@ func languageFromTelegramCode(code string) domain.Language {
 	return ""
 }
 
+func (s *service) languageOnboardingMessage(l localizer) (string, *domain.InlineKeyboard) {
+	if s == nil {
+		return l.message(msgLanguagePrompt), nil
+	}
+	return l.message(msgLanguagePrompt), s.languageOnboardingInlineKeyboard(l)
+}
+
+func (s *service) languageOnboardingSelectionMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
+	value := strings.TrimSpace(msg.Arguments)
+	if value == "" {
+		return l.message(msgLanguagePrompt), s.languageOnboardingInlineKeyboard(l), nil
+	}
+
+	lang, ok := parseLanguageInput(value)
+	if !ok {
+		return l.message(msgLanguageUnsupported), s.languageOnboardingInlineKeyboard(l), nil
+	}
+
+	err := s.setSessionLanguage(ctx, msg, lang)
+	updatedLocalizer := newLocalizer(lang)
+	text, keyboard, startErr := s.startMessage(ctx, msg, updatedLocalizer)
+	if text != "" {
+		text = updatedLocalizer.message(msgLanguageUpdated) + "\n" + text
+	} else {
+		text = updatedLocalizer.message(msgLanguageUpdated)
+	}
+	return text, keyboard, errors.Join(err, startErr)
+}
+
 func (s *service) profileLanguageMessage(ctx context.Context, msg domain.IncomingMessage, l localizer) (string, *domain.InlineKeyboard, error) {
 	value := strings.TrimSpace(msg.Arguments)
 	if value == "" {
@@ -122,6 +151,6 @@ func (s *service) profileLanguageMessage(ctx context.Context, msg domain.Incomin
 		return text, s.profileSettingsInlineKeyboard(updatedLocalizer, profile.IsHidden, searchAccuracyEnabled, profile.LikesNotificationsEnabled), err
 	}
 
-	text := updatedLocalizer.message(msgLanguageUpdated) + "\n" + updatedLocalizer.message(msgProfileNotFoundCreateButton)
-	return text, s.profileCreateInlineKeyboard(updatedLocalizer), err
+	text := updatedLocalizer.message(msgLanguageUpdated) + "\n" + s.profileSettingsText(updatedLocalizer)
+	return text, s.profileSettingsGuestInlineKeyboard(updatedLocalizer), err
 }

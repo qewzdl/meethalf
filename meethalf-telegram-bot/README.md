@@ -18,9 +18,11 @@ go run ./cmd/bot
 
 ## Commands
 
-- /start - greet user by profile name when available, otherwise Telegram name; show inline Start matching, Search with AI, Likes, My history, and My profile (or Create profile when missing) buttons, plus Preferences only after a profile is created. On the first /start, the bot shows a formal 16+ age confirmation statement before opening the main menu.
+- /start - greet user by profile name when available, otherwise Telegram name; show inline Start matching, Search with AI, Likes, My history, and My profile (or Create profile when missing) buttons. Preferences are available even without a profile, but for unregistered users they only include language settings. On the first /start, the bot shows a formal 16+ age confirmation statement; after confirming, it immediately asks the user to choose a language and then returns to the main menu.
 - /cancel - cancel the current action and return to the main menu
 - /language - open language selection (optional args: `en` or `ru`)
+
+Inline menus now prefix every button label with a contextual emoji so actions stay easy to scan.
 
 ## Admin
 
@@ -42,7 +44,7 @@ Moderators (profiles with `is_moderator=true` in the Meethalf API) see a `Modera
 `Moderator dashboard` button, but only with `All users`, `Banned list`, `Shadow banned list`, `Hidden profiles`, and `Reports` lists plus
 `Ban a user` / `Lift ban`, `Shadow ban` / `Lift shadow ban`, `Hide profile` / `Show profile` (regular users only), and `Clear reports`.
 Moderator management and the moderators list remain admin-only.
-Admin UI labels are localized for English and Russian, including shadow-ban actions.
+Admin UI labels are localized for English and Russian, including shadow-ban actions. Button labels across the admin dashboard (including the ad composer) now carry emoji markers, and each ad button is automatically prefixed with the 🔗 icon so broadcasts match the rest of the UI.
 
 ## Profile setup
 
@@ -112,7 +114,8 @@ entire card is replaced. This keeps the chat tidy and makes each step feel like 
 
 ## Profile settings
 
-The inline `Preferences` button appears only when a profile already exists and opens profile settings. The menu includes a `Delete profile`
+The inline `Preferences` button appears even before creating a profile. For unregistered users, it only shows the `Language`
+action. Once a profile exists, the menu includes a `Delete profile`
 button that opens a confirmation step, a `Language` button to switch between English and Russian, an
 `Advanced search` toggle (off by default) that controls whether the bot asks for match accuracy, a
 `Like notifications` toggle that controls whether you receive incoming like alerts, and a
@@ -123,7 +126,7 @@ Confirming removes the profile via the Meethalf API, and cancel keeps the profil
 ## Language
 
 The bot supports English and Russian. The initial language is picked from the Telegram `language_code` when available,
-otherwise English. You can change it anytime in Preferences > Language or by sending `/language` (optionally `/language en` or `/language ru`); the selection is stored in the session store and
+otherwise English. After the first 16+ confirmation, the bot immediately prompts for language selection and then shows the main menu. You can change it anytime in Preferences > Language or by sending `/language` (optionally `/language en` or `/language ru`); the selection is stored in the session store and
 applies to all future bot responses.
 
 ## Search flow

@@ -16,6 +16,7 @@ const (
 	adminAdButtonPrefixAlt = "btn:"
 	adminAdButtonPrefixRu  = "кнопка:"
 	adminAdButtonsPerRow   = 2
+	adminAdButtonEmoji     = "🔗"
 )
 
 type adBroadcastJob struct {
@@ -676,6 +677,7 @@ func (s *service) adInlineKeyboard(buttons []domain.AdButton) *domain.InlineKeyb
 		if text == "" || link == "" {
 			continue
 		}
+		text = decorateAdminAdButtonText(text)
 		row = append(row, domain.InlineButton{Text: text, URL: link})
 		if len(row) >= perRow {
 			rows = append(rows, row)
@@ -690,6 +692,16 @@ func (s *service) adInlineKeyboard(buttons []domain.AdButton) *domain.InlineKeyb
 	}
 
 	return &domain.InlineKeyboard{Buttons: rows}
+}
+
+func decorateAdminAdButtonText(text string) string {
+	if text == "" {
+		return text
+	}
+	if strings.HasPrefix(text, adminAdButtonEmoji+" ") || text == adminAdButtonEmoji {
+		return text
+	}
+	return adminAdButtonEmoji + " " + text
 }
 
 func (s *service) sendAdBroadcastSummary(ctx context.Context, job adBroadcastJob, result adBroadcastResult) {

@@ -49,7 +49,7 @@ func (s *service) profileInlineKeyboard(l localizer) *domain.InlineKeyboard {
 }
 
 func (s *service) profileCreateInlineKeyboard(l localizer) *domain.InlineKeyboard {
-	return s.profileStartInlineKeyboard(l, l.button(btnCreateProfile), domain.CommandProfile, false)
+	return s.profileStartInlineKeyboard(l, l.button(btnCreateProfile), domain.CommandProfile, true)
 }
 
 func (s *service) profileStartInlineKeyboard(l localizer, text, callbackData string, showSettings bool) *domain.InlineKeyboard {
@@ -691,6 +691,19 @@ func (s *service) profileSettingsInlineKeyboard(l localizer, isHidden bool, sear
 	})
 }
 
+func (s *service) profileSettingsGuestInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
+		Buttons: [][]domain.InlineButton{
+			{
+				{
+					Text:         l.button(btnLanguage),
+					CallbackData: domain.CommandProfileLanguage,
+				},
+			},
+		},
+	})
+}
+
 func (s *service) languageInlineKeyboard(l localizer) *domain.InlineKeyboard {
 	return withCancelInlineKeyboard(l, &domain.InlineKeyboard{
 		Buttons: [][]domain.InlineButton{
@@ -712,6 +725,23 @@ func (s *service) languageInlineKeyboard(l localizer) *domain.InlineKeyboard {
 			},
 		},
 	})
+}
+
+func (s *service) languageOnboardingInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return &domain.InlineKeyboard{
+		Buttons: [][]domain.InlineButton{
+			{
+				{
+					Text:         l.button(btnLanguageEnglish),
+					CallbackData: domain.CommandLanguageOnboarding + ":" + string(domain.LanguageEnglish),
+				},
+				{
+					Text:         l.button(btnLanguageRussian),
+					CallbackData: domain.CommandLanguageOnboarding + ":" + string(domain.LanguageRussian),
+				},
+			},
+		},
+	}
 }
 
 func (s *service) profileDeleteConfirmInlineKeyboard(l localizer) *domain.InlineKeyboard {

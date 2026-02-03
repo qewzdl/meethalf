@@ -32,7 +32,23 @@ func (l localizer) button(key buttonKey, args ...any) string {
 	if value == "" {
 		value = lookupButton(domain.LanguageEnglish, key)
 	}
-	return formatTemplate(value, args...)
+	text := formatTemplate(value, args...)
+	return decorateButtonText(key, text)
+}
+
+func decorateButtonText(key buttonKey, text string) string {
+	emoji := buttonEmoji(key)
+	if emoji == "" {
+		return text
+	}
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" {
+		return text
+	}
+	if strings.HasPrefix(trimmed, emoji+" ") || trimmed == emoji {
+		return text
+	}
+	return emoji + " " + text
 }
 
 func (l localizer) label(key labelKey, args ...any) string {
@@ -860,7 +876,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLanguagePrompt:                   "Choose your language.",
 		msgLanguageUpdated:                  "Language updated. Enjoy!",
 		msgLanguageUnsupported:              "That language isn't supported. Please choose an available option.",
-		msgProfileSettingsLanguageHint:      "Profile settings. Use the buttons below to manage visibility, advanced search, like notifications, language, or delete your profile.",
+		msgProfileSettingsLanguageHint:      "Profile settings. Without a profile you can only change the language.",
 	},
 	domain.LanguageRussian: {
 		msgDefaultHelp:                      "Meethalf помогает находить людей по интересам и настроению. Расскажите, кого хотите встретить, и мы сделаем остальное.",
@@ -1126,7 +1142,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgLanguagePrompt:                   "Выберите язык.",
 		msgLanguageUpdated:                  "Язык обновлён. Готово!",
 		msgLanguageUnsupported:              "Этот язык не поддерживается. Выберите один из доступных.",
-		msgProfileSettingsLanguageHint:      "Параметры профиля. Кнопками ниже можно управлять видимостью, расширенным поиском, уведомлениями о лайках, языком или удалить профиль.",
+		msgProfileSettingsLanguageHint:      "Параметры профиля. Пока доступна только смена языка.",
 	},
 }
 
@@ -1145,7 +1161,7 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnSearchHistoryPrev:         "Prev",
 		btnSearchHistoryNext:         "Next",
 		btnSearchHistoryBack:         "Back to list",
-		btnLikesInbox:                "❤️ People who liked me ❤️",
+		btnLikesInbox:                "People who liked me",
 		btnLikesBack:                 "Back to likes",
 		btnAdminMenu:                 "Admin dashboard",
 		btnModeratorMenu:             "Moderator dashboard",
@@ -1175,8 +1191,8 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnAdminUsersPrev:            "Prev",
 		btnAdminUsersNext:            "Next",
 		btnAdminBackToMenu:           "Back to admin menu",
-		btnStartSearch:               "✨ Start matching ✨",
-		btnStartSearchAI:             "⚡️ Search with AI ⚡️",
+		btnStartSearch:               "Start matching",
+		btnStartSearchAI:             "Search with AI",
 		btnSearchAIRepeat:            "Try again",
 		btnProfile:                   "My profile",
 		btnCreateProfile:             "Create profile",
@@ -1205,7 +1221,7 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnSearchWomen:               "Women 👩",
 		btnSearchOther:               "Other",
 		btnSearchAny:                 "Anyone",
-		btnReport:                    "Report 🚩",
+		btnReport:                    "Report",
 		btnBackToPreviousProfile:     "Previous profile",
 		btnViewProfile:               "Open profile",
 		btnHideFromSearch:            "Hide my profile",
@@ -1235,7 +1251,7 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnSearchHistoryPrev:         "Предыдущие",
 		btnSearchHistoryNext:         "Следующие",
 		btnSearchHistoryBack:         "К списку истории",
-		btnLikesInbox:                "❤️ Кто лайкнул меня ❤️",
+		btnLikesInbox:                "Кто лайкнул меня",
 		btnLikesBack:                 "Назад к лайкам",
 		btnAdminMenu:                 "Админ-меню",
 		btnModeratorMenu:             "Меню модератора",
@@ -1265,8 +1281,8 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnAdminUsersPrev:            "Предыдущие",
 		btnAdminUsersNext:            "Следующие",
 		btnAdminBackToMenu:           "Назад в админ-меню",
-		btnStartSearch:               "✨ Начать знакомиться ✨",
-		btnStartSearchAI:             "⚡️ Искать с ИИ ⚡️",
+		btnStartSearch:               "Начать знакомиться",
+		btnStartSearchAI:             "Искать с ИИ",
 		btnSearchAIRepeat:            "Попробовать ещё раз",
 		btnProfile:                   "Мой профиль",
 		btnCreateProfile:             "Создать профиль",
@@ -1295,7 +1311,7 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnSearchWomen:               "Девушки 👩",
 		btnSearchOther:               "Другое",
 		btnSearchAny:                 "Любые",
-		btnReport:                    "Пожаловаться 🚩",
+		btnReport:                    "Пожаловаться",
 		btnBackToPreviousProfile:     "Предыдущий профиль",
 		btnViewProfile:               "Открыть профиль",
 		btnHideFromSearch:            "Скрыть профиль",
@@ -1448,6 +1464,106 @@ var cityLabels = map[domain.Language]map[string]string{
 		"Baranovichi":      "Барановичи",
 		"Borisov":          "Борисов",
 	},
+}
+
+const defaultButtonEmoji = ""
+
+var buttonEmojiOverrides = map[buttonKey]string{
+	btnAgeConfirmYes:             "✅",
+	btnAgeConfirmNo:              "🚫",
+	btnCancel:                    "↩️",
+	btnStartSearch:               "🔥",
+	btnStartSearchAI:             "⚡️",
+	btnSearchAIRepeat:            "🔁",
+	btnSearchHistory:             "🕘",
+	btnSearchHistoryBack:         "⬅️",
+	btnSearchHistoryPrev:         "◀️",
+	btnSearchHistoryNext:         "▶️",
+	btnSearchRefresh:             "🔄",
+	btnSearchAccuracyCancel:      "🚫",
+	btnAdminUsersPrev:            "◀️",
+	btnAdminUsersNext:            "▶️",
+	btnAdminBackToMenu:           "⬅️",
+	btnAdminAdAddButton:          "📢",
+	btnAdminAdClearButtons:       "📢",
+	btnAdminAdRemovePhoto:        "📢",
+	btnAdminAdPreview:            "📢",
+	btnAdminAdSend:               "📢",
+	btnBackToSettings:            "⬅️",
+	btnBackToProfile:             "⬅️",
+	btnBackToPreviousProfile:     "◀️",
+	btnProfileSetupBack:          "↩️",
+	btnProfile:                   "👤",
+	btnCreateProfile:             "📝",
+	btnSettings:                  "⚙️",
+	btnPreviewProfile:            "👁️",
+	btnEditProfile:               "✏️",
+	btnDeleteProfile:             "🗑️",
+	btnDeleteConfirm:             "🗑️",
+	btnProfileEditName:           "",
+	btnProfileEditGender:         "",
+	btnProfileEditBirthDate:      "",
+	btnProfileEditCountry:        "",
+	btnProfileEditCity:           "",
+	btnProfileEditDescription:    "",
+	btnProfileEditEmoji:          "",
+	btnProfileEditPhotos:         "",
+	btnProfileDeleteCancel:       "❌",
+	btnEditCancel:                "❌",
+	btnAlbumDone:                 "✅",
+	btnTelegramName:              "📲",
+	btnReport:                    "🚩",
+	btnLikesInbox:                "❤️",
+	btnLikesBack:                 "⬅️",
+	btnLikesNotificationsEnable:  "🔔",
+	btnLikesNotificationsDisable: "🔔",
+	btnLikesNotificationsStatus:  "🔔",
+	btnHideFromSearch:            "🙈",
+	btnShowInSearch:              "👀",
+	btnViewProfile:               "👁️",
+	btnGenderMale:                "🚻",
+	btnGenderFemale:              "🚻",
+	btnGenderOther:               "🚻",
+	btnCountryRussia:             "🌍",
+	btnCountryKazakhstan:         "🌍",
+	btnCountryBelarus:            "🌍",
+	btnLanguage:                  "🌐",
+	btnLanguageEnglish:           "",
+	btnLanguageRussian:           "",
+	btnAdvancedSearchEnable:      "⚙️",
+	btnAdvancedSearchDisable:     "⚙️",
+	btnAdvancedSearchStatus:      "⚙️",
+	btnSearchMen:                 "",
+	btnSearchWomen:               "",
+	btnSearchOther:               "",
+	btnSearchAny:                 "",
+	btnAdminMenu:                 "🗂️",
+	btnAdminUsers:                "👥",
+	btnAdminHiddenUsers:          "🙈",
+	btnAdminBan:                  "⛔",
+	btnAdminUnban:                "✅",
+	btnAdminShadowBan:            "🕵️",
+	btnAdminShadowUnban:          "🕵️",
+	btnAdminHideProfile:          "🙈",
+	btnAdminShowProfile:          "👀",
+	btnAdminModerator:            "🛡️",
+	btnAdminUnmoderator:          "🚫",
+	btnAdminResetChoices:         "🔄",
+	btnAdminResetStart:           "🧭",
+	btnAdminPostAd:               "📣",
+	btnAdminReports:              "📋",
+	btnAdminClearReports:         "🧹",
+	btnAdminBannedUsers:          "🚫",
+	btnAdminShadowBannedUsers:    "👻",
+	btnAdminModerators:           "🛡️",
+	btnModeratorMenu:             "🛡️",
+}
+
+func buttonEmoji(key buttonKey) string {
+	if emoji, ok := buttonEmojiOverrides[key]; ok {
+		return emoji
+	}
+	return defaultButtonEmoji
 }
 
 func normalizeLanguageValue(lang domain.Language) domain.Language {

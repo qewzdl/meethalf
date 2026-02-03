@@ -214,6 +214,9 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 	case strings.HasPrefix(text, domain.CommandProfileLikeNotifications+":"):
 		command = domain.CommandProfileLikeNotifications
 		arguments = strings.TrimPrefix(text, domain.CommandProfileLikeNotifications+":")
+	case strings.HasPrefix(text, domain.CommandLanguageOnboarding+":"):
+		command = domain.CommandLanguageOnboarding
+		arguments = strings.TrimPrefix(text, domain.CommandLanguageOnboarding+":")
 	case strings.HasPrefix(text, domain.CommandProfileLanguage+":"):
 		command = domain.CommandProfileLanguage
 		arguments = strings.TrimPrefix(text, domain.CommandProfileLanguage+":")
@@ -329,6 +332,8 @@ func (h *Handler) fromCallback(callback *tgbotapi.CallbackQuery) (domain.Incomin
 			command = domain.CommandProfileEditPhotos
 		case domain.CommandProfileSettings:
 			command = domain.CommandProfileSettings
+		case domain.CommandLanguageOnboarding:
+			command = domain.CommandLanguageOnboarding
 		case domain.CommandProfileLanguage:
 			command = domain.CommandProfileLanguage
 		case domain.CommandProfileLikeNotifications:

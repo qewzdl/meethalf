@@ -25,6 +25,7 @@ const (
 	CommandProfileSearchAccuracy    = "profile_search_accuracy"
 	CommandProfileLikeNotifications = "profile_like_notifications"
 	CommandLanguage                 = "language"
+	CommandLanguageOnboarding       = "language_onboarding"
 	CommandProfileVisibility        = "profile_visibility"
 	CommandProfileDelete            = "profile_delete"
 	CommandProfileDeleteConfirm     = "profile_delete_confirm"

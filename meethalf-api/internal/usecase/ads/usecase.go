@@ -13,14 +13,15 @@ const (
 	maxTextLength       = 4096
 	maxButtons          = 6
 	maxButtonTextLength = 64
+	adButtonEmoji       = "🔗"
 )
 
 var (
-	ErrInvalidAdContent  = errors.New("ad text or photo is required")
-	ErrInvalidAdText     = errors.New("ad text is too long")
-	ErrInvalidAdButtons  = errors.New("ad buttons are invalid")
-	ErrTooManyAdButtons  = errors.New("too many ad buttons")
-	ErrInvalidAdButton   = errors.New("ad button text is required")
+	ErrInvalidAdContent   = errors.New("ad text or photo is required")
+	ErrInvalidAdText      = errors.New("ad text is too long")
+	ErrInvalidAdButtons   = errors.New("ad buttons are invalid")
+	ErrTooManyAdButtons   = errors.New("too many ad buttons")
+	ErrInvalidAdButton    = errors.New("ad button text is required")
 	ErrInvalidAdButtonURL = errors.New("ad button url is invalid")
 )
 
@@ -80,19 +81,30 @@ func normalizeButtons(buttons []domain.AdButton) ([]domain.AdButton, error) {
 		if text == "" {
 			return nil, ErrInvalidAdButton
 		}
-		if maxButtonTextLength > 0 && len([]rune(text)) > maxButtonTextLength {
+		decorated := decorateAdButtonText(text)
+		if maxButtonTextLength > 0 && len([]rune(decorated)) > maxButtonTextLength {
 			return nil, ErrInvalidAdButtons
 		}
 		if !isValidAdURL(link) {
 			return nil, ErrInvalidAdButtonURL
 		}
 		out = append(out, domain.AdButton{
-			Text: text,
+			Text: decorated,
 			URL:  link,
 		})
 	}
 
 	return out, nil
+}
+
+func decorateAdButtonText(text string) string {
+	if text == "" {
+		return text
+	}
+	if strings.HasPrefix(text, adButtonEmoji+" ") || text == adButtonEmoji {
+		return text
+	}
+	return adButtonEmoji + " " + text
 }
 
 func isValidAdURL(value string) bool {
