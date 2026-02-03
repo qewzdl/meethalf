@@ -90,6 +90,25 @@ func (s *service) SearchAI(ctx context.Context, viewerID int64, message string) 
 	}, nil
 }
 
+func (s *service) AIAvailable(ctx context.Context, viewerID int64) (bool, error) {
+	if s == nil || s.repo == nil {
+		return false, errors.New("matching repository is not configured")
+	}
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	if viewerID <= 0 {
+		return false, ErrInvalidUserID
+	}
+	if _, err := s.viewerProfile(ctx, viewerID); err != nil {
+		return false, err
+	}
+	if s.ai == nil {
+		return false, nil
+	}
+	return true, nil
+}
+
 func normalizeAIQuery(query AIQuery) AIQuery {
 	gender := query.Gender
 	if normalized, err := normalizeGenderFilter(query.Gender); err == nil {

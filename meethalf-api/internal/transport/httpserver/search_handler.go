@@ -45,6 +45,10 @@ type searchCandidateResponse struct {
 	HasPrevious bool            `json:"has_previous"`
 }
 
+type searchAIStatusResponse struct {
+	Available bool `json:"available"`
+}
+
 type likesResponse struct {
 	Likes []profileResponse `json:"likes"`
 }
@@ -163,6 +167,28 @@ func (h *SearchHandler) AI(c *gin.Context) {
 		Profile:     toProfileResponse(candidate.Profile),
 		HasPrevious: candidate.HasPrevious,
 	})
+}
+
+func (h *SearchHandler) AIStatus(c *gin.Context) {
+	if h == nil || h.uc == nil {
+		respondError(c, http.StatusInternalServerError, "search handler is not configured")
+		return
+	}
+
+	var req searchUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		respondError(c, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	available, err := h.uc.AIAvailable(c.Request.Context(), req.UserID)
+	if err != nil {
+		code, message := searchHTTPError(err)
+		respondError(c, code, message)
+		return
+	}
+
+	c.JSON(http.StatusOK, searchAIStatusResponse{Available: available})
 }
 
 func (h *SearchHandler) Previous(c *gin.Context) {

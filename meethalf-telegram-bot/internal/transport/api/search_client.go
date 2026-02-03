@@ -59,6 +59,10 @@ type searchCandidateResponse struct {
 	HasPrevious bool            `json:"has_previous"`
 }
 
+type searchAIStatusResponse struct {
+	Available bool `json:"available"`
+}
+
 type likesResponse struct {
 	Likes []profileResponse `json:"likes"`
 }
@@ -207,6 +211,54 @@ func (c *SearchClient) SearchWithAI(ctx context.Context, userID int64, message s
 	}
 
 	return domain.MatchCandidate{Profile: profile, HasPrevious: payloadResp.HasPrevious}, true, nil
+}
+
+func (c *SearchClient) AIAvailable(ctx context.Context, userID int64) (bool, error) {
+	if c == nil || c.client == nil {
+		return false, errors.New("search client is not configured")
+	}
+	if c.baseURL == "" {
+		return false, errors.New("search client base url is empty")
+	}
+	if userID <= 0 {
+		return false, errors.New("user id is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+
+	payload, err := json.Marshal(searchUserRequest{UserID: userID})
+	if err != nil {
+		return false, err
+	}
+
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		c.baseURL+"/api/v1/search/ai/status",
+		bytes.NewReader(payload),
+	)
+	if err != nil {
+		return false, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return false, c.apiError(resp)
+	}
+
+	var payloadResp searchAIStatusResponse
+	if err := json.NewDecoder(resp.Body).Decode(&payloadResp); err != nil {
+		return false, err
+	}
+
+	return payloadResp.Available, nil
 }
 
 func (c *SearchClient) NextCandidate(ctx context.Context, userID int64) (domain.MatchCandidate, bool, error) {

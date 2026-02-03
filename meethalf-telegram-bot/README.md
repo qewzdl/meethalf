@@ -162,7 +162,8 @@ shows a Refresh feed button next to Back to menu.
 
 Use the `Search with AI` button in the main menu to describe who you want to meet in free-form text. The bot sends your
 message to the Meethalf API, which uses OpenRouter to analyze preferences and returns the most suitable profile. The
-result is shown with the same match action buttons.
+result is shown with the same match action buttons. If AI search is unavailable, the bot responds immediately on the
+button press with the unavailability message and a retry button before asking for details.
 
 ## Docker
 

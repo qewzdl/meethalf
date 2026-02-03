@@ -46,6 +46,7 @@ type Config struct {
 type Usecase interface {
 	Start(ctx context.Context, viewerID int64, gender domain.Gender, accuracy int) (domain.MatchCandidate, error)
 	SearchAI(ctx context.Context, viewerID int64, message string) (domain.MatchCandidate, error)
+	AIAvailable(ctx context.Context, viewerID int64) (bool, error)
 	Next(ctx context.Context, viewerID int64) (domain.MatchCandidate, error)
 	Previous(ctx context.Context, viewerID int64) (domain.MatchCandidate, error)
 	History(ctx context.Context, viewerID int64, limit, offset int) (HistoryList, error)

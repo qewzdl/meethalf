@@ -76,7 +76,24 @@ func (s *service) handleSearch(ctx context.Context, msg domain.IncomingMessage, 
 			}, nil
 		}
 
-		if s.sessionAISearchPending(ctx, msg.User.ID) {
+		pending := s.sessionAISearchPending(ctx, msg.User.ID)
+		if !pending {
+			available, err := s.search.AIAvailable(ctx, msg.User.ID)
+			if err != nil {
+				_ = s.setSessionAISearchPending(ctx, msg, false)
+				return s.searchErrorResponse(ctx, msg, l, err), err
+			}
+			if !available {
+				_ = s.setSessionAISearchPending(ctx, msg, false)
+				return []domain.OutgoingMessage{{
+					ChatID:         msg.ChatID,
+					Text:           s.searchAIUnavailableText(l),
+					InlineKeyboard: s.searchAIUnavailableInlineKeyboard(l),
+				}}, nil
+			}
+		}
+
+		if pending {
 			prompt := strings.TrimSpace(msg.Text)
 			if len([]rune(prompt)) < aiSearchMinPromptLength {
 				return []domain.OutgoingMessage{

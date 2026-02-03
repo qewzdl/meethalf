@@ -31,6 +31,9 @@ curl -X POST http://localhost:8080/api/v1/search/start \
 curl -X POST http://localhost:8080/api/v1/search/ai \
   -H "Content-Type: application/json" \
   -d '{"user_id":1,"message":"Looking for a creative woman in Moscow around 25-30, loves art and travel"}'
+curl -X POST http://localhost:8080/api/v1/search/ai/status \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1}'
 curl -X POST http://localhost:8080/api/v1/search/next \
   -H "Content-Type: application/json" \
   -d '{"user_id":1}'
@@ -78,6 +81,8 @@ age windows when scoring candidates. Search enforces age eligibility: users aged
 users aged 18+ never see profiles under 18.
 `POST /api/v1/search/ai` analyzes a free-form user message via OpenRouter and returns the best matching profile based on
 the extracted preferences and keywords. It respects the same age eligibility rules and excludes hidden/banned/shadow-banned profiles.
+`POST /api/v1/search/ai/status` returns `{ "available": true }` when AI search is configured for the requesting profile,
+and `{ "available": false }` when AI search is disabled.
 `/api/v1/search/action` responds with `matched=true` when the like action forms a mutual match.
 `GET /api/v1/search/history/{user_id}` returns the cumulative search history across sessions (latest view per profile,
 latest first) with actions, position, and pagination via `limit`/`offset` query parameters.
@@ -161,6 +166,9 @@ curl -X POST http://localhost:8080/api/v1/search/start \
 curl -X POST http://localhost:8080/api/v1/search/ai \
   -H "Content-Type: application/json" \
   -d '{"user_id":1,"message":"Looking for a creative woman in Moscow around 25-30, loves art and travel"}'
+curl -X POST http://localhost:8080/api/v1/search/ai/status \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1}'
 curl -X POST http://localhost:8080/api/v1/search/next \
   -H "Content-Type: application/json" \
   -d '{"user_id":1}'

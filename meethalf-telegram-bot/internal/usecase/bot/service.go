@@ -53,6 +53,7 @@ type ProfileService interface {
 type SearchService interface {
 	StartSearch(ctx context.Context, userID int64, gender domain.Gender, accuracy int) (domain.MatchCandidate, bool, error)
 	SearchWithAI(ctx context.Context, userID int64, message string) (domain.MatchCandidate, bool, error)
+	AIAvailable(ctx context.Context, userID int64) (bool, error)
 	NextCandidate(ctx context.Context, userID int64) (domain.MatchCandidate, bool, error)
 	PreviousCandidate(ctx context.Context, userID int64) (domain.MatchCandidate, bool, error)
 	History(ctx context.Context, userID int64, limit, offset int) (domain.MatchHistoryList, error)
