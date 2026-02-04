@@ -154,6 +154,11 @@ func (s *service) loadingForCommand(ctx context.Context, l localizer, msg domain
 			return domain.OutgoingMessage{}, false
 		}
 		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminShowProfile)}, true
+	case domain.CommandAdminViewProfile:
+		if strings.TrimSpace(msg.Arguments) == "" {
+			return domain.OutgoingMessage{}, false
+		}
+		return domain.OutgoingMessage{ChatID: msg.ChatID, Text: l.message(msgLoadingAdminViewProfile)}, true
 	case domain.CommandAdminDeleteProfile:
 		if strings.TrimSpace(msg.Arguments) == "" {
 			return domain.OutgoingMessage{}, false
@@ -213,6 +218,7 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 	case domain.AdminActionUnshadowBan:
 	case domain.AdminActionHideProfile:
 	case domain.AdminActionShowProfile:
+	case domain.AdminActionViewProfile:
 	case domain.AdminActionDeleteProfile:
 	case domain.AdminActionModerator:
 	case domain.AdminActionUnmoderator:
@@ -251,6 +257,8 @@ func (s *service) loadingForAdminAction(ctx context.Context, msg domain.Incoming
 		loadingText = l.message(msgLoadingAdminHideProfile)
 	case domain.AdminActionShowProfile:
 		loadingText = l.message(msgLoadingAdminShowProfile)
+	case domain.AdminActionViewProfile:
+		loadingText = l.message(msgLoadingAdminViewProfile)
 	case domain.AdminActionDeleteProfile:
 		loadingText = l.message(msgLoadingAdminDeleteProfile)
 	case domain.AdminActionModerator:

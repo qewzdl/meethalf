@@ -175,6 +175,10 @@ func (r *ProfileRepository) GetByUserID(ctx context.Context, userID int64) (doma
 	return stored, nil
 }
 
+func (r *ProfileRepository) GetProfileByUserID(ctx context.Context, userID int64) (domain.Profile, error) {
+	return r.GetByUserID(ctx, userID)
+}
+
 func (r *ProfileRepository) DeleteByUserID(ctx context.Context, userID int64) error {
 	if r == nil || r.db == nil {
 		return errors.New("postgres profile repository is not configured")

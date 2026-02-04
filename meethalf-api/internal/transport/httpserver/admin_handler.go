@@ -49,6 +49,27 @@ type adminUserResponse struct {
 	UpdatedAt      time.Time `json:"updated_at"`
 }
 
+type adminProfileResponse struct {
+	UserID                    int64     `json:"user_id"`
+	Username                  string    `json:"username"`
+	Name                      string    `json:"name"`
+	Gender                    string    `json:"gender"`
+	BirthDate                 string    `json:"birth_date"`
+	Age                       int       `json:"age"`
+	Country                   string    `json:"country"`
+	City                      string    `json:"city"`
+	Description               string    `json:"description"`
+	EmojiCode                 string    `json:"emoji_code"`
+	Photos                    []string  `json:"photos"`
+	IsHidden                  bool      `json:"is_hidden"`
+	LikesNotificationsEnabled bool      `json:"likes_notifications_enabled"`
+	IsBanned                  bool      `json:"is_banned"`
+	IsShadowBanned            bool      `json:"is_shadow_banned"`
+	IsModerator               bool      `json:"is_moderator"`
+	CreatedAt                 time.Time `json:"created_at"`
+	UpdatedAt                 time.Time `json:"updated_at"`
+}
+
 type adminReportedUsersResponse struct {
 	Users  []adminReportedUserResponse `json:"users"`
 	Total  int                         `json:"total"`
@@ -79,10 +100,10 @@ type adminAdRequest struct {
 }
 
 type adminAdResponse struct {
-	ID        int64     `json:"id"`
-	Text      string    `json:"text"`
-	PhotoID   string    `json:"photo_id"`
-	Buttons   []struct {
+	ID      int64  `json:"id"`
+	Text    string `json:"text"`
+	PhotoID string `json:"photo_id"`
+	Buttons []struct {
 		Text string `json:"text"`
 		URL  string `json:"url"`
 	} `json:"buttons"`
@@ -186,6 +207,63 @@ func (h *AdminHandler) GetUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, toAdminUserResponse(user))
+}
+
+func (h *AdminHandler) GetProfile(c *gin.Context) {
+	if h == nil || h.uc == nil {
+		respondError(c, http.StatusInternalServerError, "admin handler is not configured")
+		return
+	}
+
+	userID, username, ok := parseAdminUserReference(c.Param("user_ref"))
+	if !ok {
+		respondError(c, http.StatusBadRequest, "invalid user reference")
+		return
+	}
+
+	var (
+		profile domain.Profile
+		err     error
+	)
+	if username != "" {
+		profile, err = h.uc.GetProfileByUsername(c.Request.Context(), username)
+	} else {
+		profile, err = h.uc.GetProfile(c.Request.Context(), userID)
+	}
+	if err != nil {
+		switch {
+		case errors.Is(err, moderation.ErrInvalidUserID):
+			respondError(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, moderation.ErrInvalidUsername):
+			respondError(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, moderation.ErrUserNotFound):
+			respondError(c, http.StatusNotFound, err.Error())
+		default:
+			respondError(c, http.StatusInternalServerError, "failed to load profile")
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, adminProfileResponse{
+		UserID:                    profile.UserID,
+		Username:                  profile.Username,
+		Name:                      profile.Name,
+		Gender:                    string(profile.Gender),
+		BirthDate:                 formatBirthDate(profile.BirthDate),
+		Age:                       profile.Age,
+		Country:                   string(profile.Country),
+		City:                      profile.City,
+		Description:               profile.Description,
+		EmojiCode:                 string(profile.EmojiCode),
+		Photos:                    profile.Photos,
+		IsHidden:                  profile.IsHidden,
+		LikesNotificationsEnabled: profile.LikesNotificationsEnabled,
+		IsBanned:                  profile.IsBanned,
+		IsShadowBanned:            profile.IsShadowBanned,
+		IsModerator:               profile.IsModerator,
+		CreatedAt:                 profile.CreatedAt.UTC(),
+		UpdatedAt:                 profile.UpdatedAt.UTC(),
+	})
 }
 
 func (h *AdminHandler) ListReportedUsers(c *gin.Context) {

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"strings"
+	"time"
 
 	"meethalf-api/internal/domain"
 )
@@ -19,6 +20,8 @@ type Usecase interface {
 	ListReportedUsers(ctx context.Context, limit, offset int) (ReportedUserList, error)
 	GetUser(ctx context.Context, userID int64) (domain.UserSummary, error)
 	GetUserByUsername(ctx context.Context, username string) (domain.UserSummary, error)
+	GetProfile(ctx context.Context, userID int64) (domain.Profile, error)
+	GetProfileByUsername(ctx context.Context, username string) (domain.Profile, error)
 	BanUser(ctx context.Context, userID int64) error
 	BanUserByUsername(ctx context.Context, username string) error
 	UnbanUser(ctx context.Context, userID int64) error
@@ -45,6 +48,7 @@ type Repository interface {
 	ListUsers(ctx context.Context, limit, offset int, onlyBanned, onlyModerators, onlyHidden, onlyShadowBanned bool) ([]domain.UserSummary, int, error)
 	ListReportedUsers(ctx context.Context, limit, offset int) ([]domain.ReportedUserSummary, int, error)
 	GetUserSummary(ctx context.Context, userID int64) (domain.UserSummary, error)
+	GetProfileByUserID(ctx context.Context, userID int64) (domain.Profile, error)
 	UpdateBanStatus(ctx context.Context, userID int64, isBanned bool) error
 	UpdateShadowBanStatus(ctx context.Context, userID int64, isShadowBanned bool) error
 	UpdateVisibility(ctx context.Context, userID int64, isHidden bool) error
@@ -185,6 +189,52 @@ func (s *service) GetUserByUsername(ctx context.Context, username string) (domai
 	}
 
 	return s.GetUser(ctx, userID)
+}
+
+func (s *service) GetProfile(ctx context.Context, userID int64) (domain.Profile, error) {
+	if s == nil || s.repo == nil {
+		return domain.Profile{}, errors.New("moderation repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return domain.Profile{}, err
+	}
+
+	if userID <= 0 {
+		return domain.Profile{}, ErrInvalidUserID
+	}
+
+	profile, err := s.repo.GetProfileByUserID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.Profile{}, ErrUserNotFound
+		}
+		return domain.Profile{}, err
+	}
+
+	profile.BirthDate = normalizeBirthDateValue(profile.BirthDate)
+	if !profile.BirthDate.IsZero() {
+		profile.Age = ageFromBirthDate(profile.BirthDate, time.Now().UTC())
+	}
+
+	return profile, nil
+}
+
+func (s *service) GetProfileByUsername(ctx context.Context, username string) (domain.Profile, error) {
+	if s == nil || s.repo == nil {
+		return domain.Profile{}, errors.New("moderation repository is not configured")
+	}
+
+	if err := ctx.Err(); err != nil {
+		return domain.Profile{}, err
+	}
+
+	userID, err := s.resolveUserIDByUsername(ctx, username)
+	if err != nil {
+		return domain.Profile{}, err
+	}
+
+	return s.GetProfile(ctx, userID)
 }
 
 func (s *service) BanUser(ctx context.Context, userID int64) error {
@@ -633,4 +683,28 @@ func normalizeUsername(value string) (string, error) {
 	}
 
 	return normalized, nil
+}
+
+func normalizeBirthDateValue(value time.Time) time.Time {
+	if value.IsZero() {
+		return value
+	}
+
+	return time.Date(value.Year(), value.Month(), value.Day(), 0, 0, 0, 0, time.UTC)
+}
+
+func ageFromBirthDate(birthDate time.Time, now time.Time) int {
+	if birthDate.IsZero() {
+		return 0
+	}
+
+	birthDate = birthDate.UTC()
+	now = now.UTC()
+
+	age := now.Year() - birthDate.Year()
+	if now.Month() < birthDate.Month() || (now.Month() == birthDate.Month() && now.Day() < birthDate.Day()) {
+		age--
+	}
+
+	return age
 }

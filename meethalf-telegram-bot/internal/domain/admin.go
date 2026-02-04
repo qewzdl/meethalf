@@ -44,20 +44,21 @@ type ReportedUserList struct {
 type AdminActionType string
 
 const (
-	AdminActionBan          AdminActionType = "ban"
-	AdminActionUnban        AdminActionType = "unban"
-	AdminActionShadowBan    AdminActionType = "shadow_ban"
-	AdminActionUnshadowBan  AdminActionType = "shadow_unban"
-	AdminActionHideProfile  AdminActionType = "hide_profile"
-	AdminActionShowProfile  AdminActionType = "show_profile"
+	AdminActionBan           AdminActionType = "ban"
+	AdminActionUnban         AdminActionType = "unban"
+	AdminActionShadowBan     AdminActionType = "shadow_ban"
+	AdminActionUnshadowBan   AdminActionType = "shadow_unban"
+	AdminActionHideProfile   AdminActionType = "hide_profile"
+	AdminActionShowProfile   AdminActionType = "show_profile"
+	AdminActionViewProfile   AdminActionType = "view_profile"
 	AdminActionDeleteProfile AdminActionType = "delete_profile"
-	AdminActionModerator    AdminActionType = "moderator"
-	AdminActionUnmoderator  AdminActionType = "unmoderator"
-	AdminActionResetChoices AdminActionType = "reset_choices"
-	AdminActionResetStart   AdminActionType = "reset_start"
-	AdminActionClearReports AdminActionType = "clear_reports"
-	AdminActionPostAd       AdminActionType = "post_ad"
-	AdminActionPostAdButton AdminActionType = "post_ad_button"
+	AdminActionModerator     AdminActionType = "moderator"
+	AdminActionUnmoderator   AdminActionType = "unmoderator"
+	AdminActionResetChoices  AdminActionType = "reset_choices"
+	AdminActionResetStart    AdminActionType = "reset_start"
+	AdminActionClearReports  AdminActionType = "clear_reports"
+	AdminActionPostAd        AdminActionType = "post_ad"
+	AdminActionPostAdButton  AdminActionType = "post_ad_button"
 )
 
 type AdminActionState struct {

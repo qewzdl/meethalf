@@ -188,6 +188,12 @@ func (s *service) adminMenuInlineKeyboard(l localizer, role adminRole) *domain.I
 		},
 		[]domain.InlineButton{
 			{
+				Text:         l.button(btnAdminViewProfile),
+				CallbackData: domain.CommandAdminViewProfile,
+			},
+		},
+		[]domain.InlineButton{
+			{
 				Text:         l.button(btnAdminDeleteProfile),
 				CallbackData: domain.CommandAdminDeleteProfile,
 			},
@@ -566,6 +572,10 @@ func (s *service) adminHideProfileInlineKeyboard(l localizer) *domain.InlineKeyb
 }
 
 func (s *service) adminShowProfileInlineKeyboard(l localizer) *domain.InlineKeyboard {
+	return s.adminBanInlineKeyboard(l)
+}
+
+func (s *service) adminViewProfileInlineKeyboard(l localizer) *domain.InlineKeyboard {
 	return s.adminBanInlineKeyboard(l)
 }
 

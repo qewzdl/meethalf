@@ -201,6 +201,14 @@ func (s *service) adminShowProfileSuccessText(l localizer, userRef string) strin
 	return l.message(msgAdminShowProfileSuccess, userRef)
 }
 
+func (s *service) adminViewProfileUsageText(l localizer) string {
+	return l.message(msgAdminViewProfileUsage)
+}
+
+func (s *service) adminViewProfileFailedText(l localizer) string {
+	return l.message(msgAdminViewProfileFailed)
+}
+
 func (s *service) adminDeleteProfileUsageText(l localizer) string {
 	return l.message(msgAdminDeleteProfileUsage)
 }
@@ -670,6 +678,14 @@ func (s *service) likeNotificationText(l localizer, profile domain.Profile) stri
 func (s *service) profileDetails(l localizer, profile domain.Profile) string {
 	return s.profileDetailsWithOptions(l, profile, profileDetailsOptions{
 		header:            l.message(msgProfileDetailsHeader),
+		includePhotoCount: true,
+		includeTimestamps: true,
+	})
+}
+
+func (s *service) adminProfileDetails(l localizer, profile domain.Profile) string {
+	return s.profileDetailsWithOptions(l, profile, profileDetailsOptions{
+		header:            l.label(labelProfile),
 		includePhotoCount: true,
 		includeTimestamps: true,
 	})

@@ -175,6 +175,22 @@ func (c *AdminClient) GetUserByUsername(ctx context.Context, username string) (d
 	return c.getAdminUser(ctx, ref)
 }
 
+func (c *AdminClient) GetProfile(ctx context.Context, userID int64) (domain.Profile, error) {
+	if userID <= 0 {
+		return domain.Profile{}, errors.New("user id is required")
+	}
+	return c.getAdminProfile(ctx, fmt.Sprintf("%d", userID))
+}
+
+func (c *AdminClient) GetProfileByUsername(ctx context.Context, username string) (domain.Profile, error) {
+	ref, err := normalizeAdminUsernameRef(username)
+	if err != nil {
+		return domain.Profile{}, err
+	}
+
+	return c.getAdminProfile(ctx, ref)
+}
+
 func (c *AdminClient) BanUser(ctx context.Context, userID int64) error {
 	if userID <= 0 {
 		return errors.New("user id is required")
@@ -469,6 +485,68 @@ func (c *AdminClient) getAdminUser(ctx context.Context, userRef string) (domain.
 	}, nil
 }
 
+func (c *AdminClient) getAdminProfile(ctx context.Context, userRef string) (domain.Profile, error) {
+	if c == nil || c.client == nil {
+		return domain.Profile{}, errors.New("admin client is not configured")
+	}
+	if c.baseURL == "" {
+		return domain.Profile{}, errors.New("admin client base url is empty")
+	}
+	if err := ctx.Err(); err != nil {
+		return domain.Profile{}, err
+	}
+
+	normalized := strings.TrimSpace(userRef)
+	if normalized == "" {
+		return domain.Profile{}, errors.New("user reference is required")
+	}
+
+	endpoint := fmt.Sprintf("%s/api/v1/admin/users/%s/profile", c.baseURL, url.PathEscape(normalized))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return domain.Profile{}, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return domain.Profile{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return domain.Profile{}, c.apiError(resp)
+	}
+
+	var payload adminProfileResponse
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return domain.Profile{}, err
+	}
+
+	birthDate, err := parseBirthDate(payload.BirthDate)
+	if err != nil {
+		return domain.Profile{}, err
+	}
+
+	return domain.Profile{
+		UserID:                    payload.UserID,
+		Username:                  payload.Username,
+		Name:                      payload.Name,
+		Gender:                    payload.Gender,
+		BirthDate:                 birthDate,
+		Age:                       payload.Age,
+		Country:                   payload.Country,
+		City:                      payload.City,
+		Description:               payload.Description,
+		EmojiCode:                 payload.EmojiCode,
+		Photos:                    payload.Photos,
+		IsHidden:                  payload.IsHidden,
+		LikesNotificationsEnabled: payload.LikesNotificationsEnabled,
+		IsModerator:               payload.IsModerator,
+		CreatedAt:                 payload.CreatedAt,
+		UpdatedAt:                 payload.UpdatedAt,
+	}, nil
+}
+
 func (c *AdminClient) postAdminAction(ctx context.Context, userRef, action string) error {
 	if c == nil || c.client == nil {
 		return errors.New("admin client is not configured")
@@ -565,6 +643,27 @@ type adminReportedUserResponse struct {
 	UpdatedAt      time.Time `json:"updated_at"`
 }
 
+type adminProfileResponse struct {
+	UserID                    int64                   `json:"user_id"`
+	Username                  string                  `json:"username"`
+	Name                      string                  `json:"name"`
+	Gender                    domain.Gender           `json:"gender"`
+	BirthDate                 string                  `json:"birth_date"`
+	Age                       int                     `json:"age"`
+	Country                   domain.Country          `json:"country"`
+	City                      string                  `json:"city"`
+	Description               string                  `json:"description"`
+	EmojiCode                 domain.ProfileEmojiCode `json:"emoji_code"`
+	Photos                    []string                `json:"photos"`
+	IsHidden                  bool                    `json:"is_hidden"`
+	LikesNotificationsEnabled bool                    `json:"likes_notifications_enabled"`
+	IsBanned                  bool                    `json:"is_banned"`
+	IsShadowBanned            bool                    `json:"is_shadow_banned"`
+	IsModerator               bool                    `json:"is_moderator"`
+	CreatedAt                 time.Time               `json:"created_at"`
+	UpdatedAt                 time.Time               `json:"updated_at"`
+}
+
 type adminAdButton struct {
 	Text string `json:"text"`
 	URL  string `json:"url"`
@@ -577,11 +676,11 @@ type adminAdRequest struct {
 }
 
 type adminAdResponse struct {
-	ID        int64         `json:"id"`
-	Text      string        `json:"text"`
-	PhotoID   string        `json:"photo_id"`
+	ID        int64           `json:"id"`
+	Text      string          `json:"text"`
+	PhotoID   string          `json:"photo_id"`
 	Buttons   []adminAdButton `json:"buttons"`
-	CreatedAt time.Time     `json:"created_at"`
+	CreatedAt time.Time       `json:"created_at"`
 }
 
 func normalizeAdminUsernameRef(username string) (string, error) {

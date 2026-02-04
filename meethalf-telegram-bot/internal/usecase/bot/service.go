@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"errors"
+	"net/http"
 	"sync"
 
 	"meethalf-telegram-bot/internal/domain"
@@ -67,6 +68,8 @@ type AdminService interface {
 	ListReportedUsers(ctx context.Context, limit, offset int) (domain.ReportedUserList, error)
 	GetUser(ctx context.Context, userID int64) (domain.UserSummary, error)
 	GetUserByUsername(ctx context.Context, username string) (domain.UserSummary, error)
+	GetProfile(ctx context.Context, userID int64) (domain.Profile, error)
+	GetProfileByUsername(ctx context.Context, username string) (domain.Profile, error)
 	BanUser(ctx context.Context, userID int64) error
 	BanUserByUsername(ctx context.Context, username string) error
 	UnbanUser(ctx context.Context, userID int64) error
@@ -190,6 +193,7 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		msg.Command != domain.CommandAdminShadowUnban &&
 		msg.Command != domain.CommandAdminHideProfile &&
 		msg.Command != domain.CommandAdminShowProfile &&
+		msg.Command != domain.CommandAdminViewProfile &&
 		msg.Command != domain.CommandAdminDeleteProfile &&
 		msg.Command != domain.CommandAdminModerator &&
 		msg.Command != domain.CommandAdminUnmoderator &&
@@ -272,6 +276,8 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 		response.Text, response.InlineKeyboard, replyErr = s.adminHideProfileMessage(ctx, msg, l)
 	case domain.CommandAdminShowProfile:
 		response.Text, response.InlineKeyboard, replyErr = s.adminShowProfileMessage(ctx, msg, l)
+	case domain.CommandAdminViewProfile:
+		response.Text, response.InlineKeyboard, replyErr = s.adminViewProfileMessage(ctx, msg, l)
 	case domain.CommandAdminDeleteProfile:
 		response.Text, response.InlineKeyboard, replyErr = s.adminDeleteProfileMessage(ctx, msg, l)
 	case domain.CommandAdminModerator:
@@ -495,6 +501,50 @@ func (s *service) Handle(ctx context.Context, msg domain.IncomingMessage) ([]dom
 				response.InlineKeyboard = s.profileCreateInlineKeyboard(l)
 			}
 			messages[0] = response
+		}
+	}
+
+	if replyErr == nil && s != nil && s.admin != nil && msg.User.ID != 0 {
+		switch msg.Command {
+		case domain.CommandAdminViewProfile:
+			userID, username, ok := s.parseAdminUserIdentifier(msg.Arguments)
+			if !ok {
+				break
+			}
+			role, _ := s.resolveAdminRole(ctx, msg.User)
+			var (
+				profile domain.Profile
+				err     error
+			)
+			if username != "" {
+				profile, err = s.admin.GetProfileByUsername(ctx, username)
+			} else {
+				profile, err = s.admin.GetProfile(ctx, userID)
+			}
+			if err != nil {
+				text := s.adminViewProfileFailedText(l)
+				var status statusError
+				if errors.As(err, &status) {
+					switch status.StatusCode() {
+					case http.StatusBadRequest:
+						text = s.adminViewProfileUsageText(l)
+					case http.StatusNotFound:
+						text = s.adminUserNotFoundText(l)
+					}
+				}
+				response.Text = text
+				response.InlineKeyboard = s.adminMenuInlineKeyboard(l, role)
+				messages[0] = response
+				replyErr = errors.Join(replyErr, err)
+				break
+			}
+			messages = s.profileAlbumMessagesWithText(
+				msg.ChatID,
+				profile,
+				s.adminProfileDetails(l, profile),
+				s.adminMenuTextForRole(l, role),
+				s.adminMenuInlineKeyboard(l, role),
+			)
 		}
 	}
 

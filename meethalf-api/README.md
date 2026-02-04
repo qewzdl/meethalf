@@ -49,6 +49,7 @@ curl http://localhost:8080/api/v1/likes/1
 curl http://localhost:8080/api/v1/likes/1/received?limit=20&offset=0
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0
 curl http://localhost:8080/api/v1/admin/users/1
+curl http://localhost:8080/api/v1/admin/users/1/profile
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&banned=true
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&shadow_banned=true
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&moderator=true
@@ -93,6 +94,7 @@ When `likes_notifications_enabled=false`, it returns an empty list and does not 
 `/api/v1/admin/users` returns a paginated list of users (profiles) with `username`, `is_hidden`, `is_banned`,
 `is_shadow_banned`, and `is_moderator` flags.
 `GET /api/v1/admin/users/{user_ref}` returns a single user summary by id or username (with or without `@`).
+`GET /api/v1/admin/users/{user_ref}/profile` returns the full profile by id or username (with or without `@`), including hidden/banned/shadow flags.
 Use `limit` and `offset` query parameters to paginate; pass `banned=true` to list only banned users or
 `moderator=true` to list only moderators, `hidden=true` to list only hidden profiles, or `shadow_banned=true` to list only
 shadow-banned profiles. `/api/v1/admin/reports` returns a
@@ -186,6 +188,7 @@ curl http://localhost:8080/api/v1/likes/1
 curl http://localhost:8080/api/v1/likes/1/received?limit=20&offset=0
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0
 curl http://localhost:8080/api/v1/admin/users/1
+curl http://localhost:8080/api/v1/admin/users/1/profile
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&banned=true
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&shadow_banned=true
 curl http://localhost:8080/api/v1/admin/users?limit=20&offset=0&moderator=true

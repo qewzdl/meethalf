@@ -66,6 +66,7 @@ const (
 	CommandAdminShadowUnban         = "shadow_unban"
 	CommandAdminHideProfile         = "hide_profile"
 	CommandAdminShowProfile         = "show_profile"
+	CommandAdminViewProfile         = "view_profile"
 	CommandAdminDeleteProfile       = "delete_profile"
 	CommandAdminModerator           = "moderator"
 	CommandAdminUnmoderator         = "unmoderator"
