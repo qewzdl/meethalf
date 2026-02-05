@@ -77,6 +77,32 @@ var countryCities = map[domain.Country][]string{
 		"Baranovichi",
 		"Borisov",
 	},
+	domain.CountryUkraine: {
+		"Kyiv",
+		"Kharkiv",
+		"Odesa",
+		"Dnipro",
+		"Donetsk",
+		"Lviv",
+		"Zaporizhzhia",
+		"Kryvyi Rih",
+		"Mykolaiv",
+		"Luhansk",
+		"Mariupol",
+		"Kherson",
+		"Vinnytsia",
+		"Poltava",
+		"Chernihiv",
+		"Cherkasy",
+		"Zhytomyr",
+		"Sumy",
+		"Khmelnytskyi",
+		"Rivne",
+		"Ternopil",
+		"Ivano-Frankivsk",
+		"Lutsk",
+		"Chernivtsi",
+	},
 }
 
 type Usecase interface {
@@ -391,7 +417,7 @@ func normalizeCountry(country domain.Country) (domain.Country, error) {
 	}
 
 	switch domain.Country(normalized) {
-	case domain.CountryRussia, domain.CountryKazakhstan, domain.CountryBelarus:
+	case domain.CountryRussia, domain.CountryKazakhstan, domain.CountryBelarus, domain.CountryUkraine:
 		return domain.Country(normalized), nil
 	default:
 		return "", ErrInvalidCountry

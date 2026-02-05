@@ -65,6 +65,8 @@ func (s *service) normalizeCountry(value string) (domain.Country, bool) {
 		return domain.CountryKazakhstan, true
 	case "belarus", "беларусь", "белоруссия":
 		return domain.CountryBelarus, true
+	case "ukraine", "украина", "україна", "ua":
+		return domain.CountryUkraine, true
 	default:
 		return "", false
 	}

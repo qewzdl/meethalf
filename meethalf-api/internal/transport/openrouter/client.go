@@ -190,7 +190,7 @@ Return this exact JSON shape:
   "gender": "male|female|other|unspecified",
   "min_age": integer or null,
   "max_age": integer or null,
-  "country": "russia|kazakhstan|belarus" or "",
+  "country": "russia|kazakhstan|belarus|ukraine" or "",
   "city": string or "",
   "emoji_code": "LDR|STR|ANA|CRT|COM|EMP|MED|PRF|RSR|INN|EXE|ADV|CNT|RLS|MOT|SKP" or "",
   "keywords": ["keyword1", "keyword2"]
@@ -205,5 +205,8 @@ Rules:
   Moscow, Saint Petersburg, Novosibirsk, Krasnodar, Omsk, Rostov-on-Don, Perm, Krasnoyarsk, Yekaterinburg, Kazan,
   Nizhny Novgorod, Ufa, Chelyabinsk, Samara, Voronezh, Volgograd,
   Astana, Almaty, Semey, Pavlodar, Shymkent, Aktobe, Karaganda, Taraz, Ust-Kamenogorsk, Atyrau,
-  Minsk, Gomel, Mogilev, Vitebsk, Grodno, Brest, Bobruisk, Baranovichi, Borisov.
+  Minsk, Gomel, Mogilev, Vitebsk, Grodno, Brest, Bobruisk, Baranovichi, Borisov,
+  Kyiv, Kharkiv, Odesa, Dnipro, Donetsk, Lviv, Zaporizhzhia, Kryvyi Rih, Mykolaiv, Luhansk, Mariupol, Kherson,
+  Vinnytsia, Poltava, Chernihiv, Cherkasy, Zhytomyr, Sumy, Khmelnytskyi, Rivne, Ternopil, Ivano-Frankivsk,
+  Lutsk, Chernivtsi.
 `

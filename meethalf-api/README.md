@@ -72,7 +72,7 @@ curl -X POST http://localhost:8080/api/v1/admin/ads \
 ```
 
 `birth_date` uses the `DD.MM.YYYY` format (for example, `24.12.2006`); age is derived automatically and must be between 16 and 120. `country` must be one of `russia`, `kazakhstan`,
-or `belarus`; `city` must be in the supported list for the selected country. `emoji_code` must be one of the supported
+`belarus`, or `ukraine`; `city` must be in the supported list for the selected country. `emoji_code` must be one of the supported
 profile emoji codes listed below. Set `is_hidden=true` to hide a profile from search results. `likes_notifications_enabled`
 defaults to `true` and controls whether inbound like notifications are delivered.
 Profile responses include `is_moderator` to indicate moderation role; it is managed through the admin endpoints.
@@ -121,6 +121,9 @@ Supported cities:
   Nizhny Novgorod, Ufa, Chelyabinsk, Samara, Voronezh, Volgograd.
 - Kazakhstan: Astana, Almaty, Semey, Pavlodar, Shymkent, Aktobe, Karaganda, Taraz, Ust-Kamenogorsk, Atyrau.
 - Belarus: Minsk, Gomel, Mogilev, Vitebsk, Grodno, Brest, Bobruisk, Baranovichi, Borisov.
+- Ukraine: Kyiv, Kharkiv, Odesa, Dnipro, Donetsk, Lviv, Zaporizhzhia, Kryvyi Rih, Mykolaiv, Luhansk, Mariupol, Kherson,
+  Vinnytsia, Poltava, Chernihiv, Cherkasy, Zhytomyr, Sumy, Khmelnytskyi, Rivne, Ternopil, Ivano-Frankivsk, Lutsk,
+  Chernivtsi.
 
 Supported profile emoji codes:
 

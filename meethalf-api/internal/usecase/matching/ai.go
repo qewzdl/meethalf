@@ -171,7 +171,7 @@ func normalizeCountryFilter(value domain.Country) domain.Country {
 	}
 
 	switch domain.Country(normalized) {
-	case domain.CountryRussia, domain.CountryKazakhstan, domain.CountryBelarus:
+	case domain.CountryRussia, domain.CountryKazakhstan, domain.CountryBelarus, domain.CountryUkraine:
 		return domain.Country(normalized)
 	default:
 		return ""

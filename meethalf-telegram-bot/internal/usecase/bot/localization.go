@@ -80,6 +80,8 @@ func (l localizer) countryLabel(country domain.Country) string {
 		return l.label(labelCountryKazakhstan)
 	case domain.CountryBelarus:
 		return l.label(labelCountryBelarus)
+	case domain.CountryUkraine:
+		return l.label(labelCountryUkraine)
 	default:
 		return l.label(labelNotSet)
 	}
@@ -553,6 +555,7 @@ const (
 	btnCountryRussia             buttonKey = "country_russia"
 	btnCountryKazakhstan         buttonKey = "country_kazakhstan"
 	btnCountryBelarus            buttonKey = "country_belarus"
+	btnCountryUkraine            buttonKey = "country_ukraine"
 	btnSearchMen                 buttonKey = "search_men"
 	btnSearchWomen               buttonKey = "search_women"
 	btnSearchOther               buttonKey = "search_other"
@@ -594,6 +597,7 @@ const (
 	labelCountryRussia      labelKey = "country_russia"
 	labelCountryKazakhstan  labelKey = "country_kazakhstan"
 	labelCountryBelarus     labelKey = "country_belarus"
+	labelCountryUkraine     labelKey = "country_ukraine"
 	labelActionLike         labelKey = "action_like"
 	labelActionDislike      labelKey = "action_dislike"
 	labelActionReport       labelKey = "action_report"
@@ -865,7 +869,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgAgeTooYoung:                      "Age must be at least %d. Check the birth date.",
 		msgAgeTooOld:                        "Age must be %d or younger. Check the birth date.",
 		msgAgeAccessDenied:                  "Access is limited to users %d+.",
-		msgCountryInvalid:                   "Please choose a country: Russia, Kazakhstan, or Belarus.",
+		msgCountryInvalid:                   "Please choose a country: Russia, Kazakhstan, Belarus, or Ukraine.",
 		msgCityInvalid:                      "Please pick a city from your country's list.",
 		msgDescriptionEmpty:                 "Description can't be empty. Try again.",
 		msgDescriptionTooLong:               "Description is too long — max %d characters.",
@@ -1138,7 +1142,7 @@ var messageCatalog = map[domain.Language]map[messageKey]string{
 		msgAgeTooYoung:                      "Возраст должен быть не меньше %d. Проверьте дату рождения.",
 		msgAgeTooOld:                        "Возраст должен быть не больше %d. Проверьте дату рождения.",
 		msgAgeAccessDenied:                  "Доступ к боту только для пользователей %d+.",
-		msgCountryInvalid:                   "Выберите страну: Россия, Казахстан или Беларусь.",
+		msgCountryInvalid:                   "Выберите страну: Россия, Казахстан, Беларусь или Украина.",
 		msgCityInvalid:                      "Выберите город из списка вашей страны.",
 		msgDescriptionEmpty:                 "Описание не может быть пустым. Попробуйте снова.",
 		msgDescriptionTooLong:               "Описание слишком длинное (максимум %d символов).",
@@ -1246,6 +1250,7 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnCountryRussia:             "Russia 🇷🇺",
 		btnCountryKazakhstan:         "Kazakhstan 🇰🇿",
 		btnCountryBelarus:            "Belarus 🇧🇾",
+		btnCountryUkraine:            "Ukraine 🇺🇦",
 		btnSearchMen:                 "Men 👨",
 		btnSearchWomen:               "Women 👩",
 		btnSearchOther:               "Other",
@@ -1339,6 +1344,7 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnCountryRussia:             "Россия 🇷🇺",
 		btnCountryKazakhstan:         "Казахстан 🇰🇿",
 		btnCountryBelarus:            "Беларусь 🇧🇾",
+		btnCountryUkraine:            "Украина 🇺🇦",
 		btnSearchMen:                 "Парни 👨",
 		btnSearchWomen:               "Девушки 👩",
 		btnSearchOther:               "Другое",
@@ -1382,6 +1388,7 @@ var labelCatalog = map[domain.Language]map[labelKey]string{
 		labelCountryRussia:      "Russia 🇷🇺",
 		labelCountryKazakhstan:  "Kazakhstan 🇰🇿",
 		labelCountryBelarus:     "Belarus 🇧🇾",
+		labelCountryUkraine:     "Ukraine 🇺🇦",
 		labelActionLike:         "Liked",
 		labelActionDislike:      "Passed",
 		labelActionReport:       "Reported",
@@ -1430,6 +1437,7 @@ var labelCatalog = map[domain.Language]map[labelKey]string{
 		labelCountryRussia:      "Россия",
 		labelCountryKazakhstan:  "Казахстан",
 		labelCountryBelarus:     "Беларусь",
+		labelCountryUkraine:     "Украина",
 		labelActionLike:         "Понравилось",
 		labelActionDislike:      "Пропуск",
 		labelActionReport:       "Репорт",
@@ -1498,6 +1506,30 @@ var cityLabels = map[domain.Language]map[string]string{
 		"Bobruisk":         "Бобруйск",
 		"Baranovichi":      "Барановичи",
 		"Borisov":          "Борисов",
+		"Kyiv":            "Киев",
+		"Kharkiv":         "Харьков",
+		"Odesa":           "Одесса",
+		"Dnipro":          "Днепр",
+		"Donetsk":         "Донецк",
+		"Lviv":            "Львов",
+		"Zaporizhzhia":    "Запорожье",
+		"Kryvyi Rih":      "Кривой Рог",
+		"Mykolaiv":        "Николаев",
+		"Luhansk":         "Луганск",
+		"Mariupol":        "Мариуполь",
+		"Kherson":         "Херсон",
+		"Vinnytsia":       "Винница",
+		"Poltava":         "Полтава",
+		"Chernihiv":       "Чернигов",
+		"Cherkasy":        "Черкассы",
+		"Zhytomyr":        "Житомир",
+		"Sumy":            "Сумы",
+		"Khmelnytskyi":    "Хмельницкий",
+		"Rivne":           "Ровно",
+		"Ternopil":        "Тернополь",
+		"Ivano-Frankivsk": "Ивано-Франковск",
+		"Lutsk":           "Луцк",
+		"Chernivtsi":      "Черновцы",
 	},
 }
 
@@ -1562,6 +1594,7 @@ var buttonEmojiOverrides = map[buttonKey]string{
 	btnCountryRussia:             "🇷🇺",
 	btnCountryKazakhstan:         "🇰🇿",
 	btnCountryBelarus:            "🇧🇾",
+	btnCountryUkraine:            "🇺🇦",
 	btnLanguage:                  "🌐",
 	btnLanguageEnglish:           "",
 	btnLanguageRussian:           "",

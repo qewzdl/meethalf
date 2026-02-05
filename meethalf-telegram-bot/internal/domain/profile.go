@@ -38,6 +38,7 @@ const (
 	CountryRussia     Country = "russia"
 	CountryKazakhstan Country = "kazakhstan"
 	CountryBelarus    Country = "belarus"
+	CountryUkraine    Country = "ukraine"
 )
 
 type ProfileEmojiCode string

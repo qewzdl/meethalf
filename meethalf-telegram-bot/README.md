@@ -50,7 +50,7 @@ Admin UI labels are localized for English, Russian, and Ukrainian, including sha
 
 The bot guides users through a nine-step profile setup: a short anti-bot verification check (choose the correct answer
 from four buttons), name (use the Telegram name button or type a custom one), gender, birth date (DD.MM.YYYY), country
-(Russia, Kazakhstan, or Belarus), city (selected from the supported list), description, emoji selection, and a photo
+(Russia, Kazakhstan, Belarus, or Ukraine), city (selected from the supported list), description, emoji selection, and a photo
 album (1-4 photos). The verification step plus gender, country (with flag emoji), city, and emoji are selected via inline buttons. After
 sending at least one photo, use the Done button to finish the setup. Drafts are
 stored in the same session store so they can survive restarts when Redis is enabled. The setup header includes an estimated
@@ -68,6 +68,9 @@ Supported cities:
   Nizhny Novgorod, Ufa, Chelyabinsk, Samara, Voronezh, Volgograd.
 - Kazakhstan: Astana, Almaty, Semey, Pavlodar, Shymkent, Aktobe, Karaganda, Taraz, Ust-Kamenogorsk, Atyrau.
 - Belarus: Minsk, Gomel, Mogilev, Vitebsk, Grodno, Brest, Bobruisk, Baranovichi, Borisov.
+- Ukraine: Kyiv, Kharkiv, Odesa, Dnipro, Donetsk, Lviv, Zaporizhzhia, Kryvyi Rih, Mykolaiv, Luhansk, Mariupol, Kherson,
+  Vinnytsia, Poltava, Chernihiv, Cherkasy, Zhytomyr, Sumy, Khmelnytskyi, Rivne, Ternopil, Ivano-Frankivsk, Lutsk,
+  Chernivtsi.
 
 Supported profile emoji codes:
 

@@ -923,9 +923,15 @@ func (s *service) countryInlineKeyboard(l localizer) *domain.InlineKeyboard {
 					Text:         l.button(btnCountryKazakhstan),
 					CallbackData: string(domain.CountryKazakhstan),
 				},
+			},
+			{
 				{
 					Text:         l.button(btnCountryBelarus),
 					CallbackData: string(domain.CountryBelarus),
+				},
+				{
+					Text:         l.button(btnCountryUkraine),
+					CallbackData: string(domain.CountryUkraine),
 				},
 			},
 		},
