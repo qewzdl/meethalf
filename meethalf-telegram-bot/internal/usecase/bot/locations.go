@@ -90,13 +90,18 @@ func (s *service) normalizeCity(country domain.Country, value string) (string, b
 		}
 	}
 
-	ruLabels := cityLabels[domain.LanguageRussian]
-	if len(ruLabels) == 0 {
-		return "", false
+	labelSets := []map[string]string{
+		cityLabels[domain.LanguageRussian],
+		cityLabels[domain.LanguageUkrainian],
 	}
-	for _, option := range options {
-		if label, ok := ruLabels[option]; ok && strings.EqualFold(label, value) {
-			return option, true
+	for _, labels := range labelSets {
+		if len(labels) == 0 {
+			continue
+		}
+		for _, option := range options {
+			if label, ok := labels[option]; ok && strings.EqualFold(label, value) {
+				return option, true
+			}
 		}
 	}
 

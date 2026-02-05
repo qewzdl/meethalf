@@ -739,6 +739,12 @@ func (s *service) languageInlineKeyboard(l localizer) *domain.InlineKeyboard {
 			},
 			{
 				{
+					Text:         l.button(btnLanguageUkrainian),
+					CallbackData: domain.CommandProfileLanguage + ":" + string(domain.LanguageUkrainian),
+				},
+			},
+			{
+				{
 					Text:         l.button(btnBackToSettings),
 					CallbackData: domain.CommandProfileSettings,
 				},
@@ -758,6 +764,12 @@ func (s *service) languageOnboardingInlineKeyboard(l localizer) *domain.InlineKe
 				{
 					Text:         l.button(btnLanguageRussian),
 					CallbackData: domain.CommandLanguageOnboarding + ":" + string(domain.LanguageRussian),
+				},
+			},
+			{
+				{
+					Text:         l.button(btnLanguageUkrainian),
+					CallbackData: domain.CommandLanguageOnboarding + ":" + string(domain.LanguageUkrainian),
 				},
 			},
 		},

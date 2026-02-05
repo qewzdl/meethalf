@@ -65,6 +65,8 @@ func parseLanguageInput(value string) (domain.Language, bool) {
 		return domain.LanguageEnglish, true
 	case "ru", "rus", "russian":
 		return domain.LanguageRussian, true
+	case "uk", "ua", "ukr", "ukrainian":
+		return domain.LanguageUkrainian, true
 	default:
 		return "", false
 	}
@@ -74,6 +76,9 @@ func languageFromTelegramCode(code string) domain.Language {
 	normalized := strings.ToLower(strings.TrimSpace(code))
 	if normalized == "" {
 		return ""
+	}
+	if strings.HasPrefix(normalized, "uk") || strings.HasPrefix(normalized, "ua") {
+		return domain.LanguageUkrainian
 	}
 	if strings.HasPrefix(normalized, "ru") {
 		return domain.LanguageRussian

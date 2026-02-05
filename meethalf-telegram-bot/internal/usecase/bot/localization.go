@@ -157,6 +157,8 @@ func (l localizer) cityLabel(city string) string {
 
 func (l localizer) languageLabel(lang domain.Language) string {
 	switch lang {
+	case domain.LanguageUkrainian:
+		return l.label(labelLanguageUkrainian)
 	case domain.LanguageRussian:
 		return l.label(labelLanguageRussian)
 	default:
@@ -570,6 +572,7 @@ const (
 	btnBackToSettings            buttonKey = "back_to_settings"
 	btnLanguageEnglish           buttonKey = "language_english"
 	btnLanguageRussian           buttonKey = "language_russian"
+	btnLanguageUkrainian         buttonKey = "language_ukrainian"
 )
 
 const (
@@ -617,6 +620,7 @@ const (
 	labelUpdated            labelKey = "label_updated"
 	labelLanguageEnglish    labelKey = "language_english"
 	labelLanguageRussian    labelKey = "language_russian"
+	labelLanguageUkrainian  labelKey = "language_ukrainian"
 	labelThisUser           labelKey = "this_user"
 )
 
@@ -1261,6 +1265,7 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnBackToSettings:            "Back to preferences",
 		btnLanguageEnglish:           "English 🇺🇸",
 		btnLanguageRussian:           "Русский 🇷🇺",
+		btnLanguageUkrainian:         "Українська 🇺🇦",
 	},
 	domain.LanguageRussian: {
 		btnCancel:                    "В главное меню",
@@ -1353,6 +1358,7 @@ var buttonCatalog = map[domain.Language]map[buttonKey]string{
 		btnBackToSettings:            "Назад к параметрам",
 		btnLanguageEnglish:           "English 🇺🇸",
 		btnLanguageRussian:           "Русский 🇷🇺",
+		btnLanguageUkrainian:         "Українська 🇺🇦",
 	},
 }
 
@@ -1402,6 +1408,7 @@ var labelCatalog = map[domain.Language]map[labelKey]string{
 		labelUpdated:            "Updated on",
 		labelLanguageEnglish:    "English 🇺🇸",
 		labelLanguageRussian:    "Russian 🇷🇺",
+		labelLanguageUkrainian:  "Ukrainian 🇺🇦",
 		labelThisUser:           "this account",
 	},
 	domain.LanguageRussian: {
@@ -1449,6 +1456,7 @@ var labelCatalog = map[domain.Language]map[labelKey]string{
 		labelUpdated:            "Последнее обновление",
 		labelLanguageEnglish:    "Английский 🇺🇸",
 		labelLanguageRussian:    "Русский 🇷🇺",
+		labelLanguageUkrainian:  "Украинский 🇺🇦",
 		labelThisUser:           "этот аккаунт",
 	},
 }
@@ -1557,6 +1565,7 @@ var buttonEmojiOverrides = map[buttonKey]string{
 	btnLanguage:                  "🌐",
 	btnLanguageEnglish:           "",
 	btnLanguageRussian:           "",
+	btnLanguageUkrainian:         "",
 	btnAdvancedSearchEnable:      "⚙️",
 	btnAdvancedSearchDisable:     "⚙️",
 	btnAdvancedSearchStatus:      "⚙️",
@@ -1597,6 +1606,8 @@ func buttonEmoji(key buttonKey) string {
 
 func normalizeLanguageValue(lang domain.Language) domain.Language {
 	switch lang {
+	case domain.LanguageUkrainian:
+		return domain.LanguageUkrainian
 	case domain.LanguageRussian:
 		return domain.LanguageRussian
 	default:
