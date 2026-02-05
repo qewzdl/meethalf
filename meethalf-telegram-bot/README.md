@@ -49,7 +49,7 @@ Admin UI labels are localized for English, Russian, and Ukrainian, including sha
 ## Profile setup
 
 The bot guides users through a nine-step profile setup: a short anti-bot verification check (choose the correct answer
-from four buttons), name (use the Telegram name button or type a custom one), gender, birth date (DD.MM.YYYY), country
+from four buttons), name (type a display name in one message, e.g., Alex, or tap the Telegram name button), gender, birth date (DD.MM.YYYY), country
 (Russia, Kazakhstan, Belarus, or Ukraine), city (selected from the supported list), description, emoji selection, and a photo
 album (1-4 photos). The verification step plus gender, country (with flag emoji), city, and emoji are selected via inline buttons. After
 sending at least one photo, use the Done button to finish the setup. Drafts are
